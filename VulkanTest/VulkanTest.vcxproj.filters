@@ -18,5 +18,20 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Application.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Application.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Shader.vert" />
+    <None Include="src\Shader.frag" />
+    <None Include="src\compile_shaders.bat">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="src\vert.spv" />
+    <None Include="src\frag.spv" />
   </ItemGroup>
 </Project>
