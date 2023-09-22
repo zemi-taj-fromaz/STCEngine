@@ -24,6 +24,12 @@
     <ClCompile Include="src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\AppVulkanImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AppImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\Shader.vert" />
@@ -33,5 +39,13 @@
     </None>
     <None Include="src\vert.spv" />
     <None Include="src\frag.spv" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AppImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
