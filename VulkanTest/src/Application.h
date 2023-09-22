@@ -1,7 +1,6 @@
 #pragma once
 
-class AppImpl;
-
+#include "AppImpl.h"
 #include <memory>
 
 class Application

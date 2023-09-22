@@ -10,5 +10,5 @@ AppImpl* AppImpl::Create() {
 	//case2:return nestodrugo
 	//}
 
-	return dynamic_cast<AppImpl*>(new AppVulkanImpl());
+	return new AppVulkanImpl();
 }

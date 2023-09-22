@@ -1,5 +1,4 @@
 #include "Application.h"
-#include "Platform/Vulkan/AppVulkanImpl.h"
 
 Application::Application()
 {
