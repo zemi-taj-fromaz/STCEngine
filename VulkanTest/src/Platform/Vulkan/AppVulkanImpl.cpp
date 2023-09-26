@@ -122,7 +122,6 @@ void AppVulkanImpl::Cleanup()
     vkDestroyBuffer(m_Device, m_VertexBuffer, nullptr);
     vkFreeMemory(m_Device, m_VertexBufferMemory, nullptr);
 
-    vkDestroyBuffer(m_Device, m_VertexBuffer, nullptr);
     for (size_t i = 0; i < m_SyncObjects.size(); i++)
     {
         vkDestroySemaphore(m_Device, m_SyncObjects[i].ImageAvailableSemaphore, nullptr);
@@ -975,7 +974,7 @@ void AppVulkanImpl::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     renderPassInfo.framebuffer = m_SwapChainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = m_SwapChainExtent;
-    VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+    VkClearValue clearColor = { {{0.0f, 0.8f, 0.8f, 1.0f}} };
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 
