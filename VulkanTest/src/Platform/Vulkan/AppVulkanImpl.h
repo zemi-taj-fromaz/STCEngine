@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 
 #include "AppImpl.h"
 
@@ -15,6 +17,7 @@
 #include <vector>
 #include <iostream>
 #include <optional>
+#include <chrono>
 
 //The swap extent is the resolution of the swap chain images and it's almost always exactly equal to the resolution of the window that we're drawing to in pixels 
 //ako je currentExtnet = MAX -> odabiremo rezoluciju koja odgovara prozoru
@@ -76,6 +79,12 @@ struct Vertex {
     }
 };
 
+struct UniformBufferObject {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
 class AppVulkanImpl : public AppImpl
 {
 public:
@@ -98,11 +107,15 @@ private:
     void CreateSwapChain();
     void CreateImageViews();
     void CreateRenderPass();
+    void CreateDescriptorSetLayout();
     void CreateGraphicsPipeline();
     void CreateFramebuffers();
     void CreateCommandPool();
     void CreateVertexBuffer();
     void CreateIndexBuffer();
+    void CreateUniformBuffers();
+    void CreateDescriptorPool();
+    void CreateDescriptorSets();
     void CreateCommandBuffers();
     void CreateSyncObjects();
 
@@ -134,6 +147,8 @@ private:
 
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+    void UpdateUniformBuffer(uint32_t currentImage);
 
 
 private:
@@ -183,6 +198,7 @@ private:
     std::vector<VkImageView> m_SwapChainImageViews;
     
     VkRenderPass m_RenderPass;
+    VkDescriptorSetLayout m_DescriptorSetLayout;
     VkPipelineLayout m_PipelineLayout;
     VkPipeline m_GraphicsPipeline;
     
@@ -197,6 +213,12 @@ private:
     VkBuffer m_IndexBuffer;
     VkDeviceMemory m_IndexBufferMemory;
     
+    std::vector<VkBuffer> m_UniformBuffers;
+    std::vector<VkDeviceMemory> m_UniformBuffersMemory;
+    std::vector<void*> m_UniformBuffersMapped;
+
+    VkDescriptorPool m_DescriptorPool;
+    std::vector<VkDescriptorSet> m_DescriptorSets;
     
 
 };
