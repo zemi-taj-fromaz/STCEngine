@@ -7,12 +7,12 @@ public:
     virtual ~AppImpl() {};
 
 public:
-    static AppImpl* Create();
+    static AppImpl* create();
 
 public:
-    virtual void InitializeWindow() = 0;
-    virtual void InitializeApp() = 0;
-    virtual void MainLoop() = 0;
-    virtual void Cleanup() = 0;
+    virtual void initialize_window() = 0;
+    virtual void initialize_app() = 0;
+    virtual void main_loop() = 0;
+    virtual void cleanup() = 0;
 };
 

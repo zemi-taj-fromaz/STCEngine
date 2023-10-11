@@ -2,7 +2,7 @@
 
 #include "Platform/Vulkan/AppVulkanImpl.h"
 
-AppImpl* AppImpl::Create() {
+AppImpl* AppImpl::create() {
 
 	//switch (IMPL_MACRO)
 	//{

@@ -2,7 +2,7 @@
 
 Application::Application()
 {
-    m_AppImpl = std::unique_ptr<AppImpl>(AppImpl::Create());
+    m_AppImpl = std::unique_ptr<AppImpl>(AppImpl::create());
 }
 
 Application::~Application()
@@ -10,34 +10,34 @@ Application::~Application()
 
 }
 
-void Application::Run() 
+void Application::run() 
 {
     {
-        this->InitializeWindow();
-        this->InitializeApp();
-        this->MainLoop();
-        this->Cleanup();
+        this->initialize_window();
+        this->initialize_app();
+        this->main_loop();
+        this->cleanup();
     }
 }
 
 
 
-void Application::InitializeWindow()
+void Application::initialize_window()
 {
-    m_AppImpl->InitializeWindow();
+    m_AppImpl->initialize_window();
 }
 
-void Application::InitializeApp()
+void Application::initialize_app()
 {
-    m_AppImpl->InitializeApp();
+    m_AppImpl->initialize_app();
 }
 
-void Application::MainLoop()
+void Application::main_loop()
 {
-    m_AppImpl->MainLoop();
+    m_AppImpl->main_loop();
 }
-void Application::Cleanup()
+void Application::cleanup()
 {
-    m_AppImpl->Cleanup();
+    m_AppImpl->cleanup();
 }
 

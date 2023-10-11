@@ -8,13 +8,13 @@ class Application
 public:
     Application();
     ~Application();
-    void Run();
+    void run();
 
 private:
-    void InitializeWindow();
-    void InitializeApp();
-    void MainLoop();
-    void Cleanup();
+    void initialize_window();
+    void initialize_app();
+    void main_loop();
+    void cleanup();
 
 private:
     std::unique_ptr<AppImpl> m_AppImpl;

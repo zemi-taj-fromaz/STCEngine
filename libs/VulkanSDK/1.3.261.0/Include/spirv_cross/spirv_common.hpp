@@ -456,20 +456,20 @@ protected:
 		return static_cast<ObjectPool<T> *>(pool)->allocate(*this); \
 	}
 
-struct SPIRUndef : IVariant
+struct SPIrundef : IVariant
 {
 	enum
 	{
 		type = TypeUndef
 	};
 
-	explicit SPIRUndef(TypeID basetype_)
+	explicit SPIrundef(TypeID basetype_)
 	    : basetype(basetype_)
 	{
 	}
 	TypeID basetype;
 
-	SPIRV_CROSS_DECLARE_CLONE(SPIRUndef)
+	SPIRV_CROSS_DECLARE_CLONE(SPIrundef)
 };
 
 struct SPIRString : IVariant
