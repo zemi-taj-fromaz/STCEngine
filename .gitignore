@@ -5,6 +5,7 @@ Intermediates/
 
 # Hazel files
 *.log
+*.obj
 
 # Visual Studio files and folder
 .vs/
@@ -13,3 +14,8 @@ Intermediates/
 **.vcxproj.filters
 **.vcxproj.user
 **.csproj
+/VulkanTest/resources/models/UnityHubSetup.exe
+/VulkanTest/resources/shaders/Shader.vert
+/VulkanTest/resources/shaders/Shader.frag
+/VulkanTest/src/Platform/Vulkan/PipelineBuilder.cpp
+/VulkanTest/src/Platform/Vulkan/PipelineBuilder.h

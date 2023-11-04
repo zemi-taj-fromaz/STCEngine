@@ -1,20 +1,11 @@
 #pragma once
+#include "VulkanInit.h"
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
-#include <glm/glm.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 
 #include "AppImpl.h"
+#include "PipelineBuilderStateMachine.h"
+
 
 #include <array>
 #include <vector>
@@ -29,85 +20,6 @@ GLFW uses two units when measuring sizes: pixels and screen coordinates.
 For example, the resolution {WIDTH, HEIGHT} that we specified earlier when creating the window is measured in screen coordinates.
 But Vulkan works with pixels, so the swap chain extent must be specified in pixels as well.
 */
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR Capabilities; //Min MAx images supported in the swap chain, range of resolutions
-    std::vector<VkSurfaceFormatKHR> Formats;    //Format and ColorSpace - Format = BGRAlpha, ColorSpace-neki kurac
-    std::vector<VkPresentModeKHR> PresentModes; //MOST IMPORTANT- conditions for showing images to the screen
-};
-
-struct QueueFamilyIndices {
-    std::optional<uint32_t> GraphicsFamily;
-    std::optional<uint32_t> PresentFamily;
-
-    bool isComplete() {
-        return GraphicsFamily.has_value() && PresentFamily.has_value();
-    }
-};
-
-struct SyncObjects
-{
-    VkSemaphore ImageAvailableSemaphore;
-    VkSemaphore RenderFinishedSemaphore;
-    VkFence InFlightFence;
-};
-
-struct Vertex {
-    glm::vec3 Position;
-    glm::vec3 Color;
-    glm::vec2 TexCoord;
-
-    bool operator==(const Vertex& other) const {
-        return Position == other.Position && Color == other.Color && TexCoord == other.TexCoord;
-    }
-
-    static VkVertexInputBindingDescription get_binding_description() {
-
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> get_attribute_descriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, Position);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, Color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
-
-
-        return attributeDescriptions;
-    }
-};
-
-namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.Position) ^
-                (hash<glm::vec3>()(vertex.Color) << 1)) >> 1) ^
-                (hash<glm::vec2>()(vertex.TexCoord) << 1);
-        }
-    };
-}
-
-struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
 
 class AppVulkanImpl : public AppImpl
 {
@@ -121,6 +33,14 @@ public:
     virtual void cleanup() override;
 
     inline void set_frame_buffer_resized() { m_FramebufferResized = true;  }
+    inline void set_camera_offset(float offset) { float zoomSpeed = 1.f; camera_offset -= offset * zoomSpeed; update_camera_buffer(); }
+
+
+    inline glm::vec2 get_mouse_position() { return this->m_MousePosition; }
+    inline void set_mouse_position(glm::vec2 mousePosition) { this->m_MousePosition = mousePosition; }
+
+    inline void process_mouse_movement(float xoffset, float yoffset) { this->m_Camera.process_mouse_movement(xoffset, yoffset); }
+    inline void set_field_of_view(float yoffset) { this->m_Camera.set_field_of_view(yoffset); };
 
 private:
     void create_instance();
@@ -129,29 +49,33 @@ private:
     void pick_physical_device(); // - IMPROVEMENT? : Device selection algorithm ( VkPhysicalDeviceMemoryProperties)
     void create_logical_device();
     void create_swapchain();
-    void create_image_views();
+ //   void create_image_views();
     void create_render_pass();
     void create_descriptor_set_layout();
     void create_graphics_pipeline();
     void create_framebuffers();
-    void create_command_pool();
     void create_depth_resources();
-    void create_texture_image();
-    void create_texture_image_view();
+
+    void create_texture_image(Texture& texture);
+   // void create_texture_image_view();
     void create_texture_sampler();
+
     void load_model();
-    void create_texture_sample();
-    void create_index_buffer();
-    void create_uniform_buffers();
-    void create_descriptor_pool();
-    void create_descriptor_sets();
-    void create_command_buffers();
+
+    void initialize_buffers();
+
+    void initialize_descriptors();
+
+    void initialize_commands();
+
     void create_sync_objects();
 
 
     void draw_frame();
 
 private:
+  //  void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+
     bool check_validation_layer_support();
     std::vector<const char*> get_required_extensions();
     VkResult create_debug_utils_messenger_ext(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pcreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
@@ -177,7 +101,7 @@ private:
     void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-    void update_uniform_buffer(uint32_t currentImage);
+    void update_camera_buffer();
     void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
     VkCommandBuffer  begin_single_time_commands();
@@ -193,33 +117,39 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
+    void upload_mesh(Mesh& mesh);
+    Material* create_material(VkPipeline pipeline, VkPipelineLayout layout, const std::string& name);
+    Material* create_material(VkPipeline pipeline, VkPipelineLayout layout, std::vector<VkDescriptorSet> textureSet, const std::string& name);
+
+    Material* get_material(std::string name);
+    Mesh* get_mesh(std::string name);
+
+  //  void update_transform_matrices();
+    
+    void draw_objects(VkCommandBuffer commandBuffer, std::vector<RenderObject>& renderObjects, uint32_t imageIndex);
+    VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(int binding, int count, VkDescriptorType type, VkShaderStageFlagBits shaderStageFlag);
+    VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorBufferInfo& bufferInfo);
+    VkWriteDescriptorSet write_descriptor_image(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorImageInfo& imageInfo);
+    VkDescriptorSetLayoutCreateInfo create_layout_info(VkDescriptorSetLayoutBinding* bindings, size_t size);
+
+    VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
+
+
 private:
     GLFWwindow* m_Window;
     const uint32_t m_Width = 1280;
     const uint32_t m_Height = 720;
-    const int MAX_FRAMES_IN_FLIGHT = 2;
+    int MAX_FRAMES_IN_FLIGHT = 2;
     uint32_t m_CurrentFrame{ 0 };
     bool m_FramebufferResized = false;
 
-    const std::string MODEL_PATH =   "resources/models/viking_room.obj";
-    const std::string TEXTURE_PATH = "resources/textures/viking_room.png";
+    PipelineBuilder m_PipelineBuilder;
+    DeletionQueue m_DeletionQueue;
+
     
-    std::vector<Vertex> m_Vertices = {
-        {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f,1.0f}},
-        {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    std::vector<Vertex> m_Vertices;
 
-        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f,1.0f}},
-        {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    };
-
-    std::vector<uint32_t> m_Indices = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4
-    };
+    std::vector<uint32_t> m_Indices;
 
 #ifdef NDEBUG
     const bool ENABLED_VALIDATION_LAYERS = false;
@@ -230,17 +160,20 @@ private:
 private:
     VkInstance m_Instance;
     VkDebugUtilsMessengerEXT m_DebugMessenger;
-    
-    const std::vector<const char*> m_ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
-    const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    
     VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
     VkDevice m_Device;
+    VkSurfaceKHR m_Surface;
+
+
+
+
     
+
+    const std::vector<const char*> m_ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
+    const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     VkQueue m_GraphicsQueue;
     VkQueue m_PresentQueue;
     
-    VkSurfaceKHR m_Surface;
     
     VkSwapchainKHR m_SwapChain;
     std::vector<VkImage> m_SwapChainImages;
@@ -249,9 +182,13 @@ private:
     std::vector<VkImageView> m_SwapChainImageViews;
     
     VkRenderPass m_RenderPass;
-    VkDescriptorSetLayout m_DescriptorSetLayout;
-    VkPipelineLayout m_PipelineLayout;
-    VkPipeline m_GraphicsPipeline;
+    VkDescriptorSetLayout m_SceneSetLayout;
+
+    VkPipelineLayout m_TexturePipelineLayout;
+    VkPipeline m_TexturePipeline;
+
+    VkPipelineLayout m_PlainPipelineLayout;
+    VkPipeline m_PlainPipeline;
     
     std::vector<VkFramebuffer> m_SwapChainFramebuffers;
 
@@ -264,22 +201,51 @@ private:
     VkBuffer m_IndexBuffer;
     VkDeviceMemory m_IndexBufferMemory;
     
-    std::vector<VkBuffer> m_UniformBuffers;
-    std::vector<VkDeviceMemory> m_UniformBuffersMemory;
-    std::vector<void*> m_UniformBuffersMapped;
+    VkBuffer m_CameraBuffer;
+    VkDeviceMemory m_CameraBufferMemory;
+    void* m_CameraBufferMapped;
 
     VkDescriptorPool m_DescriptorPool;
-    std::vector<VkDescriptorSet> m_DescriptorSets;
+    std::vector<VkDescriptorSet> m_SceneSets;
+    std::vector<VkDescriptorSet> m_ObjectSets;
+    std::vector<VkDescriptorSet> m_TextureSets;
 
-    VkImage m_TextureImage;
-    VkDeviceMemory m_TextureImageMemory;
-    VkImageView m_TextureImageView;
+    std::unordered_map<std::string, Texture> m_TextureMap;
+
     VkSampler m_TextureSampler;
 
     VkImage m_DepthImage;
     VkDeviceMemory m_DepthImageMemory;
     VkImageView m_DepthImageView;
-    
+
+    std::vector<RenderObject> m_RenderObjects;
+
+    std::unordered_map<std::string, Material> m_Materials;
+    std::unordered_map<std::string, Mesh> m_Meshes;
+
+    //float x_offset{ 0.0f };
+    //float y_offset{ 0.0f };
+
+    Camera m_Camera;
+
+    glm::vec2 m_MousePosition{ m_Width /2.0f, m_Height / 2.0f };
+
+    float camera_offset = 15.0f; 
+
+    Scene m_Scene;
+
+    std::vector<Object> m_Objects;
+    VkDescriptorSetLayout m_ObjectSetLayout;
+
+    VkDescriptorSetLayout m_TextureSetLayout;
+
+    UploadContext m_UploadContext;
+
+    Mesh m_Jet;
+    Mesh m_Panda;
+
+
+
 
 };
 

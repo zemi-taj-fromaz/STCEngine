@@ -131,8 +131,14 @@
     <ClCompile Include="src\Application.h" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Platform\Vulkan\AppVulkanImpl.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\HelperObjects.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\PipelineBuilderStateMachine.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="resources\shaders\TextureShader.frag" />
+    <None Include="resources\shaders\TextureShader.vert" />
+    <None Include="resources\shaders\PlainShader.frag" />
+    <None Include="resources\shaders\PlainShader.vert" />
     <None Include="src\compile_shaders.bat" />
     <None Include="src\frag.spv" />
     <None Include="src\Shader.frag" />
@@ -142,10 +148,17 @@
   <ItemGroup>
     <ClInclude Include="src\AppImpl.h" />
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h" />
+    <ClInclude Include="src\Platform\Vulkan\HelperObjects.h" />
+    <ClInclude Include="src\Platform\Vulkan\PipelineBuilderStateMachine.h" />
+    <ClInclude Include="src\Platform\Vulkan\VulkanInit.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\textures\statue.jpg" />
     <Image Include="resources\textures\viking_room.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\animations\line.txt" />
+    <Text Include="resources\animations\spiral.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
