@@ -30,25 +30,15 @@
     <ClCompile Include="src\AppImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Platform\Vulkan\PipelineBuilderStateMachine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Platform\Vulkan\HelperObjects.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\Shader.vert" />
-    <None Include="src\Shader.frag" />
-    <None Include="src\compile_shaders.bat">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="src\vert.spv" />
-    <None Include="src\frag.spv" />
-    <None Include="resources\shaders\PlainShader.frag" />
-    <None Include="resources\shaders\PlainShader.vert" />
     <None Include="resources\shaders\TextureShader.frag" />
     <None Include="resources\shaders\TextureShader.vert" />
+    <None Include="resources\shaders\PlainShader.frag" />
+    <None Include="resources\shaders\PlainShader.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h">
@@ -57,13 +47,13 @@
     <ClInclude Include="src\AppImpl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\HelperObjects.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\PipelineBuilderStateMachine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Vulkan\VulkanInit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Platform\Vulkan\HelperObjects.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -72,6 +62,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="resources\textures\viking_room.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\BODYMAINCOLORCG.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
