@@ -78,7 +78,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>vendor\;...\libs\imgui;resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -95,7 +95,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>vendor\;...\libs\imgui;resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -112,7 +112,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>vendor\;...\libs\imgui;resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -132,6 +132,14 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Platform\Vulkan\AppVulkanImpl.cpp" />
     <ClCompile Include="src\Platform\Vulkan\HelperObjects.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\PipelineBuilderStateMachine.cpp" />
+    <ClCompile Include="vendor\imgui\imgui.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_draw.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shaders\TextureShader.frag" />
@@ -145,6 +153,14 @@
     <ClInclude Include="src\Platform\Vulkan\HelperObjects.h" />
     <ClInclude Include="src\Platform\Vulkan\PipelineBuilderStateMachine.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanInit.h" />
+    <ClInclude Include="vendor\imgui\imconfig.h" />
+    <ClInclude Include="vendor\imgui\imgui.h" />
+    <ClInclude Include="vendor\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="vendor\imgui\imgui_impl_vulkan.h" />
+    <ClInclude Include="vendor\imgui\imgui_internal.h" />
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
+    <ClInclude Include="vendor\imgui\imstb_textedit.h" />
+    <ClInclude Include="vendor\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\textures\BODYMAINCOLORCG.png" />

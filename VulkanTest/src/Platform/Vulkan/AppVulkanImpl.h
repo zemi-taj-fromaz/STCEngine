@@ -1,4 +1,7 @@
 #pragma once
+
+
+
 #include "VulkanInit.h"
 
 
@@ -73,8 +76,11 @@ private:
 
     void draw_frame();
 
+
+    void init_imgui();
+
 private:
-  //  void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+    void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
     bool check_validation_layer_support();
     std::vector<const char*> get_required_extensions();
@@ -133,6 +139,7 @@ private:
     VkDescriptorSetLayoutCreateInfo create_layout_info(VkDescriptorSetLayoutBinding* bindings, size_t size);
 
     VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
+
 
 
 private:
@@ -244,8 +251,7 @@ private:
     Mesh m_Jet;
     Mesh m_Panda;
 
-
-
+    VkDescriptorPool m_ImguiPool;
 
 };
 

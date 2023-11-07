@@ -11,6 +11,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_vulkan.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -88,11 +91,11 @@ void AppVulkanImpl::initialize_app()
     pick_physical_device();
     create_logical_device();
     create_swapchain();
-  //  create_image_views();
     create_render_pass();
 
     create_descriptor_set_layout();
     create_graphics_pipeline();
+
     initialize_commands();
     create_depth_resources();
     create_framebuffers();
@@ -101,18 +104,18 @@ void AppVulkanImpl::initialize_app()
 
     load_model();
 
-    
     initialize_buffers();
     initialize_descriptors();
-
-
     create_sync_objects();
+
+    init_imgui();
 }
 
 void AppVulkanImpl::main_loop()
 {
     float time = (float)glfwGetTime();
     while (!glfwWindowShouldClose(m_Window)) {
+
         glfwPollEvents();
         
         float currTime = (float)glfwGetTime();
@@ -146,6 +149,15 @@ void AppVulkanImpl::main_loop()
             break;
 
         }
+
+        //imgui new frame
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+
+        ImGui::NewFrame();
+
+        //imgui commands
+        ImGui::ShowDemoWindow();
        
 
         draw_frame();
@@ -830,33 +842,57 @@ void AppVulkanImpl::initialize_descriptors()
 
 void AppVulkanImpl::initialize_commands()
 {
-
-    //----------------------POOls-------------------------------------------------------------------------------
     QueueFamilyIndices queueFamilyIndices = find_queue_families(m_PhysicalDevice);
+    {
 
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.GraphicsFamily.value();
-    if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create command pool!");
+        //----------------------POOls-------------------------------------------------------------------------------
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.GraphicsFamily.value();
+        if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create command pool!");
+        }
+        m_DeletionQueue.push_function([=]() { vkDestroyCommandPool(m_Device, m_CommandPool, nullptr); }, "CommandPool");
+
+
+        //-------------------------BUFFERs---------------------------------------------------------------------------
+
+        m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = m_CommandPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+
+
+        if (vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
     }
-    m_DeletionQueue.push_function([=]() { vkDestroyCommandPool(m_Device, m_CommandPool, nullptr); }, "CommandPool");
 
+    //------------------------Upload Context------------------------------------------------------------------------
 
-    //-------------------------BUFFERs---------------------------------------------------------------------------
+    VkCommandPoolCreateInfo uploadCommandPoolInfo{};
+    uploadCommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    uploadCommandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    uploadCommandPoolInfo.queueFamilyIndex = queueFamilyIndices.GraphicsFamily.value();
+    //create pool for upload context
+    vkCreateCommandPool(m_Device, &uploadCommandPoolInfo, nullptr, &m_UploadContext.CommandPool);
 
-    m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_DeletionQueue.push_function([=]() {
+        vkDestroyCommandPool(m_Device, m_UploadContext.CommandPool, nullptr);
+        }, "UploadCommandPool");
+
+    //allocate the default command buffer that we will use for the instant commands
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_CommandPool;
+    allocInfo.commandPool = m_UploadContext.CommandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+    allocInfo.commandBufferCount = 1;
 
-
-    if (vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate command buffers!");
-    }
+    vkAllocateCommandBuffers(m_Device, &allocInfo, &m_UploadContext.CommandBuffer);
 }
 
 void AppVulkanImpl::create_sync_objects()
@@ -880,6 +916,13 @@ void AppVulkanImpl::create_sync_objects()
         m_DeletionQueue.push_function([=]() { vkDestroySemaphore(m_Device, m_SyncObjects[i].RenderFinishedSemaphore, nullptr); }, "Sempahore2");
         m_DeletionQueue.push_function([=]() { vkDestroyFence(m_Device, m_SyncObjects[i].InFlightFence, nullptr); }, "Fence");
     }
+    VkFenceCreateInfo uploadContextFenceCreateInfo{};
+    uploadContextFenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+    vkCreateFence(m_Device, &uploadContextFenceCreateInfo, nullptr, &m_UploadContext.UploadFence);
+    m_DeletionQueue.push_function([=]() {
+        vkDestroyFence(m_Device, m_UploadContext.UploadFence, nullptr);
+        }, "UploadFence");
 
     //if (vkCreateFence(m_Device, &fenceInfo, nullptr, &m_UploadContext.UploadFence) != VK_SUCCESS) {
     //    throw std::runtime_error("failed to create Upload Fence!");
@@ -888,37 +931,39 @@ void AppVulkanImpl::create_sync_objects()
 
 }
 //
-//// implementation
-//VkCommandBufferBeginInfo command_buffer_begin_info(VkCommandBufferUsageFlags flags /*= 0*/)
-//{
-//    VkCommandBufferBeginInfo info = {};
-//    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-//    info.pNext = nullptr;
-//
-//    info.pInheritanceInfo = nullptr;
-//    info.flags = flags;
-//    return info;
-//}
-//
-//VkSubmitInfo submit_info(VkCommandBuffer* cmd)
-//{
-//    VkSubmitInfo info = {};
-//    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//    info.pNext = nullptr;
-//
-//    info.waitSemaphoreCount = 0;
-//    info.pWaitSemaphores = nullptr;
-//    info.pWaitDstStageMask = nullptr;
-//    info.commandBufferCount = 1;
-//    info.pCommandBuffers = cmd;
-//    info.signalSemaphoreCount = 0;
-//    info.pSignalSemaphores = nullptr;
-//
-//    return info;
-//}
+// implementation
+VkCommandBufferBeginInfo command_buffer_begin_info(VkCommandBufferUsageFlags flags /*= 0*/)
+{
+    VkCommandBufferBeginInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    info.pNext = nullptr;
+
+    info.pInheritanceInfo = nullptr;
+    info.flags = flags;
+    return info;
+}
+
+VkSubmitInfo submit_info(VkCommandBuffer* cmd)
+{
+    VkSubmitInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    info.pNext = nullptr;
+
+    info.waitSemaphoreCount = 0;
+    info.pWaitSemaphores = nullptr;
+    info.pWaitDstStageMask = nullptr;
+    info.commandBufferCount = 1;
+    info.pCommandBuffers = cmd;
+    info.signalSemaphoreCount = 0;
+    info.pSignalSemaphores = nullptr;
+
+    return info;
+}
 
 void AppVulkanImpl::draw_frame()
 {
+    ImGui::Render();
+
     static int frameNumber{ 0 };
     vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].InFlightFence, VK_TRUE, UINT64_MAX);
 
@@ -992,11 +1037,104 @@ void AppVulkanImpl::draw_frame()
 
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
+void AppVulkanImpl::init_imgui()
+{
+    VkDescriptorPoolSize pool_sizes[] =
+    {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+    };
+
+    VkDescriptorPoolCreateInfo pool_info = {};
+    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    pool_info.maxSets = 1000;
+    pool_info.poolSizeCount = std::size(pool_sizes);
+    pool_info.pPoolSizes = pool_sizes;
+
+
+    vkCreateDescriptorPool(m_Device, &pool_info, nullptr, &m_ImguiPool);
+
+
+    // 2: initialize imgui library
+
+    //this initializes the core structures of imgui
+    ImGui::CreateContext();
+
+  //  ImGui_ImplVulkan_Init(m_Window);
+    ImGui_ImplGlfw_InitForVulkan(m_Window, false);
+
+    //this initializes imgui for Vulkan
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = m_Instance;
+    init_info.PhysicalDevice = m_PhysicalDevice;
+    init_info.Device = m_Device;
+    init_info.Queue = m_GraphicsQueue;
+    init_info.DescriptorPool = m_ImguiPool;
+    init_info.MinImageCount = 3;
+    init_info.ImageCount = 3;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+    ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
+
+    //execute a gpu command to upload imgui font textures
+    immediate_submit([&](VkCommandBuffer cmd) {
+        ImGui_ImplVulkan_CreateFontsTexture(cmd);
+        });
+
+    //clear font textures from cpu data
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+    //add the destroy the imgui created structures
+    m_DeletionQueue.push_function([=]() {
+
+        vkDestroyDescriptorPool(m_Device, m_ImguiPool, nullptr);
+        ImGui_ImplVulkan_Shutdown();
+        }, "ImGui");
+
+}
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 //--------------------------------HELPER METHODS--------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
+
+void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function)
+{
+    VkCommandBuffer cmd = m_UploadContext.CommandBuffer;
+
+    //begin the command buffer recording. We will use this command buffer exactly once before resetting, so we tell vulkan that
+    VkCommandBufferBeginInfo cmdBeginInfo = command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
+    //execute the function
+    function(cmd);
+
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo submit = submit_info(&cmd);
+
+
+    //submit command buffer to the queue and execute it.
+    // _uploadFence will now block until the graphic commands finish execution
+    vkQueueSubmit(m_GraphicsQueue, 1, &submit, m_UploadContext.UploadFence);
+
+    vkWaitForFences(m_Device, 1, &m_UploadContext.UploadFence, true, 9999999999);
+    vkResetFences(m_Device, 1, &m_UploadContext.UploadFence);
+
+    // reset the command buffers inside the command pool
+    vkResetCommandPool(m_Device, m_UploadContext.CommandPool, 0);
+}
 
 bool AppVulkanImpl::check_validation_layer_support()
 {
@@ -1786,6 +1924,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, 0);
     }
 
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
