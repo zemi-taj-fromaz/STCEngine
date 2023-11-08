@@ -74,7 +74,7 @@ private:
     void create_sync_objects();
 
 
-    void draw_frame();
+    void draw_frame(float deltaTime);
 
 
     void init_imgui();

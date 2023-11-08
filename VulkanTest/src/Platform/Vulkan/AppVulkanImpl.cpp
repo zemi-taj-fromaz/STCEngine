@@ -169,7 +169,7 @@ void AppVulkanImpl::main_loop()
 
        
 
-        draw_frame();
+        draw_frame(deltaTime);
     }
     vkDeviceWaitIdle(m_Device);
 }
@@ -702,7 +702,7 @@ void AppVulkanImpl::load_model()
 
 
     m_Cat.load_from_obj("cat.obj", true);
-    m_Cat.load_animation("spiral.txt");
+   // m_Cat.load_animation("spiral.txt");
     upload_mesh(m_Cat);
     m_Meshes.insert(std::make_pair("cat", m_Cat));
 
@@ -993,7 +993,7 @@ VkSubmitInfo submit_info(VkCommandBuffer* cmd)
     return info;
 }
 
-void AppVulkanImpl::draw_frame()
+void AppVulkanImpl::draw_frame(float deltaTime)
 {
     if(s_ImGuiEnabled) ImGui::Render();
 
@@ -1021,8 +1021,13 @@ void AppVulkanImpl::draw_frame()
   //  m_Scene.Data.ambientColor = { sin(framed),0,cos(framed),1 };
     m_Scene.Data.ambientColor = { 0.2, 0.2, 0.2, 1.0 };
     m_Scene.Data.sunlightColor = { 1.0, 1.0, 0.2, 1.0 };
-   // m_Scene.Data.sunPosition = { 1.0, 1.0, 1.0, 1.0 };
 
+    static const float rotationSpeed = static_cast<float>(glm::two_pi<float>()) / 10.0f; // Radians per second for a full rotation in 10 seconds
+
+    float angle = rotationSpeed * deltaTime;
+    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    
+    m_Scene.Data.sunPosition = rotationMatrix * m_Scene.Data.sunPosition;
 
 
     memcpy(m_Scene.DataMapped, &m_Scene.Data, sizeof(SceneData));
