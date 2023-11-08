@@ -9,7 +9,7 @@
 #include <string>
 #include <sstream>
 
-bool Mesh::load_from_obj(std::string filename, bool texture)
+bool Mesh::load_from_obj(std::string filename, bool illuminated, bool texture)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -31,6 +31,16 @@ bool Mesh::load_from_obj(std::string filename, bool texture)
               attrib.vertices[3 * index.vertex_index + 1],
               attrib.vertices[3 * index.vertex_index + 2]
             };
+
+            if (illuminated)
+            {
+                vertex.Normal = {
+                    attrib.normals[3 * index.vertex_index + 0],
+                    attrib.normals[3 * index.vertex_index + 1],
+                    attrib.normals[3 * index.vertex_index + 2]
+                };
+            }
+
 
 
             vertex.Color = {

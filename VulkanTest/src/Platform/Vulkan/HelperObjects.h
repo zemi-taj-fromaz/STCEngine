@@ -35,11 +35,12 @@ struct SyncObjects
 
 struct Vertex {
     glm::vec3 Position;
+    glm::vec3 Normal;
     glm::vec3 Color;
     glm::vec2 TexCoord;
 
     bool operator==(const Vertex& other) const {
-        return Position == other.Position && Color == other.Color && TexCoord == other.TexCoord;
+        return Position == other.Position && Normal == other.Normal && Color == other.Color && TexCoord == other.TexCoord;
     }
 
     static VkVertexInputBindingDescription get_binding_description() {
@@ -53,7 +54,7 @@ struct Vertex {
     }
 
     static std::vector<VkVertexInputAttributeDescription> get_attribute_descriptions() {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(4); //<----------------------------------------------------------
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
@@ -63,12 +64,17 @@ struct Vertex {
         attributeDescriptions[1].binding = 0;
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, Color);
+        attributeDescriptions[1].offset = offsetof(Vertex, Normal);
 
         attributeDescriptions[2].binding = 0;
         attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, Color);
+
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(Vertex, TexCoord);
 
 
         return attributeDescriptions;
@@ -87,6 +93,7 @@ namespace std {
 struct CameraBufferObject {
     glm::mat4 view;
     glm::mat4 proj;
+    glm::vec4 pos;
 };
 
 struct NamedFunction
@@ -166,7 +173,7 @@ struct Mesh
     const std::string ANIMATION_PATH = "resources/animations/";
 
 
-    bool load_from_obj(std::string filename, bool texture = false);
+    bool load_from_obj(std::string filename, bool illuminated, bool texture = false);
     bool load_animation(std::string filename);
 };
 
@@ -252,7 +259,7 @@ struct Camera
        // std::cout << direction.x << " " << direction.y << direction.z << std::endl;
     }
 
-    glm::vec3 Position{ glm::vec3(0.0f, 0.0f, 50.0f) };
+    glm::vec3 Position{ glm::vec3(0.0f, 0.0f, 200.0f) };
 
     float Yaw = -90.0f;
     float Pitch = 0.0f;
@@ -306,6 +313,7 @@ struct SceneData {
     glm::vec4 ambientColor{ 0.0f, 0.0f, 0.0f, 0.0f };
     glm::vec4 sunlightDirection{ 0.0f, 0.0f, 0.0f, 0.0f }; //w for sun power
     glm::vec4 sunlightColor{ 0.0f, 0.0f, 0.0f, 0.0f };
+    glm::vec4 sunPosition{ -500.0f, 400.0f, 350.0f, 0.0f };
 };
 
 struct ObjectData

@@ -143,6 +143,9 @@ private:
 
 
 private:
+
+    static bool s_ImGuiEnabled;
+
     GLFWwindow* m_Window;
     const uint32_t m_Width = 1280;
     const uint32_t m_Height = 720;
@@ -196,6 +199,8 @@ private:
 
     VkPipelineLayout m_PlainPipelineLayout;
     VkPipeline m_PlainPipeline;
+
+    VkPipeline m_IlluminatedPipeline;
     
     std::vector<VkFramebuffer> m_SwapChainFramebuffers;
 
@@ -237,7 +242,7 @@ private:
 
     glm::vec2 m_MousePosition{ m_Width /2.0f, m_Height / 2.0f };
 
-    float camera_offset = 15.0f; 
+    float camera_offset = 200.0f; 
 
     Scene m_Scene;
 
@@ -250,6 +255,7 @@ private:
 
     Mesh m_Jet;
     Mesh m_Panda;
+    Mesh m_Cat;
 
     VkDescriptorPool m_ImguiPool;
 

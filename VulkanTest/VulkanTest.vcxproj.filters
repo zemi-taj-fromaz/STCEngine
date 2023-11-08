@@ -63,6 +63,8 @@
     <None Include="resources\shaders\TextureShader.vert" />
     <None Include="resources\shaders\PlainShader.frag" />
     <None Include="resources\shaders\PlainShader.vert" />
+    <None Include="resources\shaders\IlluminateShader.vert" />
+    <None Include="resources\shaders\IlluminateShader.frag" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h">

@@ -335,6 +335,7 @@ bool PipelineBuilder::compile_shader(std::string sourcePath, shaderc_shader_kind
 		shaderSource.data(), shaderSource.size(), shaderKind, sourcePath.c_str(), options);
 
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+//		std::cout << result.GetCompilationStatus() << std::endl;
 		throw std::runtime_error("Failed to compile shader ! ");
 	}
 

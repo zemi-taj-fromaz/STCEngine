@@ -15,6 +15,8 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_vulkan.h"
 
+bool AppVulkanImpl::s_ImGuiEnabled = false;
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -99,7 +101,7 @@ void AppVulkanImpl::initialize_app()
     initialize_commands();
     create_depth_resources();
     create_framebuffers();
-   
+
     create_texture_sampler();
 
     load_model();
@@ -108,7 +110,10 @@ void AppVulkanImpl::initialize_app()
     initialize_descriptors();
     create_sync_objects();
 
-    init_imgui();
+    if (AppVulkanImpl::s_ImGuiEnabled)
+    {
+        init_imgui();
+    }
 }
 
 void AppVulkanImpl::main_loop()
@@ -122,7 +127,7 @@ void AppVulkanImpl::main_loop()
         float deltaTime = currTime - time;
         time = currTime;
 
-        float cameraSpeed = 10.0f;
+        float cameraSpeed = 100.0f;
 
         // Check for key presses
         if (glfwGetKey(m_Window, GLFW_KEY_W) == GLFW_PRESS) {
@@ -150,14 +155,18 @@ void AppVulkanImpl::main_loop()
 
         }
 
+        if (s_ImGuiEnabled)
+        {
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+
+            ImGui::NewFrame();
+
+            //imgui commands
+            ImGui::ShowDemoWindow();
+        }
         //imgui new frame
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
 
-        ImGui::NewFrame();
-
-        //imgui commands
-        ImGui::ShowDemoWindow();
        
 
         draw_frame();
@@ -550,6 +559,17 @@ void AppVulkanImpl::create_graphics_pipeline()
     m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_PlainPipeline, nullptr); }, "Pipeline");
 
     create_material(m_PlainPipeline, m_PlainPipelineLayout, "plainmaterial");
+
+    m_PipelineBuilder.VertexShaderName = "IlluminateShader.vert";
+    m_PipelineBuilder.FragmentShaderName = "IlluminateShader.frag";
+
+    m_IlluminatedPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+    create_material(m_IlluminatedPipeline, m_PlainPipelineLayout, "illuminatematerial");
+
+    m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_IlluminatedPipeline, nullptr); }, "Pipeline");
+
+
 }
 
 void AppVulkanImpl::create_framebuffers()
@@ -670,15 +690,21 @@ void AppVulkanImpl::load_model()
 {
 
 
-    m_Jet.load_from_obj("fighter_jet.obj", true);
+    m_Jet.load_from_obj("fighter_jet.obj", false, true);
     m_Jet.load_animation("spiral.txt");
     upload_mesh(m_Jet);
     m_Meshes.insert(std::make_pair("jet", m_Jet));
 
-    m_Panda.load_from_obj("panda.obj");
+    m_Panda.load_from_obj("panda.obj", false);
     m_Panda.load_animation("spiral.txt");
     upload_mesh(m_Panda);    
     m_Meshes.insert(std::make_pair("panda", m_Panda));
+
+
+    m_Cat.load_from_obj("cat.obj", true);
+    m_Cat.load_animation("spiral.txt");
+    upload_mesh(m_Cat);
+    m_Meshes.insert(std::make_pair("cat", m_Cat));
 
 
     Texture fighterJetMain("BODYMAINCOLORCG.png");
@@ -695,14 +721,21 @@ void AppVulkanImpl::load_model()
     jet.MaterialHandle = get_material("texturematerial");
     jet.Model = glm::mat4{ 1.0f };
 
-    m_RenderObjects.push_back(jet);
+  //  m_RenderObjects.push_back(jet);
 
     RenderObject panda;
     panda.MeshHandle = get_mesh("panda");
     panda.MaterialHandle = get_material("plainmaterial");
     panda.Model = glm::mat4{ 1.0f };
 
-    m_RenderObjects.push_back(panda);
+    RenderObject cat;
+    cat.MeshHandle = get_mesh("cat");
+    cat.MaterialHandle = get_material("illuminatematerial");
+    cat.Model = glm::mat4{ 1.0f };
+
+    cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
+
+    m_RenderObjects.push_back(cat);
 }
 
 
@@ -962,7 +995,7 @@ VkSubmitInfo submit_info(VkCommandBuffer* cmd)
 
 void AppVulkanImpl::draw_frame()
 {
-    ImGui::Render();
+    if(s_ImGuiEnabled) ImGui::Render();
 
     static int frameNumber{ 0 };
     vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].InFlightFence, VK_TRUE, UINT64_MAX);
@@ -985,9 +1018,12 @@ void AppVulkanImpl::draw_frame()
     update_camera_buffer();
 
     float framed = (frameNumber++ / 120.f);
-    m_Scene.Data.ambientColor = { sin(framed),0,cos(framed),1 };
+  //  m_Scene.Data.ambientColor = { sin(framed),0,cos(framed),1 };
+    m_Scene.Data.ambientColor = { 0.2, 0.2, 0.2, 1.0 };
+    m_Scene.Data.sunlightColor = { 1.0, 1.0, 0.2, 1.0 };
+   // m_Scene.Data.sunPosition = { 1.0, 1.0, 1.0, 1.0 };
 
-    //memcpy(m_Scene.DataMapped, &m_Scene.Data, sizeof(SceneData));
+
 
     memcpy(m_Scene.DataMapped, &m_Scene.Data, sizeof(SceneData));
 
@@ -1058,7 +1094,7 @@ void AppVulkanImpl::init_imgui()
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     pool_info.maxSets = 1000;
-    pool_info.poolSizeCount = std::size(pool_sizes);
+    pool_info.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes));
     pool_info.pPoolSizes = pool_sizes;
 
 
@@ -1507,9 +1543,11 @@ void AppVulkanImpl::update_camera_buffer()
 
     CameraBufferObject cbo{};
     cbo.view = glm::lookAt(m_Camera.Position, m_Camera.Position + m_Camera.Front, m_Camera.Up);
-    cbo.proj = glm::perspective(glm::radians(m_Camera.Fov), m_SwapChainExtent.width / (float)m_SwapChainExtent.height, 0.1f, 100.0f);
+    cbo.proj = glm::perspective(glm::radians(m_Camera.Fov), m_SwapChainExtent.width / (float)m_SwapChainExtent.height, 0.1f, 500.0f);
 
     cbo.proj[1][1] *= -1;
+
+    cbo.pos = glm::vec4(m_Camera.Position,1.0f);
 
     memcpy(m_CameraBufferMapped, &cbo, sizeof(cbo));
 }
@@ -1924,7 +1962,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, 0);
     }
 
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+    if(s_ImGuiEnabled) ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
