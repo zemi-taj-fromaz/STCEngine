@@ -735,7 +735,8 @@ void AppVulkanImpl::load_model()
 
     cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
 
-    m_RenderObjects.push_back(cat);
+    m_RenderObjects.push_back(panda);
+
 }
 
 
