@@ -65,8 +65,8 @@
     <None Include="resources\shaders\PlainShader.vert" />
     <None Include="resources\shaders\IlluminateShader.vert" />
     <None Include="resources\shaders\IlluminateShader.frag" />
-    <None Include="resources\shaders\SkyboxShader.frag" />
     <None Include="resources\shaders\SkyboxShader.vert" />
+    <None Include="resources\shaders\SkyboxShader.frag" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h">

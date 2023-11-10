@@ -495,10 +495,19 @@ void AppVulkanImpl::create_descriptor_set_layout()
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 
+    VkDescriptorSetLayoutBinding cameraLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    VkDescriptorSetLayoutBinding cubemapLayoutBinding = create_descriptor_set_layout_binding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings2 = { cameraLayoutBinding, cubemapLayoutBinding };//, samplerLayoutBinding
+    VkDescriptorSetLayoutCreateInfo skyboxLayoutInfo = create_layout_info(bindings2.data(), bindings2.size());
+    if (vkCreateDescriptorSetLayout(m_Device, &skyboxLayoutInfo, nullptr, &m_CubemapSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor set layout!");
+    }
+
     m_DeletionQueue.push_function([=]() {
         vkDestroyDescriptorSetLayout(m_Device, m_SceneSetLayout, nullptr);
         vkDestroyDescriptorSetLayout(m_Device, m_ObjectSetLayout, nullptr); 
         vkDestroyDescriptorSetLayout(m_Device, m_TextureSetLayout, nullptr); 
+        vkDestroyDescriptorSetLayout(m_Device, m_CubemapSetLayout, nullptr);
         }, 
        "DescriptorSetLayouts");
 
@@ -569,6 +578,27 @@ void AppVulkanImpl::create_graphics_pipeline()
 
     m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_IlluminatedPipeline, nullptr); }, "Pipeline");
 
+
+  //  VkDescriptorSetLayout setLayouts[] = { m_SceneSetLayout, m_ObjectSetLayout, m_TextureSetLayout };
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo3{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1; // Optional
+    pipelineLayoutInfo.pSetLayouts = &m_CubemapSetLayout; // Optional
+
+    if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo3, nullptr, &m_CubemapPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+
+    m_DeletionQueue.push_function([=]() { vkDestroyPipelineLayout(m_Device, m_CubemapPipelineLayout, nullptr); }, "PipelineLAyout");
+
+    m_PipelineBuilder.PipelineLayout = m_CubemapPipelineLayout;
+    m_PipelineBuilder.VertexShaderName = "SkyboxShader.vert";
+    m_PipelineBuilder.FragmentShaderName = "SkyboxShader.frag";
+
+    m_CubemapPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+    create_material(m_CubemapPipeline, m_CubemapPipelineLayout, "skyboxmaterial");
 
 }
 
@@ -653,6 +683,68 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 
 }
 
+void AppVulkanImpl::create_cubemap(Texture& texture)
+{
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels[6];
+    std::array<std::string, 6> texturePrefix = { "front.jpg", "back.jpg", "up.jpg", "down.jpg", "left.jpg", "right.jpg" };
+
+    for (int i = 0; i < 6; i++)
+    {
+        pixels[i] = stbi_load(std::string(Texture::PATH + texture.Filename + texturePrefix[i]).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    
+        if (!pixels[i]) {
+            throw std::runtime_error("failed to load texture image!");
+        }
+    
+    }
+
+    VkDeviceSize imageSize = texWidth * texHeight * 4 * 6;
+    VkDeviceSize layerSize = imageSize / 6;
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    create_buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(m_Device, stagingBufferMemory, 0, imageSize, 0, &data);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        memcpy(data , pixels[i], static_cast<size_t>(layerSize));
+        data = static_cast<void*>(static_cast<int*>(data) + i * static_cast<size_t>(layerSize));
+    }
+    
+
+    vkUnmapMemory(m_Device, stagingBufferMemory);
+
+    for (int i = 0; i < 6; i++)
+    {
+        stbi_image_free(pixels[i]);
+    }
+
+
+    create_image(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, texture.Image, texture.Memory, 6u);
+
+    transition_image_layout(texture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6u);
+    copy_buffer_to_image(stagingBuffer, texture.Image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 6u);
+    transition_image_layout(texture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 6u);
+
+    vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
+    vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+
+
+    texture.ImageView = create_image_view(texture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, true);
+
+    m_DeletionQueue.push_function([=]() {
+        vkDestroyImage(m_Device, texture.Image, nullptr);
+    vkFreeMemory(m_Device, texture.Memory, nullptr);
+    vkDestroyImageView(m_Device, texture.ImageView, nullptr);
+        }, "Texture");
+}
+
 
 
 void AppVulkanImpl::create_texture_sampler()
@@ -702,19 +794,28 @@ void AppVulkanImpl::load_model()
 
 
     m_Cat.load_from_obj("cat.obj", true);
-   // m_Cat.load_animation("spiral.txt");
+    m_Cat.load_animation("spiral.txt");
     upload_mesh(m_Cat);
     m_Meshes.insert(std::make_pair("cat", m_Cat));
+
+    m_Skybox.load_from_obj("skybox.obj", false, true);
+    //m_Cat.load_animation("spiral.txt");
+    upload_mesh(m_Skybox);
+    m_Meshes.insert(std::make_pair("skybox", m_Skybox));
+
 
 
     Texture fighterJetMain("BODYMAINCOLORCG.png");
     Texture fighterJetCamo("BODYCAMBUMPCG.png");
+    Texture skyboxTexture("skybox/");
 
     create_texture_image(fighterJetMain);
     create_texture_image(fighterJetCamo);
+    create_cubemap(skyboxTexture);
 
     m_TextureMap.insert(std::make_pair("fighterJetMain", fighterJetMain));
     m_TextureMap.insert(std::make_pair("fighterJetCamo", fighterJetCamo));
+    m_TextureMap.insert(std::make_pair("skybox", skyboxTexture));
 
     RenderObject jet;
     jet.MeshHandle = get_mesh("jet");
@@ -735,8 +836,14 @@ void AppVulkanImpl::load_model()
 
     cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
 
-    m_RenderObjects.push_back(panda);
+    RenderObject skybox;
+    skybox.MeshHandle = get_mesh("skybox");
+    cat.MaterialHandle = get_material("skyboxmaterial");
+    cat.Model = glm::mat4{ 1.0f };
 
+
+    m_RenderObjects.push_back(cat);
+    m_RenderObjects.push_back(skybox);
 }
 
 
@@ -813,12 +920,18 @@ void AppVulkanImpl::initialize_descriptors()
     std::vector<VkDescriptorSetLayout> textureLayouts(MAX_FRAMES_IN_FLIGHT, m_TextureSetLayout);
     VkDescriptorSetAllocateInfo textureLayoutsallocInfo = create_descriptor_alloc_info(textureLayouts.data(), textureLayouts.size());
 
+    std::vector<VkDescriptorSetLayout> cubemapLayouts(MAX_FRAMES_IN_FLIGHT, m_CubemapSetLayout);
+    VkDescriptorSetAllocateInfo cubemapLayoutsallocInfo = create_descriptor_alloc_info(cubemapLayouts.data(), cubemapLayouts.size());
+
     m_SceneSets.resize(MAX_FRAMES_IN_FLIGHT);
     m_ObjectSets.resize(MAX_FRAMES_IN_FLIGHT);
    // m_TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
 
     Material* texturedMat = get_material("texturematerial");
     texturedMat->TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+    Material* skyboxMaterial = get_material("skyboxmaterial");
+    skyboxMaterial->TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
 
     if (vkAllocateDescriptorSets(m_Device, &sceneLayoutsallocInfo, m_SceneSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor sets!");
@@ -832,6 +945,9 @@ void AppVulkanImpl::initialize_descriptors()
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
+    if (vkAllocateDescriptorSets(m_Device, &cubemapLayoutsallocInfo, skyboxMaterial->TextureSets.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate descriptor sets!");
+    }
 
     const int MAX_OBJECTS = 1000;
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -856,6 +972,12 @@ void AppVulkanImpl::initialize_descriptors()
         imageBufferInfo.imageView = m_TextureMap["fighterJetMain"].ImageView;
         imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+        VkDescriptorImageInfo skyboxBufferInfo;
+        imageBufferInfo.sampler = m_CubeSampler;
+        imageBufferInfo.imageView = m_TextureMap["skybox"].ImageView;
+        imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+
         //std::array<VkDescriptorBufferInfo, 3> descriptorBufferInfo{ cameraBufferInfo, sceneBufferInfo, objectBufferInfo };
 
         std::vector<VkWriteDescriptorSet> descriptorWrites;
@@ -864,6 +986,8 @@ void AppVulkanImpl::initialize_descriptors()
         descriptorWrites.push_back(write_descriptor_set(m_SceneSets[i], 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneBufferInfo));
         descriptorWrites.push_back(write_descriptor_set(m_ObjectSets[i], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, objectBufferInfo));
         descriptorWrites.push_back(write_descriptor_image(texturedMat->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo));
+        descriptorWrites.push_back(write_descriptor_set(skyboxMaterial->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, cameraBufferInfo));
+        descriptorWrites.push_back(write_descriptor_image(skyboxMaterial->TextureSets[i], 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo));
 
 
         // Now, call vkUpdateDescriptorSets to perform the updates
@@ -1558,7 +1682,7 @@ void AppVulkanImpl::update_camera_buffer()
     memcpy(m_CameraBufferMapped, &cbo, sizeof(cbo));
 }
 
-void AppVulkanImpl::create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void AppVulkanImpl::create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int arrayLayers)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1567,13 +1691,14 @@ void AppVulkanImpl::create_image(uint32_t width, uint32_t height, VkFormat forma
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
+    imageInfo.arrayLayers = arrayLayers;
     imageInfo.format = format;
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if(arrayLayers == 6) imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
     if (vkCreateImage(m_Device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image!");
@@ -1629,7 +1754,7 @@ void AppVulkanImpl::end_single_time_commands(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &commandBuffer);
 }
 
-void AppVulkanImpl::transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void AppVulkanImpl::transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, unsigned int layerCount)
 {
     VkCommandBuffer commandBuffer = begin_single_time_commands();
 
@@ -1645,7 +1770,7 @@ void AppVulkanImpl::transition_image_layout(VkImage image, VkFormat format, VkIm
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.layerCount = layerCount;
 
     //barrier.srcAccessMask = 0; // TODO
     //barrier.dstAccessMask = 0; // TODO
@@ -1703,7 +1828,7 @@ void AppVulkanImpl::transition_image_layout(VkImage image, VkFormat format, VkIm
 
 }
 
-void AppVulkanImpl::copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+void AppVulkanImpl::copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, unsigned int layerCount) {
     VkCommandBuffer commandBuffer = begin_single_time_commands();
 
     VkBufferImageCopy region{};
@@ -1714,7 +1839,7 @@ void AppVulkanImpl::copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.mipLevel = 0;
     region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
+    region.imageSubresource.layerCount = layerCount;
 
     region.imageOffset = { 0, 0, 0 };
     region.imageExtent = {
@@ -1734,18 +1859,21 @@ void AppVulkanImpl::copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_
     end_single_time_commands(commandBuffer);
 }
 
-VkImageView AppVulkanImpl::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+VkImageView AppVulkanImpl::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, bool cubeMap)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    if(cubeMap) viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
     viewInfo.format = format;
     viewInfo.subresourceRange.aspectMask = aspectFlags;
     viewInfo.subresourceRange.baseMipLevel = 0;
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
+    if(cubeMap) viewInfo.subresourceRange.layerCount = 6;
+
 
     VkImageView imageView;
     if (vkCreateImageView(m_Device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
@@ -1922,13 +2050,15 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
     Mesh* lastMesh = nullptr;
     Material* lastMaterial = nullptr;
 
+    size_t size = renderObjects.size() - 1;
 
-    vkMapMemory(m_Device, m_Objects[imageIndex].Memory, 0, sizeof(ObjectData) * renderObjects.size(), 0, &m_Objects[imageIndex].Mapped);
+
+    vkMapMemory(m_Device, m_Objects[imageIndex].Memory, 0, sizeof(ObjectData) * size, 0, &m_Objects[imageIndex].Mapped);
 
 
     ObjectData* objectArray = (ObjectData*)m_Objects[imageIndex].Mapped;
 
-    for (size_t i = 0; i < renderObjects.size(); i++)
+    for (size_t i = 0; i < size; i++)
     {
         if(renderObjects[i].MeshHandle->Animated) renderObjects[i].compute_animation(time);
         objectArray[i].Model = renderObjects[i].Model;

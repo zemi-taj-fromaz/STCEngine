@@ -60,6 +60,7 @@ private:
     void create_depth_resources();
 
     void create_texture_image(Texture& texture);
+    void create_cubemap(Texture& texture);
    // void create_texture_image_view();
     void create_texture_sampler();
 
@@ -108,14 +109,14 @@ private:
     void copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     void update_camera_buffer();
-    void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int arrayLayers = 1);
 
     VkCommandBuffer  begin_single_time_commands();
     void  end_single_time_commands(VkCommandBuffer commandBuffer);
 
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-    void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-    VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, unsigned int layerCount = 1);
+    void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, unsigned int layerCount = 1);
+    VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, bool cubeMap = false);
 
     VkFormat find_supported_format(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat find_depth_format();
@@ -201,6 +202,9 @@ private:
     VkPipeline m_PlainPipeline;
 
     VkPipeline m_IlluminatedPipeline;
+
+    VkPipeline m_CubemapPipeline;
+    VkPipelineLayout m_CubemapPipelineLayout;
     
     std::vector<VkFramebuffer> m_SwapChainFramebuffers;
 
@@ -225,6 +229,8 @@ private:
     std::unordered_map<std::string, Texture> m_TextureMap;
 
     VkSampler m_TextureSampler;
+
+    VkSampler m_CubeSampler;
 
     VkImage m_DepthImage;
     VkDeviceMemory m_DepthImageMemory;
@@ -251,12 +257,14 @@ private:
 
     VkDescriptorSetLayout m_TextureSetLayout;
 
+    VkDescriptorSetLayout m_CubemapSetLayout;
+
     UploadContext m_UploadContext;
 
     Mesh m_Jet;
     Mesh m_Panda;
     Mesh m_Cat;
-    Mesh m_Spiral;
+    Mesh m_Skybox;
 
     VkDescriptorPool m_ImguiPool;
 
