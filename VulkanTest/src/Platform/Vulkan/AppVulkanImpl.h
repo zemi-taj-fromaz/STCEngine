@@ -256,6 +256,7 @@ private:
     Mesh m_Jet;
     Mesh m_Panda;
     Mesh m_Cat;
+    Mesh m_Spiral;
 
     VkDescriptorPool m_ImguiPool;
 

@@ -144,6 +144,8 @@
   <ItemGroup>
     <None Include="resources\shaders\IlluminateShader.frag" />
     <None Include="resources\shaders\IlluminateShader.vert" />
+    <None Include="resources\shaders\SkyboxShader.frag" />
+    <None Include="resources\shaders\SkyboxShader.vert" />
     <None Include="resources\shaders\TextureShader.frag" />
     <None Include="resources\shaders\TextureShader.vert" />
     <None Include="resources\shaders\PlainShader.frag" />
