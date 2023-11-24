@@ -65,8 +65,8 @@
     <None Include="resources\shaders\PlainShader.vert" />
     <None Include="resources\shaders\IlluminateShader.vert" />
     <None Include="resources\shaders\IlluminateShader.frag" />
-    <None Include="resources\shaders\SkyboxShader.vert" />
     <None Include="resources\shaders\SkyboxShader.frag" />
+    <None Include="resources\shaders\SkyboxShader.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h">
@@ -117,6 +117,24 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="resources\textures\BODYMAINCOLORCG.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\skybox\back.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\skybox\down.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\skybox\front.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\skybox\left.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\skybox\right.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\skybox\up.jpg">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

@@ -22,6 +22,10 @@ public:
 	VkExtent2D Extent;
 	VkPolygonMode PolygonMode;
 	VkPrimitiveTopology Topology;
+	VkCullModeFlags cullMode{ VK_CULL_MODE_BACK_BIT };
+	uint32_t Subpass{ 0 };
+	unsigned int DepthTest{ VK_TRUE };
+	bool Skybox{ false };
 
 
 private:

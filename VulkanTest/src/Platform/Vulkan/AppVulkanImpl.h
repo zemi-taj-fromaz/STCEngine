@@ -45,6 +45,8 @@ public:
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_Camera.process_mouse_movement(xoffset, yoffset); }
     inline void set_field_of_view(float yoffset) { this->m_Camera.set_field_of_view(yoffset); };
 
+    bool m_SkyboxOn{ true };
+
 private:
     void create_instance();
     void setup_debug_messenger();
@@ -248,7 +250,7 @@ private:
 
     glm::vec2 m_MousePosition{ m_Width /2.0f, m_Height / 2.0f };
 
-    float camera_offset = 200.0f; 
+    float camera_offset = 150.0f; 
 
     Scene m_Scene;
 
@@ -265,8 +267,11 @@ private:
     Mesh m_Panda;
     Mesh m_Cat;
     Mesh m_Skybox;
+    Mesh m_TextureTest;
 
     VkDescriptorPool m_ImguiPool;
+
+
 
 };
 

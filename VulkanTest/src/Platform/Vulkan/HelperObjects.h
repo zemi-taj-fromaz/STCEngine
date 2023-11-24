@@ -189,6 +189,7 @@ struct RenderObject
     Mesh* MeshHandle;
     Material* MaterialHandle;
 
+    bool isSkybox{ false };
 
     glm::mat4 Model{ glm::mat4(1.0f) };
 
@@ -259,7 +260,7 @@ struct Camera
        // std::cout << direction.x << " " << direction.y << direction.z << std::endl;
     }
 
-    glm::vec3 Position{ glm::vec3(0.0f, 0.0f, 200.0f) };
+    glm::vec3 Position{ glm::vec3(0.0f, 0.0f, 100.0f) };
 
     float Yaw = -90.0f;
     float Pitch = 0.0f;

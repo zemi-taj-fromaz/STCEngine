@@ -168,6 +168,12 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\textures\BODYMAINCOLORCG.png" />
+    <Image Include="resources\textures\skybox\back.jpg" />
+    <Image Include="resources\textures\skybox\down.jpg" />
+    <Image Include="resources\textures\skybox\front.jpg" />
+    <Image Include="resources\textures\skybox\left.jpg" />
+    <Image Include="resources\textures\skybox\right.jpg" />
+    <Image Include="resources\textures\skybox\up.jpg" />
     <Image Include="resources\textures\statue.jpg" />
     <Image Include="resources\textures\viking_room.png" />
   </ItemGroup>

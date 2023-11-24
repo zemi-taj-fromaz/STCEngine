@@ -52,7 +52,7 @@ VkPipeline PipelineBuilder::build_pipeline()//(std::string vertShaderName, std::
 
 	rasterizer.polygonMode = PolygonMode;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = this->cullMode;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -110,6 +110,15 @@ VkPipeline PipelineBuilder::build_pipeline()//(std::string vertShaderName, std::
 	depthStencil.front = {}; // Optional
 	depthStencil.back = {}; // Optional
 
+	if (Skybox)
+	{
+		depthStencil.depthTestEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_EQUAL;
+		depthStencil.depthBoundsTestEnable = VK_FALSE;
+		depthStencil.stencilTestEnable = VK_FALSE;
+	}
+
 		std::vector<VkDynamicState> dynamicStates = {
 	VK_DYNAMIC_STATE_VIEWPORT,
 	VK_DYNAMIC_STATE_SCISSOR
@@ -154,7 +163,7 @@ VkPipeline PipelineBuilder::build_pipeline()//(std::string vertShaderName, std::
 	pipelineInfo.pDynamicState = &dynamicState;// ();
 	pipelineInfo.layout = PipelineLayout;
 	pipelineInfo.renderPass = Pass;
-	pipelineInfo.subpass = 0;
+	pipelineInfo.subpass = Subpass;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 

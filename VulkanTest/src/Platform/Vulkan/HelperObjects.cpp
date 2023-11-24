@@ -77,6 +77,8 @@ bool Mesh::load_from_obj(std::string filename, bool illuminated, bool texture)
     return true;
 }
 
+
+
 bool Mesh::load_animation(std::string filename)
 {
     Animated = true;
