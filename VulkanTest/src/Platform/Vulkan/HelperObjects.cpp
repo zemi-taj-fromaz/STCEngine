@@ -6,4 +6,4 @@
 #include <sstream>
 
 
-const std::string Texture::PATH = "resources/textures/";
+

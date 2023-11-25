@@ -7,6 +7,7 @@
 #include "Mesh.h"
 #include "Camera.h"
 #include "RenderObject.h"
+#include "Texture.h"
 
 
 #include <array>
@@ -67,11 +68,11 @@ private:
 
     void load_model();
 
-    void initialize_buffers();
+    void create_buffers();
 
-    void initialize_descriptors();
+    void create_descriptors();
 
-    void initialize_commands();
+    void create_commands();
 
     void create_sync_objects();
 
@@ -126,11 +127,8 @@ private:
     }
 
     void upload_mesh(Mesh& mesh);
-    Material* create_material(VkPipeline pipeline, VkPipelineLayout layout, const std::string& name);
-    Material* create_material(VkPipeline pipeline, VkPipelineLayout layout, std::vector<VkDescriptorSet> textureSet, const std::string& name);
-
-    Material* get_material(std::string name);
-    Mesh* get_mesh(std::string name);
+    void create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout);
+    void create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout, std::vector<VkDescriptorSet> textureSet);
 
   //  void update_transform_matrices();
     
@@ -145,8 +143,9 @@ private:
     void create_mesh(Mesh& mesh, std::string meshName, bool illuminated, bool textured, std::optional<std::string> animation = std::nullopt);
   //  RenderObject create_render_object(std::string meshName, std::string materialName);
 
+    VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);
 
-
+    VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size,VkDeviceSize offset = 0);
 
 
 private:
@@ -232,8 +231,6 @@ private:
     std::vector<VkDescriptorSet> m_ObjectSets;
     std::vector<VkDescriptorSet> m_TextureSets;
 
-    std::unordered_map<std::string, Texture> m_TextureMap;
-
     VkSampler m_TextureSampler;
 
     VkSampler m_CubeSampler;
@@ -243,9 +240,6 @@ private:
     VkImageView m_DepthImageView;
 
     std::vector<RenderObject> m_RenderObjects;
-
-    std::unordered_map<std::string, Material> m_Materials;
-    std::unordered_map<std::string, Mesh> m_Meshes;
 
     //float x_offset{ 0.0f };
     //float y_offset{ 0.0f };
@@ -260,22 +254,30 @@ private:
 
     std::vector<Object> m_Objects;
     VkDescriptorSetLayout m_ObjectSetLayout;
-
     VkDescriptorSetLayout m_TextureSetLayout;
-
     VkDescriptorSetLayout m_CubemapSetLayout;
 
     UploadContext m_UploadContext;
 
-    Mesh m_Jet{ "fighter_jet.obj" };
-    Mesh m_Panda{ "panda.obj" };
-    Mesh m_Cat{ "cat.obj" };
-    Mesh m_Skybox{ "skybox.obj" };
-    Mesh m_TextureTest{ "texture.obj" };
+    Mesh m_Jet          { "fighter_jet.obj" };
+    Mesh m_Panda        { "panda.obj" };
+    Mesh m_Cat          { "cat.obj" };
+    Mesh m_Skybox       { "skybox.obj" };
+    Mesh m_TextureTest  { "texture.obj" };
 
     VkDescriptorPool m_ImguiPool;
 
     RenderObject m_SkyboxObj;
+
+    Material m_IlluminateMaterial;
+    Material m_SkyboxMaterial;
+    Material m_TextureMaterial;
+    Material m_PlainMaterial;
+
+    Texture m_FighterJetMain    { "BODYMAINCOLORCG.png"};
+    Texture m_FighterJetCamo    {"BODYCAMBUMPCG.png"   };
+    Texture m_SkyboxTexture     {"skybox/"             };
+    Texture m_Statue            {"statue.jpg"          };
 
 };
 

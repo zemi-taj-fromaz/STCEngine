@@ -109,7 +109,7 @@ void AppVulkanImpl::initialize_app()
     create_descriptor_set_layout();
     create_graphics_pipeline();
 
-    initialize_commands();
+    create_commands();
     create_depth_resources();
     create_framebuffers();
 
@@ -117,8 +117,8 @@ void AppVulkanImpl::initialize_app()
 
     load_model();
 
-    initialize_buffers();
-    initialize_descriptors();
+    create_buffers();
+    create_descriptors();
     create_sync_objects();
 
     if (AppVulkanImpl::s_ImGuiEnabled)
@@ -575,7 +575,7 @@ void AppVulkanImpl::create_graphics_pipeline()
      
     m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_TexturePipeline, nullptr); }, "Pipeline");
 
-    create_material(m_TexturePipeline, m_TexturePipelineLayout,  "texturematerial");
+    create_material(m_TextureMaterial, m_TexturePipeline, m_TexturePipelineLayout);
 
     //---------------------------------------------------------------------------------------------------------
 
@@ -601,7 +601,7 @@ void AppVulkanImpl::create_graphics_pipeline()
 
     m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_PlainPipeline, nullptr); }, "Pipeline");
 
-    create_material(m_PlainPipeline, m_PlainPipelineLayout, "plainmaterial");
+    create_material(m_PlainMaterial, m_PlainPipeline, m_PlainPipelineLayout);
 
     //---------------------------------------------------------------------------------------------------------
 
@@ -610,7 +610,7 @@ void AppVulkanImpl::create_graphics_pipeline()
 
     m_IlluminatedPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-    create_material(m_IlluminatedPipeline, m_PlainPipelineLayout, "illuminatematerial");
+    create_material(m_IlluminateMaterial, m_IlluminatedPipeline, m_PlainPipelineLayout);
 
     m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_IlluminatedPipeline, nullptr); }, "Pipeline");
 
@@ -639,8 +639,7 @@ void AppVulkanImpl::create_graphics_pipeline()
 
     m_CubemapPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-    create_material(m_CubemapPipeline, m_CubemapPipelineLayout, "skyboxmaterial");
-
+    create_material(m_SkyboxMaterial, m_CubemapPipeline, m_CubemapPipelineLayout);
 }
 
 void AppVulkanImpl::create_framebuffers()
@@ -684,7 +683,7 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(std::string(Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
@@ -703,7 +702,6 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 
     stbi_image_free(pixels);
 
-        
     create_image(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, texture.Image, texture.Memory);
 
@@ -713,7 +711,6 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 
     vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
     vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
-
 
     texture.ImageView = create_image_view(texture.Image, format, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -828,39 +825,32 @@ void AppVulkanImpl::create_mesh(Mesh& mesh, std::string meshName, bool illuminat
     mesh.load_from_obj(illuminated, textured);
     upload_mesh(mesh);
     if (animation.has_value()) mesh.load_animation(animation.value());
-    m_Meshes.insert(std::make_pair(meshName, mesh));
 }
 
 
 void AppVulkanImpl::load_model()
 {
+
+    //-------------CREATE MESH--------------------------
     create_mesh(m_Cat, "cat", true, false, "spiral.txt");
     create_mesh(m_Skybox, "skybox", false, false);
     create_mesh(m_TextureTest, "texture", false, true);
 
-    Texture fighterJetMain("BODYMAINCOLORCG.png");
-    Texture fighterJetCamo("BODYCAMBUMPCG.png");
-    Texture skyboxTexture("skybox/");
-    Texture statue("statue.jpg");
 
-    create_texture_image(fighterJetMain);
-    create_texture_image(statue);
-    create_texture_image(fighterJetCamo);
-    create_cubemap(skyboxTexture);
-
-    m_TextureMap.insert(std::make_pair("fighterJetMain", fighterJetMain));
-    m_TextureMap.insert(std::make_pair("fighterJetCamo", fighterJetCamo));
-    m_TextureMap.insert(std::make_pair("skybox", skyboxTexture));
-    m_TextureMap.insert(std::make_pair("texture", statue));
+    //------------CREATE TEXTURES-----------------------
+    create_texture_image(m_FighterJetMain);
+    create_texture_image(m_Statue);
+    create_texture_image(m_FighterJetCamo);
+    create_cubemap(m_SkyboxTexture);
 
 
-    RenderObject cat(get_mesh("cat"), get_material("illuminatematerial"));
+    RenderObject cat(&m_Cat, &m_IlluminateMaterial);
     cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
 
-    m_SkyboxObj = RenderObject(get_mesh("skybox"), get_material("skyboxmaterial"), true);
+    m_SkyboxObj = RenderObject(&m_Skybox, &m_SkyboxMaterial, true);
    // RenderObject skybox(get_mesh("skybox"), get_material("skyboxmaterial"), true);
 
-    RenderObject texture(get_mesh("texture"), get_material("texturematerial"));
+    RenderObject texture(&m_TextureTest, &m_TextureMaterial);
 
     m_RenderObjects.push_back(cat);
     //m_RenderObjects.push_back(skybox);
@@ -868,7 +858,7 @@ void AppVulkanImpl::load_model()
 }
 
 
-void AppVulkanImpl::initialize_buffers()
+void AppVulkanImpl::create_buffers()
 {
 
     VkDeviceSize bufferSize = sizeof(CameraBufferObject);
@@ -907,7 +897,7 @@ void AppVulkanImpl::initialize_buffers()
     );
 }
 
-VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView) {
+VkDescriptorImageInfo AppVulkanImpl::create_descriptor_image_info(VkSampler sampler, VkImageView imageView) {
     VkDescriptorImageInfo imageInfo;
     imageInfo.sampler = sampler;
     imageInfo.imageView = imageView;
@@ -915,7 +905,8 @@ VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageVie
 
     return imageInfo;
 };
-VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size, VkDeviceSize offset = 0)
+
+VkDescriptorBufferInfo AppVulkanImpl::create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size, VkDeviceSize offset)
 {
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = buffer;
@@ -925,7 +916,7 @@ VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSi
     return bufferInfo;
 };
 
-void AppVulkanImpl::initialize_descriptors()
+void AppVulkanImpl::create_descriptors()
 {
     std::vector<VkDescriptorPoolSize> sizes =
     {
@@ -965,10 +956,10 @@ void AppVulkanImpl::initialize_descriptors()
     m_ObjectSets.resize(MAX_FRAMES_IN_FLIGHT);
    // m_TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
 
-    Material* texturedMat = get_material("texturematerial");
+    Material* texturedMat = &m_TextureMaterial;
     texturedMat->TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
 
-    Material* skyboxMaterial = get_material("skyboxmaterial");
+    Material* skyboxMaterial = &m_SkyboxMaterial;
     skyboxMaterial->TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
 
     if (vkAllocateDescriptorSets(m_Device, &sceneLayoutsallocInfo, m_SceneSets.data()) != VK_SUCCESS) {
@@ -997,8 +988,8 @@ void AppVulkanImpl::initialize_descriptors()
         VkDescriptorBufferInfo objectBufferInfo = create_descriptor_buffer_info(m_Objects[i].Buffer, sizeof(ObjectData)*MAX_OBJECTS);
 
         //------------------------- IMAGE INFO --------------------------------------------------------------------------
-        VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, m_TextureMap["fighterJetMain"].ImageView);
-        VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, m_TextureMap["skybox"].ImageView);
+        VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, m_FighterJetMain.ImageView);
+        VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, m_SkyboxTexture.ImageView);
 
 
         std::vector<VkWriteDescriptorSet> descriptorWrites{ 
@@ -1017,7 +1008,7 @@ void AppVulkanImpl::initialize_descriptors()
 
 
 
-void AppVulkanImpl::initialize_commands()
+void AppVulkanImpl::create_commands()
 {
     QueueFamilyIndices queueFamilyIndices = find_queue_families(m_PhysicalDevice);
     {
@@ -1993,32 +1984,17 @@ void AppVulkanImpl::upload_mesh(Mesh& mesh)
     );
 }
 
-Material* AppVulkanImpl::create_material(VkPipeline pipeline, VkPipelineLayout layout, const std::string& name)
+void AppVulkanImpl::create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout)
 {
-    return create_material(pipeline, layout, {VK_NULL_HANDLE}, name);
+    return create_material(material, pipeline, layout, {VK_NULL_HANDLE});
 }
 
-Material* AppVulkanImpl::create_material(VkPipeline pipeline, VkPipelineLayout layout, std::vector<VkDescriptorSet> textureSets, const std::string& name)
+void AppVulkanImpl::create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout, std::vector<VkDescriptorSet> textureSets)
 {
-    Material material;
     material.Pipeline = pipeline;
     material.PipelineLayout = layout;
     material.TextureSets = textureSets;
-    m_Materials[name] = material;
-
-    return &m_Materials[name];
 }
-
-Material* AppVulkanImpl::get_material(std::string name)
-{
-    return &m_Materials[name];
-}
-
-Mesh* AppVulkanImpl::get_mesh(std::string name)
-{
-    return &m_Meshes[name];
-}
-
 
 void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<RenderObject>& renderObjects, uint32_t imageIndex)
 {
