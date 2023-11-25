@@ -823,38 +823,20 @@ void AppVulkanImpl::create_texture_sampler()
 
 }
 
+void AppVulkanImpl::create_mesh(Mesh& mesh, std::string meshName, bool illuminated, bool textured, std::optional<std::string> animation)
+{
+    mesh.load_from_obj(illuminated, textured);
+    upload_mesh(mesh);
+    if (animation.has_value()) mesh.load_animation(animation.value());
+    m_Meshes.insert(std::make_pair(meshName, mesh));
+}
+
+
 void AppVulkanImpl::load_model()
 {
-
-
-    //m_Jet.load_from_obj("fighter_jet.obj", false, true);
-    //m_Jet.load_animation("spiral.txt");
-    //upload_mesh(m_Jet);
-    //m_Meshes.insert(std::make_pair("jet", m_Jet));
-
-    //m_Panda.load_from_obj("panda.obj", false);
-    //m_Panda.load_animation("spiral.txt");
-    //upload_mesh(m_Panda);    
-    //m_Meshes.insert(std::make_pair("panda", m_Panda));
-
-
-    m_Cat.load_from_obj("cat.obj", true);
-  //  m_Cat.load_animation("spiral.txt");
-    upload_mesh(m_Cat);
-    m_Meshes.insert(std::make_pair("cat", m_Cat));
-
-    m_Skybox.load_from_obj("skybox.obj", false);
-    //m_Cat.load_animation("spiral.txt");
-    upload_mesh(m_Skybox);
-    m_Meshes.insert(std::make_pair("skybox", m_Skybox));
-
-    m_TextureTest.load_from_obj("texture.obj", false, true);
-    
-   // m_TextureTest.load_animation("spiral.txt");
-    upload_mesh(m_TextureTest);
-    m_Meshes.insert(std::make_pair("texture", m_TextureTest));
-
-
+    create_mesh(m_Cat, "cat", true, false, "spiral.txt");
+    create_mesh(m_Skybox, "skybox", false, false);
+    create_mesh(m_TextureTest, "texture", false, true);
 
     Texture fighterJetMain("BODYMAINCOLORCG.png");
     Texture fighterJetCamo("BODYCAMBUMPCG.png");
@@ -871,39 +853,17 @@ void AppVulkanImpl::load_model()
     m_TextureMap.insert(std::make_pair("skybox", skyboxTexture));
     m_TextureMap.insert(std::make_pair("texture", statue));
 
-    //RenderObject jet;
-    //jet.MeshHandle = get_mesh("jet");
-    //jet.MaterialHandle = get_material("texturematerial");
-    //jet.Model = glm::mat4{ 1.0f };
 
-  //  m_RenderObjects.push_back(jet);
-
-    //RenderObject panda;
-    //panda.MeshHandle = get_mesh("panda");
-    //panda.MaterialHandle = get_material("plainmaterial");
-    //panda.Model = glm::mat4{ 1.0f };
-
-    RenderObject cat;
-    cat.MeshHandle = get_mesh("cat");
-    cat.MaterialHandle = get_material("illuminatematerial");
-    cat.Model = glm::mat4{ 1.0f };
+    RenderObject cat(get_mesh("cat"), get_material("illuminatematerial"));
     cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
 
-    RenderObject skybox;
-    skybox.MeshHandle = get_mesh("skybox");
-    skybox.MaterialHandle = get_material("skyboxmaterial");
-    skybox.Model = glm::mat4{ 1.0f };
-    skybox.isSkybox = true;
-    skybox.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 1000.0f, 1000.0f)));
+    m_SkyboxObj = RenderObject(get_mesh("skybox"), get_material("skyboxmaterial"), true);
+   // RenderObject skybox(get_mesh("skybox"), get_material("skyboxmaterial"), true);
 
-
-    RenderObject texture;
-    texture.MeshHandle = get_mesh("texture");
-    texture.MaterialHandle = get_material("texturematerial");
-    texture.Model = glm::mat4{ 1.0f };
+    RenderObject texture(get_mesh("texture"), get_material("texturematerial"));
 
     m_RenderObjects.push_back(cat);
-    m_RenderObjects.push_back(skybox);
+    //m_RenderObjects.push_back(skybox);
     m_RenderObjects.push_back(texture);
 }
 
@@ -947,7 +907,23 @@ void AppVulkanImpl::initialize_buffers()
     );
 }
 
+VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView) {
+    VkDescriptorImageInfo imageInfo;
+    imageInfo.sampler = sampler;
+    imageInfo.imageView = imageView;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+    return imageInfo;
+};
+VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size, VkDeviceSize offset = 0)
+{
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = buffer;
+    bufferInfo.offset = offset;
+    bufferInfo.range = size;
+
+    return bufferInfo;
+};
 
 void AppVulkanImpl::initialize_descriptors()
 {
@@ -1014,62 +990,32 @@ void AppVulkanImpl::initialize_descriptors()
 
     const int MAX_OBJECTS = 1000;
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo cameraBufferInfo{};
-        cameraBufferInfo.buffer = m_CameraBuffer;
-        cameraBufferInfo.offset = 0;
-        cameraBufferInfo.range = sizeof(CameraBufferObject);
 
-        VkDescriptorBufferInfo sceneBufferInfo{};
-        sceneBufferInfo.buffer = m_Scene.DataBuffer;
-        sceneBufferInfo.offset = 0;
-        sceneBufferInfo.range = sizeof(SceneData);
+        //------------------------- BUFFER INFO -------------------------------------------------------------------------
+        VkDescriptorBufferInfo cameraBufferInfo = create_descriptor_buffer_info(m_CameraBuffer, sizeof(CameraBufferObject));
+        VkDescriptorBufferInfo sceneBufferInfo = create_descriptor_buffer_info(m_Scene.DataBuffer, sizeof(SceneData));
+        VkDescriptorBufferInfo objectBufferInfo = create_descriptor_buffer_info(m_Objects[i].Buffer, sizeof(ObjectData)*MAX_OBJECTS);
 
-
-        VkDescriptorBufferInfo objectBufferInfo;
-        objectBufferInfo.buffer = m_Objects[i].Buffer;
-        objectBufferInfo.offset = 0;
-        objectBufferInfo.range = sizeof(ObjectData) * MAX_OBJECTS;
+        //------------------------- IMAGE INFO --------------------------------------------------------------------------
+        VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, m_TextureMap["fighterJetMain"].ImageView);
+        VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, m_TextureMap["skybox"].ImageView);
 
 
-        //-----------------FIX THIS TO UPLOAD ALL TEXTURES-------------
-        VkDescriptorImageInfo imageBufferInfo;
-        imageBufferInfo.sampler = m_TextureSampler;
-        imageBufferInfo.imageView = m_TextureMap["fighterJetMain"].ImageView;
-        imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkDescriptorImageInfo skyboxBufferInfo;
-        skyboxBufferInfo.sampler = m_TextureSampler;
-        skyboxBufferInfo.imageView = m_TextureMap["skybox"].ImageView;
-        skyboxBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-
-        //std::array<VkDescriptorBufferInfo, 3> descriptorBufferInfo{ cameraBufferInfo, sceneBufferInfo, objectBufferInfo };
-
-        std::vector<VkWriteDescriptorSet> descriptorWrites;
-
-        descriptorWrites.push_back(write_descriptor_set(m_SceneSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, cameraBufferInfo));
-       // vkUpdateDescriptorSets(m_Device, 1u, &descriptorWrites[descriptorWrites.size()-1], 0, nullptr);
-
-        descriptorWrites.push_back(write_descriptor_set(m_SceneSets[i], 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneBufferInfo));
-        //vkUpdateDescriptorSets(m_Device, 1u, &descriptorWrites[descriptorWrites.size() - 1], 0, nullptr);
-
-        descriptorWrites.push_back(write_descriptor_set(m_ObjectSets[i], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, objectBufferInfo));
-        //vkUpdateDescriptorSets(m_Device, 1u, &descriptorWrites[descriptorWrites.size() - 1], 0, nullptr);
-
-        descriptorWrites.push_back(write_descriptor_image(texturedMat->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo));
-        //vkUpdateDescriptorSets(m_Device, 1u, &descriptorWrites[descriptorWrites.size() - 1], 0, nullptr);
-
-        descriptorWrites.push_back(write_descriptor_image(skyboxMaterial->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo));
-        //vkUpdateDescriptorSets(m_Device, 1u, &descriptorWrites[descriptorWrites.size() - 1], 0, nullptr);
-
+        std::vector<VkWriteDescriptorSet> descriptorWrites{ 
+            write_descriptor_set(m_SceneSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, cameraBufferInfo),
+            write_descriptor_set(m_SceneSets[i], 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneBufferInfo),
+            write_descriptor_set(m_ObjectSets[i], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, objectBufferInfo),
+            write_descriptor_image(texturedMat->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo),
+            write_descriptor_image(skyboxMaterial->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo)
+        };
 
         // Now, call vkUpdateDescriptorSets to perform the updates
         vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
-    //m_Materials["texturematerial"].TextureSets = m_TextureSets;
-
 }
+
+
 
 void AppVulkanImpl::initialize_commands()
 {
@@ -2121,11 +2067,6 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-
-    Mesh* lastMesh = nullptr;
-    Material* lastMaterial = nullptr;
-
-
     vkMapMemory(m_Device, m_Objects[imageIndex].Memory, 0, sizeof(ObjectData) * renderObjects.size(), 0, &m_Objects[imageIndex].Mapped);
 
 
@@ -2139,101 +2080,39 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
 
     vkUnmapMemory(m_Device, m_Objects[imageIndex].Memory);
 
+    Mesh* lastMesh = nullptr;
+    Material* lastMaterial = nullptr;
+
     for (auto& object : renderObjects)
     {
-        if (object.isSkybox)
-        {
-            continue;
-            if (!m_SkyboxOn) continue;
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 0, 1, &m_SceneSets[imageIndex], 0, nullptr);
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 1, 1, &object.MaterialHandle->TextureSets[imageIndex], 0, nullptr);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->Pipeline);
+        if (object.MaterialHandle != lastMaterial) {
+            object.bind_materials(commandBuffer,{&m_SceneSets[imageIndex], &m_ObjectSets[imageIndex]}, imageIndex);
             lastMaterial = object.MaterialHandle;
-
         }
-        else
-        {
-            if (object.MaterialHandle->TextureSets[0] != VK_NULL_HANDLE) {
-                //texture descriptor
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 2, 1, &object.MaterialHandle->TextureSets[imageIndex], 0, nullptr);
-
-            }
-            //only bind the pipeline if it doesn't match with the already bound one
-            if (object.MaterialHandle != lastMaterial) {
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 0, 1, &m_SceneSets[imageIndex], 0, nullptr);
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 1, 1, &m_ObjectSets[imageIndex], 0, nullptr);
-                // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 2, 1, &m_TextureSets[imageIndex], 0, nullptr);
-
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->Pipeline);
-                lastMaterial = object.MaterialHandle;
-            }
-        }
-
-
-        //only bind the mesh if it's a different one from last bind
+  
         if (object.MeshHandle != lastMesh) {
-            //bind the mesh vertex buffer with offset 0
-            VkBuffer vertexBuffers[] = { object.MeshHandle->VertexBuffer };
-            VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, object.MeshHandle->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
+            object.bind_mesh(commandBuffer);
             lastMesh = object.MeshHandle;
         }
 
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, 0);
     }
 
-
-    for (auto& object : renderObjects)
+    if (m_SkyboxOn)
     {
-        if (object.isSkybox)
-        {
-            if (!m_SkyboxOn) continue;
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 0, 1, &m_SceneSets[imageIndex], 0, nullptr);
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 1, 1, &object.MaterialHandle->TextureSets[imageIndex], 0, nullptr);
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->Pipeline);
-            lastMaterial = object.MaterialHandle;
-
-
-
- 
-                //bind the mesh vertex buffer with offset 0
-                VkBuffer vertexBuffers[] = { object.MeshHandle->VertexBuffer };
-                VkDeviceSize offsets[] = { 0 };
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, object.MeshHandle->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-                lastMesh = object.MeshHandle;
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, 0);
+        if (m_SkyboxObj.MaterialHandle != lastMaterial) {
+            m_SkyboxObj.bind_materials(commandBuffer, { &m_SceneSets[imageIndex]}, imageIndex);
+            lastMaterial = m_SkyboxObj.MaterialHandle;
         }
+
+        if (m_SkyboxObj.MeshHandle != lastMesh) {
+            m_SkyboxObj.bind_mesh(commandBuffer);
+            lastMesh = m_SkyboxObj.MeshHandle;
+        }
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_SkyboxObj.MeshHandle->Indices.size()), 1, 0, 0, 0);
     }
 
-    //vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
-    //{
-    //    
-    //    for (auto& object : renderObjects)
-    //    {
-    //        if (!object.isSkybox || !m_SkyboxOn) continue;
-
-    //        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 0, 1, &m_SceneSets[imageIndex], 0, nullptr);
-    //        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->PipelineLayout, 1, 1, &object.MaterialHandle->TextureSets[imageIndex], 0, nullptr);
-
-    //        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.MaterialHandle->Pipeline);
-
-
-    //        //bind the mesh vertex buffer with offset 0
-    //        VkBuffer vertexBuffers[] = { object.MeshHandle->VertexBuffer };
-    //        VkDeviceSize offsets[] = { 0 };
-    //        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    //        vkCmdBindIndexBuffer(commandBuffer, object.MeshHandle->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-    //        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, 0);
-    //    }
-
-    //}
 
     if(s_ImGuiEnabled) ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
     vkCmdEndRenderPass(commandBuffer);

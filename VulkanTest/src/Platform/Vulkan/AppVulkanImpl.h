@@ -1,13 +1,12 @@
 #pragma once
 
-
-
 #include "VulkanInit.h"
-
-
 
 #include "AppImpl.h"
 #include "PipelineBuilderStateMachine.h"
+#include "Mesh.h"
+#include "Camera.h"
+#include "RenderObject.h"
 
 
 #include <array>
@@ -143,6 +142,11 @@ private:
 
     VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
 
+    void create_mesh(Mesh& mesh, std::string meshName, bool illuminated, bool textured, std::optional<std::string> animation = std::nullopt);
+  //  RenderObject create_render_object(std::string meshName, std::string materialName);
+
+
+
 
 
 private:
@@ -263,15 +267,15 @@ private:
 
     UploadContext m_UploadContext;
 
-    Mesh m_Jet;
-    Mesh m_Panda;
-    Mesh m_Cat;
-    Mesh m_Skybox;
-    Mesh m_TextureTest;
+    Mesh m_Jet{ "fighter_jet.obj" };
+    Mesh m_Panda{ "panda.obj" };
+    Mesh m_Cat{ "cat.obj" };
+    Mesh m_Skybox{ "skybox.obj" };
+    Mesh m_TextureTest{ "texture.obj" };
 
     VkDescriptorPool m_ImguiPool;
 
-
+    RenderObject m_SkyboxObj;
 
 };
 

@@ -2,8 +2,6 @@
 
 #include "VulkanInit.h"
 
-
-
 #include <optional>
 #include <array>
 #include <deque>
@@ -122,190 +120,13 @@ struct DeletionQueue
     }
 };
 
-struct Mesh
-{
-    Mesh()
-    {
 
-    }
-
-    Mesh(const Mesh& mesh)
-    {
-        Vertices = mesh.Vertices;
-        Indices = mesh.Indices;
-        VertexBuffer = mesh.VertexBuffer;
-        IndexBuffer = mesh.IndexBuffer;
-        VertexBufferMemory = mesh.VertexBufferMemory;
-        IndexBufferMemory = mesh.IndexBufferMemory;
-        Animation = mesh.Animation;
-        Animated = mesh.Animated;
-    }
-
-    Mesh operator=(const Mesh& mesh)
-    {
-        return Mesh(mesh);
-    }
-
-    std::vector<Vertex> Vertices;
-    std::vector<uint32_t> Indices;
-    VkBuffer VertexBuffer;
-    VkBuffer IndexBuffer;
-    VkDeviceMemory VertexBufferMemory;
-    VkDeviceMemory IndexBufferMemory;
-    bool Animated{ false };
-
-    std::vector<glm::vec3> Animation;
-
-    const glm::mat4 B = {
-        {-1, 3, -3, 1},
-        {3, -6, 3, 0},
-        {-3, 0, 3, 0},
-        {1, 4, 1, 0}
-        };
-
-    const glm::mat3x4 B_d = {
-        {-1, 3, -3, 1},
-        {2, -4, 2, 0},
-        {-1, 0, 1, 0}
-    };
-
-    const std::string MODEL_PATH = "resources/models/";
-    const std::string ANIMATION_PATH = "resources/animations/";
-
-
-    bool load_from_obj(std::string filename, bool illuminated, bool texture = false);
-    bool load_animation(std::string filename);
-};
 
 struct Material
 {
     std::vector<VkDescriptorSet> TextureSets; //texture defaulted to null
     VkPipeline Pipeline;
     VkPipelineLayout PipelineLayout;
-};
-
-struct RenderObject
-{
-    Mesh* MeshHandle;
-    Material* MaterialHandle;
-
-    bool isSkybox{ false };
-
-    glm::mat4 Model{ glm::mat4(1.0f) };
-
-    void setTranslation(glm::mat4& translation)
-    {
-        Translation = translation;
-        compute_model_matrix();
-    }
-    void setRotation(glm::mat4& rotation)
-    {
-        Rotation = rotation;
-        compute_model_matrix();
-    }
-    void setScale(glm::mat4& scale)
-    {
-        Scale = scale;
-        compute_model_matrix();
-    }
-
-
-
-    void compute_animation(float time)
-    {
-
-        int segment = static_cast<int>(std::floor(time));
-
-        time -= std::floor(time);
-        
-        auto animation = this->MeshHandle->Animation;
-
-        glm::mat4x3 R = {
-             {animation[segment % animation.size()]},
-             {animation[(segment + 1) % animation.size()]},
-             {animation[(segment + 2) % animation.size()]},
-             {animation[(segment + 3) % animation.size()]}
-        };
-        glm::vec4 T = glm::vec4(glm::pow(time, 3.0f), glm::pow(time, 2.0f), time, 1.0f);
-
-        setTranslation(glm::translate(glm::mat4(1.0f),glm::vec3(R * this->MeshHandle->B * T / 6.0f)));
-
-        glm::vec3 T_d = glm::vec3(glm::pow(time, 2.0f), time, 1.0f);
-
-        glm::vec3 GoalRotation = glm::vec3(glm::mat3(R * this->MeshHandle->B_d) * T_d ) / 2.0f;
-        glm::vec3 InitialRotation = glm::vec3(0.0f, 1.0f, 0.0f);
-
-        glm::vec3 rotationAxis = glm::normalize(glm::cross(InitialRotation, GoalRotation));
-        float rotationAngle = std::acos(glm::dot(glm::normalize(InitialRotation), glm::normalize(GoalRotation))) * 180.0f / static_cast<float>(M_PI);
-
-        //setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
-        setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
-    }
-private:
-
-    glm::mat4 Translation{ glm::mat4(1.0f) };
-    glm::mat4 Rotation{ glm::mat4(1.0f) };
-    glm::mat4 Scale{ glm::mat4(1.0f) };
-
-    void compute_model_matrix()
-    {
-        Model = Translation * Rotation * Scale;
-    }
-};
-
-struct Camera
-{
-    Camera()
-    {
-       // std::cout << direction.x << " " << direction.y << direction.z << std::endl;
-    }
-
-    glm::vec3 Position{ glm::vec3(0.0f, 0.0f, 100.0f) };
-
-    float Yaw = -90.0f;
-    float Pitch = 0.0f;
-    float Fov = 45.0f;
-
-    glm::vec3 direction{
-        cos(glm::radians(Yaw))* cos(glm::radians(Pitch)),
-        sin(glm::radians(Pitch)),
-        sin(glm::radians(Yaw))* cos(glm::radians(Pitch))
-    };
-
-    
-    glm::vec3 Front{ glm::normalize(direction)};
-  //  glm::vec3 Front{ 0.0f,0.0f,-1.0f};
-    glm::vec3 Right{ glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), Front)) };
-    glm::vec3 Up{ glm::cross(Front, Right) };
-
-
-
-    void process_mouse_movement(float xoffset, float yoffset)
-    {
-        Yaw += xoffset;
-        Pitch += yoffset;
-
-        if (Pitch > 89.0f)
-            Pitch = 89.0f;
-        if (Pitch < -89.0f)
-            Pitch = -89.0f;
-
-        direction.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        direction.y = sin(glm::radians(Pitch));
-        direction.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        Front = glm::normalize(direction);
-        Right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), Front));
-        Up = glm::cross(Front, Right);
-    }
-
-    void set_field_of_view(float yoffset)
-    {
-        Fov -= yoffset;
-        if (Fov < 1.0f)
-            Fov = 1.0f;
-        if (Fov > 45.0f)
-            Fov = 45.0f;
-    }
 };
 
 struct SceneData {

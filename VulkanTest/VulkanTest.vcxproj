@@ -131,8 +131,11 @@
     <ClCompile Include="src\Application.h" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Platform\Vulkan\AppVulkanImpl.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\Camera.cpp" />
     <ClCompile Include="src\Platform\Vulkan\HelperObjects.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\Mesh.cpp" />
     <ClCompile Include="src\Platform\Vulkan\PipelineBuilderStateMachine.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\RenderObject.cpp" />
     <ClCompile Include="vendor\imgui\imgui.cpp" />
     <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
     <ClCompile Include="vendor\imgui\imgui_draw.cpp" />
@@ -154,8 +157,11 @@
   <ItemGroup>
     <ClInclude Include="src\AppImpl.h" />
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h" />
+    <ClInclude Include="src\Platform\Vulkan\Camera.h" />
     <ClInclude Include="src\Platform\Vulkan\HelperObjects.h" />
+    <ClInclude Include="src\Platform\Vulkan\Mesh.h" />
     <ClInclude Include="src\Platform\Vulkan\PipelineBuilderStateMachine.h" />
+    <ClInclude Include="src\Platform\Vulkan\RenderObject.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanInit.h" />
     <ClInclude Include="vendor\imgui\imconfig.h" />
     <ClInclude Include="vendor\imgui\imgui.h" />
