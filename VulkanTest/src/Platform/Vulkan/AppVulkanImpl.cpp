@@ -640,6 +640,9 @@ void AppVulkanImpl::create_graphics_pipeline()
     m_CubemapPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
     create_material(m_SkyboxMaterial, m_CubemapPipeline, m_CubemapPipelineLayout);
+    m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_CubemapPipeline, nullptr); }, "Pipeline");
+
+
 }
 
 void AppVulkanImpl::create_framebuffers()
