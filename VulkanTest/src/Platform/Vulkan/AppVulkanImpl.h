@@ -24,6 +24,12 @@ For example, the resolution {WIDTH, HEIGHT} that we specified earlier when creat
 But Vulkan works with pixels, so the swap chain extent must be specified in pixels as well.
 */
 
+enum class AppType
+{
+    APP_TYPE_2D,
+    APP_TYPE_3D
+};
+
 class AppVulkanImpl : public AppImpl
 {
 public:
@@ -45,7 +51,7 @@ public:
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_Camera.process_mouse_movement(xoffset, yoffset); }
     inline void set_field_of_view(float yoffset) { this->m_Camera.set_field_of_view(yoffset); };
 
-    bool m_SkyboxOn{ true };
+    bool m_SkyboxOn{ false };
 
 private:
     void create_instance();
@@ -140,7 +146,7 @@ private:
 
     VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
 
-    void create_mesh(Mesh& mesh, std::string meshName, bool illuminated, bool textured, std::optional<std::string> animation = std::nullopt);
+    void create_mesh(Mesh& mesh, bool illuminated, bool textured, std::optional<std::string> animation = std::nullopt);
   //  RenderObject create_render_object(std::string meshName, std::string materialName);
 
     VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);
@@ -149,6 +155,8 @@ private:
 
 
 private:
+
+    static const AppType appType{ AppType::APP_TYPE_2D };
 
     static bool s_ImGuiEnabled;
 
@@ -264,6 +272,7 @@ private:
     Mesh m_Cat          { "cat.obj" };
     Mesh m_Skybox       { "skybox.obj" };
     Mesh m_TextureTest  { "texture.obj" };
+    Mesh m_Spiral       { "spiral.obj" };
 
     VkDescriptorPool m_ImguiPool;
 
@@ -276,7 +285,7 @@ private:
 
     Texture m_FighterJetMain    { "BODYMAINCOLORCG.png"};
     Texture m_FighterJetCamo    {"BODYCAMBUMPCG.png"   };
-    Texture m_SkyboxTexture     {"skybox/"             };
+    Texture m_SkyboxTexture     {"stormydays/"             };
     Texture m_Statue            {"statue.jpg"          };
 
 };

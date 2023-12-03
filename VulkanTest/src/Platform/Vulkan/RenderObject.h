@@ -26,6 +26,7 @@ public:
 
 
     void compute_animation(float time);
+
     void bind_materials(VkCommandBuffer& commandBuffer, std::vector<VkDescriptorSet*> descriptorSets, uint32_t imageIndex);
     void bind_mesh(VkCommandBuffer& commandBuffer);
 

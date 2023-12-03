@@ -53,8 +53,10 @@ void AppVulkanImpl::initialize_window()
     //// Get the mode of the primary monitor
     //const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
+
     m_Window = glfwCreateWindow(m_Width, m_Height, "Vulkan Fullscreen", nullptr, NULL);
     glfwSetWindowUserPointer(m_Window, this);
+    glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
@@ -159,6 +161,17 @@ void AppVulkanImpl::main_loop()
         if (glfwGetKey(m_Window, GLFW_KEY_D) == GLFW_PRESS) {
             m_Camera.Position -= cameraSpeed * deltaTime * m_Camera.Right;
 
+        }
+
+        if (glfwGetKey(m_Window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        {
+            m_Camera.Position += cameraSpeed * deltaTime * m_Camera.Up;
+        }
+
+
+        if (glfwGetKey(m_Window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        {
+            m_Camera.Position -= cameraSpeed * deltaTime * m_Camera.Up;
         }
 
         if (glfwGetKey(m_Window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -693,6 +706,7 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
     }
     VkFormat format = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
 
+
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
@@ -729,19 +743,20 @@ void AppVulkanImpl::create_cubemap(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels[6];
-    std::array<std::string, 6> texturePrefix = { "front.jpg", "back.jpg", "up.jpg", "down.jpg", "left.jpg", "right.jpg" };
+    std::array<std::string, 6> texturePrefix = { "front.tga", "back.tga", "up.tga", "down.tga", "right.tga", "left.tga" };
 
     for (int i = 0; i < 6; i++)
     {
-        pixels[i] = stbi_load(std::string(Texture::PATH + texture.Filename + texturePrefix[i]).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        pixels[i] = stbi_load(std::string(Texture::PATH + texture.Filename + texturePrefix[i]).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb);
     
         if (!pixels[i]) {
             throw std::runtime_error("failed to load texture image!");
         }
-    
     }
 
     VkFormat format = texChannels == 4 ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8_UNORM;
+
+   // if (texChannels != 4) throw std::runtime_error("unsupported format");
 
     VkDeviceSize imageSize = texWidth * texHeight * texChannels * 6;
     VkDeviceSize layerSize = imageSize / 6;
@@ -760,7 +775,6 @@ void AppVulkanImpl::create_cubemap(Texture& texture)
         if( i < 5 ) data = static_cast<void*>(static_cast<uint8_t*>(data) + static_cast<size_t>(layerSize));
     }
     
-
     vkUnmapMemory(m_Device, stagingBufferMemory);
 
     for (int i = 0; i < 6; i++)
@@ -823,7 +837,7 @@ void AppVulkanImpl::create_texture_sampler()
 
 }
 
-void AppVulkanImpl::create_mesh(Mesh& mesh, std::string meshName, bool illuminated, bool textured, std::optional<std::string> animation)
+void AppVulkanImpl::create_mesh(Mesh& mesh, bool illuminated, bool textured, std::optional<std::string> animation)
 {
     mesh.load_from_obj(illuminated, textured);
     upload_mesh(mesh);
@@ -835,9 +849,12 @@ void AppVulkanImpl::load_model()
 {
 
     //-------------CREATE MESH--------------------------
-    create_mesh(m_Cat, "cat", true, false, "spiral.txt");
-    create_mesh(m_Skybox, "skybox", false, false);
-    create_mesh(m_TextureTest, "texture", false, true);
+    create_mesh(m_Cat, true, false, "spiral.txt");
+    create_mesh(m_Skybox, false, false);
+    create_mesh(m_Panda, false, false);
+    create_mesh(m_TextureTest, false, true);
+
+    //create_mesh(m_Spiral, false, false);
 
 
     //------------CREATE TEXTURES-----------------------
@@ -846,18 +863,33 @@ void AppVulkanImpl::load_model()
     create_texture_image(m_FighterJetCamo);
     create_cubemap(m_SkyboxTexture);
 
+    m_SkyboxObj = RenderObject(&m_Skybox, &m_SkyboxMaterial, true);
 
     RenderObject cat(&m_Cat, &m_IlluminateMaterial);
-    cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
+   // cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
+    
 
-    m_SkyboxObj = RenderObject(&m_Skybox, &m_SkyboxMaterial, true);
-   // RenderObject skybox(get_mesh("skybox"), get_material("skyboxmaterial"), true);
+    //{
+    //    RenderObject skybox(&m_Skybox, &m_PlainMaterial);
+    //    for (int i = 0; i < 30; ++i)
+    //    {
+    //        for (int j = 0; j < 30; ++j)
+    //        {
+    //            skybox.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.1f, 10.1f)));
+    //            skybox.setTranslation(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f * i, 0, 2.0f * j)));
+    //            m_RenderObjects.push_back(skybox);
+    //        }
+    //    }
+    //}
 
     RenderObject texture(&m_TextureTest, &m_TextureMaterial);
 
-    m_RenderObjects.push_back(cat);
+    RenderObject panda(&m_Panda, &m_IlluminateMaterial);
+
+   // m_RenderObjects.push_back(panda);
+   // m_RenderObjects.push_back(cat);
     //m_RenderObjects.push_back(skybox);
-    m_RenderObjects.push_back(texture);
+   // m_RenderObjects.push_back(texture);
 }
 
 
@@ -2053,7 +2085,10 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
 
     for (size_t i = 0; i < renderObjects.size(); i++)
     {
-        if(renderObjects[i].MeshHandle->Animated) renderObjects[i].compute_animation(time);
+        if (renderObjects[i].MeshHandle->Animated)
+        {
+            renderObjects[i].compute_animation(time);
+        }
         objectArray[i].Model = renderObjects[i].Model;
     }
 
@@ -2062,6 +2097,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
     Mesh* lastMesh = nullptr;
     Material* lastMaterial = nullptr;
 
+    int j = 0;
     for (auto& object : renderObjects)
     {
 
@@ -2075,7 +2111,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
             lastMesh = object.MeshHandle;
         }
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, j++);
     }
 
     if (m_SkyboxOn)
