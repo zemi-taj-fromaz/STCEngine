@@ -23,5 +23,6 @@ struct Texture
     VkImageView ImageView;
     VkDeviceMemory Memory;
     std::string Filename;
+    std::vector<VkDescriptorSet> descriptorSets;
 
 };

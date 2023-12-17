@@ -23,19 +23,19 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
@@ -55,24 +55,22 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\bin\Debug-windows-x86_64\VulkanTest\</OutDir>
-    <IntDir>..\bin-int\Debug-windows-x86_64\VulkanTest\</IntDir>
     <TargetName>VulkanTest</TargetName>
-    <TargetExt>.exe</TargetExt>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>..\bin\Release-windows-x86_64\VulkanTest\</OutDir>
     <IntDir>..\bin-int\Release-windows-x86_64\VulkanTest\</IntDir>
     <TargetName>VulkanTest</TargetName>
-    <TargetExt>.exe</TargetExt>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>..\bin\Dist-windows-x86_64\VulkanTest\</OutDir>
     <IntDir>..\bin-int\Dist-windows-x86_64\VulkanTest\</IntDir>
     <TargetName>VulkanTest</TargetName>
-    <TargetExt>.exe</TargetExt>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -80,13 +78,14 @@
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>vendor\;...\libs\imgui;resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
+      <PreprocessorDefinitions>_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>shaderc_combined.lib;vulkan-1.lib;glfw3_mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3_mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.3.261.0\Lib;C:\Users\pc\Downloads\glfw-3.3.8.bin.WIN64\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries> libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -100,16 +99,18 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
+      <PreprocessorDefinitions>_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>shaderc_combined.lib;vulkan-1.lib;glfw3_mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3_mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.3.261.0\Lib;C:\Users\pc\Downloads\glfw-3.3.8.bin.WIN64\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries> libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
     <ClCompile>
+      <PreprocessorDefinitions>_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>vendor\;...\libs\imgui;resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -120,22 +121,25 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>shaderc_combined.lib;vulkan-1.lib;glfw3_mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3_mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.3.261.0\Lib;C:\Users\pc\Downloads\glfw-3.3.8.bin.WIN64\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries> libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\LayerStack.cpp" />
+    <ClCompile Include="src\Layer.cpp" />
     <ClCompile Include="src\AppImpl.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Application.h" />
-    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Platform\Vulkan\AppVulkanImpl.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Camera.cpp" />
     <ClCompile Include="src\Platform\Vulkan\HelperObjects.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Mesh.cpp" />
     <ClCompile Include="src\Platform\Vulkan\PipelineBuilderStateMachine.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\Renderable.cpp" />
     <ClCompile Include="src\Platform\Vulkan\RenderObject.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\RenderParticle.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Texture.cpp" />
     <ClCompile Include="vendor\imgui\imgui.cpp" />
     <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
@@ -146,23 +150,19 @@
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\shaders\IlluminateShader.frag" />
-    <None Include="resources\shaders\IlluminateShader.vert" />
-    <None Include="resources\shaders\SkyboxShader.frag" />
-    <None Include="resources\shaders\SkyboxShader.vert" />
-    <None Include="resources\shaders\TextureShader.frag" />
-    <None Include="resources\shaders\TextureShader.vert" />
-    <None Include="resources\shaders\PlainShader.frag" />
-    <None Include="resources\shaders\PlainShader.vert" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="src\LayerStack.h" />
+    <ClInclude Include="src\Layer.h" />
     <ClInclude Include="src\AppImpl.h" />
+    <ClInclude Include="src\Engine.h" />
+    <ClInclude Include="src\EntryPoint.h" />
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h" />
     <ClInclude Include="src\Platform\Vulkan\Camera.h" />
     <ClInclude Include="src\Platform\Vulkan\HelperObjects.h" />
     <ClInclude Include="src\Platform\Vulkan\Mesh.h" />
     <ClInclude Include="src\Platform\Vulkan\PipelineBuilderStateMachine.h" />
+    <ClInclude Include="src\Platform\Vulkan\Renderable.h" />
     <ClInclude Include="src\Platform\Vulkan\RenderObject.h" />
+    <ClInclude Include="src\Platform\Vulkan\RenderParticle.h" />
     <ClInclude Include="src\Platform\Vulkan\Texture.h" />
     <ClInclude Include="src\Platform\Vulkan\VulkanInit.h" />
     <ClInclude Include="vendor\imgui\imconfig.h" />
@@ -173,21 +173,6 @@
     <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
     <ClInclude Include="vendor\imgui\imstb_textedit.h" />
     <ClInclude Include="vendor\imgui\imstb_truetype.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\textures\BODYMAINCOLORCG.png" />
-    <Image Include="resources\textures\skybox\back.jpg" />
-    <Image Include="resources\textures\skybox\down.jpg" />
-    <Image Include="resources\textures\skybox\front.jpg" />
-    <Image Include="resources\textures\skybox\left.jpg" />
-    <Image Include="resources\textures\skybox\right.jpg" />
-    <Image Include="resources\textures\skybox\up.jpg" />
-    <Image Include="resources\textures\statue.jpg" />
-    <Image Include="resources\textures\viking_room.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="resources\animations\line.txt" />
-    <Text Include="resources\animations\spiral.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

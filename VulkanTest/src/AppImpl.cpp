@@ -10,5 +10,10 @@ AppImpl* AppImpl::create() {
 	//case2:return nestodrugo
 	//}
 
-	return new AppVulkanImpl();
+	return new  AppVulkanImpl();
+}
+
+void AppImpl::push_layer(std::shared_ptr<Layer>& layer)
+{
+	m_LayerStack.push_layer(layer);
 }

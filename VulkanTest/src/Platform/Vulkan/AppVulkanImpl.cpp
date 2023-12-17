@@ -4,7 +4,6 @@
 #include <iostream>
 #include <algorithm>
 #include <set>
-#include <shaderc/shaderc.hpp>
 #include <unordered_map>
 #include <algorithm>
 
@@ -61,11 +60,15 @@ void AppVulkanImpl::initialize_window()
     glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
         app->set_frame_buffer_resized();
+        //TODO
+        //app->set_frame_b
+
         });
 
     glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xoffset, double yoffset) {
         auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
         app->set_field_of_view(static_cast<float>(yoffset));
+        //app->setScrollCallback();
         });
 
 
@@ -100,33 +103,39 @@ void AppVulkanImpl::initialize_window()
 
 void AppVulkanImpl::initialize_app()
 {
-    create_instance();
-    setup_debug_messenger();
-    create_surface();
-    pick_physical_device();
-    create_logical_device();
-    create_swapchain();
-    create_render_pass();
+    auto layer = m_LayerStack[m_ActiveLayer];
+    if (!isInitialized)
+    {
+        create_instance();
+        setup_debug_messenger();
+        create_surface();
+        pick_physical_device();
+        create_logical_device();
+        create_swapchain();
+        create_render_pass();
+    }
+    create_descriptor_set_layout(layer); //LAYER;
+    create_graphics_pipeline(layer); //LAYER
 
-    create_descriptor_set_layout();
-    create_graphics_pipeline();
+    if (!isInitialized)
+    {       
+        create_commands();
+        create_depth_resources();
+        create_framebuffers();
+        create_texture_sampler();
+    }
+    load_model(layer); //LAYER
+    create_buffers(layer); //LAYER
+    create_descriptors(layer); //LAYER
 
-    create_commands();
-    create_depth_resources();
-    create_framebuffers();
-
-    create_texture_sampler();
-
-    load_model();
-
-    create_buffers();
-    create_descriptors();
-    create_sync_objects();
+    if(!isInitialized) create_sync_objects();
 
     if (AppVulkanImpl::s_ImGuiEnabled)
     {
         init_imgui();
     }
+
+    isInitialized = true;
 }
 
 void AppVulkanImpl::main_loop()
@@ -191,7 +200,7 @@ void AppVulkanImpl::main_loop()
         }
         //imgui new frame
 
-       
+        for (auto layer : m_LayerStack) layer->on_update(deltaTime);
 
         draw_frame(deltaTime);
     }
@@ -519,143 +528,111 @@ void AppVulkanImpl::create_render_pass()
 
 
 
-void AppVulkanImpl::create_descriptor_set_layout()
+void AppVulkanImpl::create_descriptor_set_layout(std::shared_ptr<Layer>& layer)
 {
-    VkDescriptorSetLayoutBinding uboLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-    VkDescriptorSetLayoutBinding sceneLayoutBinding = create_descriptor_set_layout_binding(1, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, sceneLayoutBinding };//, samplerLayoutBinding
-    VkDescriptorSetLayoutCreateInfo sceneLayoutInfo = create_layout_info(bindings.data(), bindings.size());
-    if (vkCreateDescriptorSetLayout(m_Device, &sceneLayoutInfo, nullptr, &m_SceneSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
+    std::vector<DescriptorSetLayout>& layouts = layer->get_layouts();
+
+    for (int i = 0; i < layouts.size(); ++i)
+    {
+        VkDescriptorSetLayoutBinding binding = create_descriptor_set_layout_binding(0, 1, layouts[i].descriptor->descriptorType, layouts[i].descriptor->shaderFlags);
+        VkDescriptorSetLayoutCreateInfo layoutInfo = create_layout_info(&binding,1);
+        if (vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &layouts[i].layout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        m_DeletionQueue.push_function([=]() {
+            vkDestroyDescriptorSetLayout(m_Device, layouts[i].layout, nullptr);
+            },
+            "DescriptorSetLayout");
     }
 
-    VkDescriptorSetLayoutBinding objectLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-    VkDescriptorSetLayoutCreateInfo objectLayoutInfo = create_layout_info(&objectLayoutBinding, 1);
-    if (vkCreateDescriptorSetLayout(m_Device, &objectLayoutInfo, nullptr, &m_ObjectSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
-    }
-
-    VkDescriptorSetLayoutBinding textureLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    VkDescriptorSetLayoutCreateInfo textureLayoutInfo = create_layout_info(&textureLayoutBinding, 1);
-    if (vkCreateDescriptorSetLayout(m_Device, &textureLayoutInfo, nullptr, &m_TextureSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
-    }
-
-    //VkDescriptorSetLayoutBinding cameraLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-    //VkDescriptorSetLayoutBinding cubemapLayoutBinding = create_descriptor_set_layout_binding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    //std::array<VkDescriptorSetLayoutBinding, 2> bindings2 = { cameraLayoutBinding, cubemapLayoutBinding };//, samplerLayoutBinding
-    //VkDescriptorSetLayoutCreateInfo skyboxLayoutInfo = create_layout_info(bindings2.data(), bindings2.size());
-    //if (vkCreateDescriptorSetLayout(m_Device, &skyboxLayoutInfo, nullptr, &m_CubemapSetLayout) != VK_SUCCESS) {
+    
+    //VkDescriptorSetLayoutBinding uboLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    //VkDescriptorSetLayoutBinding sceneLayoutBinding = create_descriptor_set_layout_binding(1, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    //std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, sceneLayoutBinding };//, samplerLayoutBinding
+    //VkDescriptorSetLayoutCreateInfo sceneLayoutInfo = create_layout_info(bindings.data(), bindings.size());
+    //if (vkCreateDescriptorSetLayout(m_Device, &sceneLayoutInfo, nullptr, &m_SceneSetLayout) != VK_SUCCESS) {
     //    throw std::runtime_error("failed to create descriptor set layout!");
     //}
 
-    m_DeletionQueue.push_function([=]() {
-        vkDestroyDescriptorSetLayout(m_Device, m_SceneSetLayout, nullptr);
-        vkDestroyDescriptorSetLayout(m_Device, m_ObjectSetLayout, nullptr); 
-        vkDestroyDescriptorSetLayout(m_Device, m_TextureSetLayout, nullptr); 
-       // vkDestroyDescriptorSetLayout(m_Device, m_CubemapSetLayout, nullptr);
-        }, 
-       "DescriptorSetLayouts");
+    //VkDescriptorSetLayoutBinding objectLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    //VkDescriptorSetLayoutCreateInfo objectLayoutInfo = create_layout_info(&objectLayoutBinding, 1);
+    //if (vkCreateDescriptorSetLayout(m_Device, &objectLayoutInfo, nullptr, &m_ObjectSetLayout) != VK_SUCCESS) {
+    //    throw std::runtime_error("failed to create descriptor set layout!");
+    //}
+
+    //VkDescriptorSetLayoutBinding textureLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    //VkDescriptorSetLayoutCreateInfo textureLayoutInfo = create_layout_info(&textureLayoutBinding, 1);
+    //if (vkCreateDescriptorSetLayout(m_Device, &textureLayoutInfo, nullptr, &m_TextureSetLayout) != VK_SUCCESS) {
+    //    throw std::runtime_error("failed to create descriptor set layout!");
+    //}
+
+    ////VkDescriptorSetLayoutBinding cameraLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    ////VkDescriptorSetLayoutBinding cubemapLayoutBinding = create_descriptor_set_layout_binding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    ////std::array<VkDescriptorSetLayoutBinding, 2> bindings2 = { cameraLayoutBinding, cubemapLayoutBinding };//, samplerLayoutBinding
+    ////VkDescriptorSetLayoutCreateInfo skyboxLayoutInfo = create_layout_info(bindings2.data(), bindings2.size());
+    ////if (vkCreateDescriptorSetLayout(m_Device, &skyboxLayoutInfo, nullptr, &m_CubemapSetLayout) != VK_SUCCESS) {
+    ////    throw std::runtime_error("failed to create descriptor set layout!");
+    ////}
+
+    //m_DeletionQueue.push_function([=]() {
+    //    vkDestroyDescriptorSetLayout(m_Device, m_SceneSetLayout, nullptr);
+    //    vkDestroyDescriptorSetLayout(m_Device, m_ObjectSetLayout, nullptr); 
+    //    vkDestroyDescriptorSetLayout(m_Device, m_TextureSetLayout, nullptr); 
+    //   // vkDestroyDescriptorSetLayout(m_Device, m_CubemapSetLayout, nullptr);
+    //    }, 
+    //   "DescriptorSetLayouts");
 
 }
 
-void AppVulkanImpl::create_graphics_pipeline()
+void AppVulkanImpl::create_graphics_pipeline(std::shared_ptr<Layer>& layer)
 {
+    std::vector<DescriptorSetLayout>& layouts = layer->get_layouts();
+    std::vector<PipelineLayout>& pipelineLayouts = layer->get_pipeline_layouts();
 
-    VkDescriptorSetLayout setLayouts[] = { m_SceneSetLayout, m_ObjectSetLayout, m_TextureSetLayout };
+    for (size_t i = 0; i < pipelineLayouts.size(); ++i)
+    {
+        std::vector<VkDescriptorSetLayout> setLayouts;
+        for (int j = 0; j < pipelineLayouts[i].descriptorSetLayouts.size(); ++j)
+        {
+            setLayouts.push_back(pipelineLayouts[i].descriptorSetLayouts[j]->layout);
+        }
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = setLayouts.size();// Optional
+        pipelineLayoutInfo.pSetLayouts = setLayouts.data(); // Optional
 
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 3; // Optional
-    pipelineLayoutInfo.pSetLayouts = setLayouts; // Optional
+       // pipelineLayouts[i].descriptorSetLayout = &layouts[i];
 
-    if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo, nullptr, &m_TexturePipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
+        if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo, nullptr, &pipelineLayouts[i].layout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create pipeline layout!");
+        }
+
+        m_DeletionQueue.push_function([=]() { vkDestroyPipelineLayout(m_Device, pipelineLayouts[i].layout, nullptr); }, "PipelineLAyout");
     }
-
-    m_DeletionQueue.push_function([=]() { vkDestroyPipelineLayout(m_Device, m_TexturePipelineLayout, nullptr); }, "PipelineLAyout");
-
+ 
     m_PipelineBuilder.Device = m_Device;
     m_PipelineBuilder.Pass = m_RenderPass;
     m_PipelineBuilder.Extent = m_SwapChainExtent;
-    m_PipelineBuilder.PolygonMode = VK_POLYGON_MODE_FILL;
-    m_PipelineBuilder.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    m_PipelineBuilder.PipelineLayout = m_TexturePipelineLayout;
-    m_PipelineBuilder.VertexShaderName = "TextureShader.vert";
-    m_PipelineBuilder.FragmentShaderName = "TextureShader.frag";
 
-    m_TexturePipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-     
-    m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_TexturePipeline, nullptr); }, "Pipeline");
+    std::vector<Pipeline>& pipelines = layer->get_pipelines();
 
-    create_material(m_TextureMaterial, m_TexturePipeline, m_TexturePipelineLayout);
+    for (Pipeline& pipeline : pipelines)
+    {
+       // VkPipelineLayout pipelineLayout = pipelineLayouts[data.pipelineLayoutIndex];
+        m_PipelineBuilder.PolygonMode = pipeline.PolygonMode;
+        m_PipelineBuilder.Topology = pipeline.Topology;
+        m_PipelineBuilder.PipelineLayout = pipeline.pipelineLayout->layout;
+        m_PipelineBuilder.VertexShaderName = pipeline.VertexShaderName;
+        m_PipelineBuilder.FragmentShaderName = pipeline.FragmentShaderName;
+        m_PipelineBuilder.Skybox = pipeline.Skybox;
+        m_PipelineBuilder.cullMode = pipeline.cullMode;
 
-    //---------------------------------------------------------------------------------------------------------
-
-    VkDescriptorSetLayout setLayouts2[] = { m_SceneSetLayout, m_ObjectSetLayout };
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo2{};
-    pipelineLayoutInfo2.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo2.setLayoutCount = 2; // Optional
-    pipelineLayoutInfo2.pSetLayouts = setLayouts2; // Optional
-
-    if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo2, nullptr, &m_PlainPipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
+        pipeline.pipeline = m_PipelineBuilder.build_pipeline();
+        m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, pipeline.pipeline, nullptr); }, "Pipeline");
+        
+     //   create_material(layer->get_materials()[j], pipeline.pipeline, pipeline.pipelineLayout->layout);
     }
-
-    m_DeletionQueue.push_function([=]() { vkDestroyPipelineLayout(m_Device, m_PlainPipelineLayout, nullptr); }, "PipelineLAyout");
-
-
-    m_PipelineBuilder.PipelineLayout = m_PlainPipelineLayout;
-    m_PipelineBuilder.VertexShaderName = "PlainShader.vert";
-    m_PipelineBuilder.FragmentShaderName = "PlainShader.frag";
-
-    m_PlainPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-
-    m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_PlainPipeline, nullptr); }, "Pipeline");
-
-    create_material(m_PlainMaterial, m_PlainPipeline, m_PlainPipelineLayout);
-
-    //---------------------------------------------------------------------------------------------------------
-
-    m_PipelineBuilder.VertexShaderName = "IlluminateShader.vert";
-    m_PipelineBuilder.FragmentShaderName = "IlluminateShader.frag";
-
-    m_IlluminatedPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-
-    create_material(m_IlluminateMaterial, m_IlluminatedPipeline, m_PlainPipelineLayout);
-
-    m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_IlluminatedPipeline, nullptr); }, "Pipeline");
-
-    //---------------------------------------------------------------------------------------------------------
-
-    VkDescriptorSetLayout setLayouts3[] = { m_SceneSetLayout, m_TextureSetLayout };
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo3{};
-    pipelineLayoutInfo3.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo3.setLayoutCount = 2; // Optional
-    pipelineLayoutInfo3.pSetLayouts = setLayouts3; // Optional
-
-    if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo3, nullptr, &m_CubemapPipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-
-    m_DeletionQueue.push_function([=]() { vkDestroyPipelineLayout(m_Device, m_CubemapPipelineLayout, nullptr); }, "PipelineLAyout");
-
-    m_PipelineBuilder.PipelineLayout = m_CubemapPipelineLayout;
-    m_PipelineBuilder.cullMode = VK_CULL_MODE_FRONT_BIT;
-    m_PipelineBuilder.VertexShaderName = "SkyboxShader.vert";
-    m_PipelineBuilder.FragmentShaderName = "SkyboxShader.frag";
-    m_PipelineBuilder.Subpass = 0;
-    //m_PipelineBuilder.DepthTest = VK_FALSE;
-    m_PipelineBuilder.Skybox = true;
-
-    m_CubemapPipeline = m_PipelineBuilder.build_pipeline();//;("VikingShader.vert", "VikingShader.frag", m_Device, m_TexturePipelineLayout, m_RenderPass, m_SwapChainExtent, VK_POLYGON_MODE_FILL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-
-    create_material(m_SkyboxMaterial, m_CubemapPipeline, m_CubemapPipelineLayout);
-    m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, m_CubemapPipeline, nullptr); }, "Pipeline");
-
-
 }
 
 void AppVulkanImpl::create_framebuffers()
@@ -837,64 +814,85 @@ void AppVulkanImpl::create_texture_sampler()
 
 }
 
-void AppVulkanImpl::create_mesh(Mesh& mesh, bool illuminated, bool textured, std::optional<std::string> animation)
+void AppVulkanImpl::create_mesh_obj(Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation)
 {
-    mesh.load_from_obj(illuminated, textured);
+    mesh.load_from_obj(illuminated, textureIndex.has_value());
     upload_mesh(mesh);
     if (animation.has_value()) mesh.load_animation(animation.value());
 }
 
-
-void AppVulkanImpl::load_model()
+void AppVulkanImpl::create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation)
 {
+  //  mesh.load_data();
+    mesh.load_from_obj(illuminated, textureIndex.has_value());
+    upload_mesh(mesh);
+ 
+}
 
-    //-------------CREATE MESH--------------------------
-    create_mesh(m_Cat, true, false, "spiral.txt");
-    create_mesh(m_Skybox, false, false);
-    create_mesh(m_Panda, false, false);
-    create_mesh(m_TextureTest, false, true);
+void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
+{
+    //INITIALIZE TEXTURES
+    std::vector<Texture>& textures = layer->get_textures();
+    for (Texture& texture : textures)
+    {
+        if (texture.Filename.find("/") != std::string::npos)
+        {
+            create_cubemap(texture);
+        }
+        else
+        {
+            create_texture_image(texture);
+        }
+    }
 
-    //create_mesh(m_Spiral, false, false);
+    std::vector<MeshWrapper>& meshStructs = layer->get_mesh();
 
+    for (MeshWrapper& meshStruct : meshStructs)
+    {
 
-    //------------CREATE TEXTURES-----------------------
-    create_texture_image(m_FighterJetMain);
-    create_texture_image(m_Statue);
-    create_texture_image(m_FighterJetCamo);
-    create_cubemap(m_SkyboxTexture);
+        if (meshStruct.isSkybox)
+        {
+            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, std::nullopt, meshStruct.animated);
+            m_SkyboxObj = new RenderObject({ &meshStruct, true });
+        }
+        else
+        {
+            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.textureIndex, meshStruct.animated);
+            m_Renderables.push_back(std::shared_ptr<RenderObject>(new RenderObject(&meshStruct, meshStruct.isSkybox)));
+        }
+    }
 
-    m_SkyboxObj = RenderObject(&m_Skybox, &m_SkyboxMaterial, true);
+    std::vector<Particles>& particlesV = layer->get_particles();
 
-    RenderObject cat(&m_Cat, &m_IlluminateMaterial);
-   // cat.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
-    
+    for (Particles& particles : particlesV)
+    {
+        for (MeshWrapper& meshStruct : particles.meshStruct)
+        {
+            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.textureIndex,meshStruct.animated);
+            m_Renderables.push_back(std::shared_ptr<RenderParticle>(new RenderParticle(&meshStruct, meshStruct.isSkybox)));
+        }
+    }
 
-    //{
-    //    RenderObject skybox(&m_Skybox, &m_PlainMaterial);
-    //    for (int i = 0; i < 30; ++i)
-    //    {
-    //        for (int j = 0; j < 30; ++j)
-    //        {
-    //            skybox.setScale(glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.1f, 10.1f)));
-    //            skybox.setTranslation(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f * i, 0, 2.0f * j)));
-    //            m_RenderObjects.push_back(skybox);
-    //        }
-    //    }
-    //}
+    for (auto& object : m_Renderables)
+    {
+        object->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
 
-    RenderObject texture(&m_TextureTest, &m_TextureMaterial);
+        if (std::shared_ptr<RenderParticle> derivedPtr = std::dynamic_pointer_cast<RenderParticle>(object); derivedPtr)
+        {
+            if (std::shared_ptr<RenderObject> derived = std::dynamic_pointer_cast<RenderObject>(m_Renderables[0]); derived)
+            {
+                derivedPtr->generator = derived;
 
-    RenderObject panda(&m_Panda, &m_IlluminateMaterial);
+            }
+        }
+    }
 
-   // m_RenderObjects.push_back(panda);
-   // m_RenderObjects.push_back(cat);
-    //m_RenderObjects.push_back(skybox);
-   // m_RenderObjects.push_back(texture);
 }
 
 
-void AppVulkanImpl::create_buffers()
+void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
 {
+    //TODO rename ovo - ne svida mi se scene i camera da se kose sa scene layout(environment?)
 
     VkDeviceSize bufferSize = sizeof(CameraBufferObject);
 
@@ -914,8 +912,14 @@ void AppVulkanImpl::create_buffers()
     for (size_t i = 0; i < m_Objects.size(); i++)
     {
         create_buffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_Objects[i].Buffer, m_Objects[i].Memory);
- //       vkMapMemory(m_Device, m_Objects[i].Memory, 0, bufferSize, 0, &m_Objects[i].Mapped);
     }
+
+    //m_Particles.resize(MAX_FRAMES_IN_FLIGHT);
+    //bufferSize = sizeof(ObjectData) * 500;
+    //for (size_t i = 0; i < m_Particles.size(); i++)
+    //{
+    //    create_buffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_Particles[i].Buffer, m_Particles[i].Memory);
+    //}
 
     m_DeletionQueue.push_function(
         [=]() {
@@ -928,6 +932,11 @@ void AppVulkanImpl::create_buffers()
                 vkDestroyBuffer(m_Device, m_Objects[i].Buffer, nullptr);
                 vkFreeMemory(m_Device, m_Objects[i].Memory, nullptr);
             }
+            //for (size_t i = 0; i < m_Particles.size(); i++)
+            //{
+            //    vkDestroyBuffer(m_Device, m_Particles[i].Buffer, nullptr);
+            //    vkFreeMemory(m_Device, m_Particles[i].Memory, nullptr);
+            //}
         }, "Buffers"
     );
 }
@@ -951,7 +960,7 @@ VkDescriptorBufferInfo AppVulkanImpl::create_descriptor_buffer_info(VkBuffer buf
     return bufferInfo;
 };
 
-void AppVulkanImpl::create_descriptors()
+void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
 {
     std::vector<VkDescriptorPoolSize> sizes =
     {
@@ -973,45 +982,39 @@ void AppVulkanImpl::create_descriptors()
     }
     m_DeletionQueue.push_function([=]() { vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr); }, "DescriptorPool");
 
-    std::vector<VkDescriptorSetLayout> sceneLayouts(MAX_FRAMES_IN_FLIGHT, m_SceneSetLayout);
-    VkDescriptorSetAllocateInfo sceneLayoutsallocInfo = create_descriptor_alloc_info(sceneLayouts.data(), sceneLayouts.size());
-
-
-    std::vector<VkDescriptorSetLayout> objectLayouts(MAX_FRAMES_IN_FLIGHT, m_ObjectSetLayout);
-    VkDescriptorSetAllocateInfo objectLayoutsallocInfo = create_descriptor_alloc_info(objectLayouts.data(), objectLayouts.size());
-
-    std::vector<VkDescriptorSetLayout> textureLayouts(MAX_FRAMES_IN_FLIGHT, m_TextureSetLayout);
-    VkDescriptorSetAllocateInfo textureLayoutsallocInfo = create_descriptor_alloc_info(textureLayouts.data(), textureLayouts.size());
-
-
-    //std::vector<VkDescriptorSetLayout> cubemapLayouts(MAX_FRAMES_IN_FLIGHT, m_CubemapSetLayout);
-    //VkDescriptorSetAllocateInfo cubemapLayoutsallocInfo = create_descriptor_alloc_info(cubemapLayouts.data(), cubemapLayouts.size());
-
-    m_SceneSets.resize(MAX_FRAMES_IN_FLIGHT);
-    m_ObjectSets.resize(MAX_FRAMES_IN_FLIGHT);
-   // m_TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
-
-    Material* texturedMat = &m_TextureMaterial;
-    texturedMat->TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
-
-    Material* skyboxMaterial = &m_SkyboxMaterial;
-    skyboxMaterial->TextureSets.resize(MAX_FRAMES_IN_FLIGHT);
-
-    if (vkAllocateDescriptorSets(m_Device, &sceneLayoutsallocInfo, m_SceneSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
-
-    if (vkAllocateDescriptorSets(m_Device, &objectLayoutsallocInfo, m_ObjectSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
-
-    if (vkAllocateDescriptorSets(m_Device, &textureLayoutsallocInfo, skyboxMaterial->TextureSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
+    std::vector<DescriptorSetLayout>& layouts = layer->get_layouts();
     
-    if (vkAllocateDescriptorSets(m_Device, &textureLayoutsallocInfo, texturedMat->TextureSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
+    std::vector<Texture>& textures = layer->get_textures();
+
+    for (DescriptorSetLayout& layout : layouts)
+    {
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts(MAX_FRAMES_IN_FLIGHT, layout.layout);
+
+        if (layout.descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+        {
+            VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
+            for (Texture& texture : textures)
+            {
+                texture.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+                if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, texture.descriptorSets.data()) != VK_SUCCESS) {
+                    throw std::runtime_error("failed to allocate descriptor sets!");
+                }
+            }
+        }
+        else
+        {
+            layout.descriptor->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+            VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
+
+            if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, layout.descriptor->descriptorSets.data()) != VK_SUCCESS) {
+                throw std::runtime_error("failed to allocate descriptor sets!");
+            }
+        }
     }
+
+
+
 
 
     const int MAX_OBJECTS = 1000;
@@ -1020,28 +1023,44 @@ void AppVulkanImpl::create_descriptors()
         //------------------------- BUFFER INFO -------------------------------------------------------------------------
         VkDescriptorBufferInfo cameraBufferInfo = create_descriptor_buffer_info(m_CameraBuffer, sizeof(CameraBufferObject));
         VkDescriptorBufferInfo sceneBufferInfo = create_descriptor_buffer_info(m_Scene.DataBuffer, sizeof(SceneData));
-        VkDescriptorBufferInfo objectBufferInfo = create_descriptor_buffer_info(m_Objects[i].Buffer, sizeof(ObjectData)*MAX_OBJECTS);
+        VkDescriptorBufferInfo objectBufferInfo = create_descriptor_buffer_info(m_Objects[i].Buffer, sizeof(ObjectData) * MAX_OBJECTS);
+        VkDescriptorImageInfo smokeBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[2].ImageView);
+        VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[1].ImageView);
+        VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[0].ImageView);
 
         //------------------------- IMAGE INFO --------------------------------------------------------------------------
-        VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, m_FighterJetMain.ImageView);
-        VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, m_SkyboxTexture.ImageView);
 
-
-        std::vector<VkWriteDescriptorSet> descriptorWrites{ 
-            write_descriptor_set(m_SceneSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, cameraBufferInfo),
-            write_descriptor_set(m_SceneSets[i], 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneBufferInfo),
-            write_descriptor_set(m_ObjectSets[i], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, objectBufferInfo),
-            write_descriptor_image(texturedMat->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo),
-            write_descriptor_image(skyboxMaterial->TextureSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo)
+        //OVO bi mogao bi dakle environment set i objects sets, a to ce uvijek bit prisutno
+        // tako da mislim da moze tako dobro mi zvuci iskr
+        std::vector<VkWriteDescriptorSet> descriptorWrites{
+            write_descriptor_set(layouts[0].descriptor->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, cameraBufferInfo),
+            write_descriptor_set(layouts[1].descriptor->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneBufferInfo),
+            write_descriptor_set(layouts[2].descriptor->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, objectBufferInfo),
+            write_descriptor_image(textures[2].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, smokeBufferInfo),
+            write_descriptor_image(textures[1].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo),
+            write_descriptor_image(textures[0].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo)
         };
+
+        /*       for (DescriptorData& data : descriptorsData)
+                {
+                    descriptorWrites.push_back(
+                        write_descriptor_set(data.descriptorSets[i], 0, data.)
+                    );
+                }*/
+
+        //for (Texture& texture : textures)
+        //{
+        //    descriptorWrites
+        //    .push_back(write_descriptor_image(texture.descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, create_descriptor_image_info(m_TextureSampler, texture.ImageView)));
+        //}
 
         // Now, call vkUpdateDescriptorSets to perform the updates
         vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
+    
+
 }
-
-
 
 void AppVulkanImpl::create_commands()
 {
@@ -1187,6 +1206,9 @@ void AppVulkanImpl::draw_frame(float deltaTime)
 
     update_camera_buffer();
 
+    //TODO + ( //TODO layer->pollInput  + //TODO -> layer->callbacs)
+    //layer->update_buffers();
+
     float framed = (frameNumber++ / 120.f);
   //  m_Scene.Data.ambientColor = { sin(framed),0,cos(framed),1 };
     m_Scene.Data.ambientColor = { 0.2, 0.2, 0.2, 1.0 };
@@ -1202,9 +1224,17 @@ void AppVulkanImpl::draw_frame(float deltaTime)
 
     memcpy(m_Scene.DataMapped, &m_Scene.Data, sizeof(SceneData));
 
+    //vkMapMemory(m_Device, m_Particles[imageIndex].Memory, 0, sizeof(ParticleData) * m_RenderParticles.size(), 0, &m_Particles[imageIndex].Mapped);
+    //ParticleData* particleArray = (ParticleData*)m_Particles[imageIndex].Mapped;
+    //for (size_t i = 0; i < m_RenderParticles.size(); i++)
+    //{
+    //    m_RenderParticles[i].update(deltaTime, m_Camera.Position);
+    //    particleArray[i].Model = m_RenderParticles[i].Model;
+    //}
+    //vkUnmapMemory(m_Device, m_Particles[imageIndex].Memory);
 
   //  record_command_buffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
-    draw_objects(m_CommandBuffers[m_CurrentFrame], m_RenderObjects, imageIndex);
+    draw_objects(m_CommandBuffers[m_CurrentFrame], m_Renderables, imageIndex, deltaTime);
 
 
 
@@ -1715,7 +1745,9 @@ void AppVulkanImpl::copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
 
 void AppVulkanImpl::update_camera_buffer()
 {
-
+    //TODO - hoce li camera biti na strani klijenta ili aplikacije?
+    // Nije greda ako ostane ovako ali gubim opciju 2D
+    //layer->get_camera
     CameraBufferObject cbo{};
     cbo.view = glm::lookAt(m_Camera.Position, m_Camera.Position + m_Camera.Front, m_Camera.Up);
     cbo.proj = glm::perspective(glm::radians(m_Camera.Fov), m_SwapChainExtent.width / (float)m_SwapChainExtent.height, 0.1f, 500.0f);
@@ -2028,10 +2060,9 @@ void AppVulkanImpl::create_material(Material& material, VkPipeline pipeline, VkP
 {
     material.Pipeline = pipeline;
     material.PipelineLayout = layout;
-    material.TextureSets = textureSets;
 }
 
-void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<RenderObject>& renderObjects, uint32_t imageIndex)
+void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex, float deltaTime)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2078,54 +2109,70 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<Rend
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    vkMapMemory(m_Device, m_Objects[imageIndex].Memory, 0, sizeof(ObjectData) * renderObjects.size(), 0, &m_Objects[imageIndex].Mapped);
+    //layer-> Update_objects() ( virtual = 0 -> OBAVEZNO NASLJEDIVANJE LAYERA)
 
-
+    vkMapMemory(m_Device, m_Objects[imageIndex].Memory, 0, sizeof(ObjectData) * m_Renderables.size(), 0, &m_Objects[imageIndex].Mapped);
     ObjectData* objectArray = (ObjectData*)m_Objects[imageIndex].Mapped;
-
-    for (size_t i = 0; i < renderObjects.size(); i++)
+    for (size_t i = 0; i < m_Renderables.size(); i++)
     {
-        if (renderObjects[i].MeshHandle->Animated)
+        if (m_Renderables[i]->is_animated())
         {
-            renderObjects[i].compute_animation(time);
+            m_Renderables[i]->compute_animation(time);
         }
-        objectArray[i].Model = renderObjects[i].Model;
-    }
+        m_Renderables[i]->update(deltaTime, m_Camera.Position);
 
+        objectArray[i].Model = m_Renderables[i]->get_model_matrix();
+    }
     vkUnmapMemory(m_Device, m_Objects[imageIndex].Memory);
 
-    Mesh* lastMesh = nullptr;
-    Material* lastMaterial = nullptr;
+    const MeshWrapper* lastMesh = nullptr;
+    const Pipeline* lastPipeline = nullptr;
 
+    auto layer = m_LayerStack[m_ActiveLayer];
+
+    std::vector<Texture>& textures = layer->get_textures();
     int j = 0;
-    for (auto& object : renderObjects)
+    for (auto& object : renderables)
     {
-
-        if (object.MaterialHandle != lastMaterial) {
-            object.bind_materials(commandBuffer,{&m_SceneSets[imageIndex], &m_ObjectSets[imageIndex]}, imageIndex);
-            lastMaterial = object.MaterialHandle;
+        if (object->is_textured())
+        {
+            object->bind_texture(commandBuffer, textures, imageIndex);
+        }
+        //TODO (Hoce li sceneSets i ObjectSets biti dio objekta tj layouta? - NE JOS - Bufferi bi nekako morali bit dio materijala, tj materijal mora imat pointer na buffer, tAKODer - create_buffers ce biti layer dependent
+        if (object->get_pipeline() != lastPipeline) {
+            
+            object->bind_materials(commandBuffer, imageIndex);
+            lastPipeline = object->get_pipeline();
         }
   
-        if (object.MeshHandle != lastMesh) {
-            object.bind_mesh(commandBuffer);
-            lastMesh = object.MeshHandle;
+        if (object->get_mesh() != lastMesh) {
+            object->bind_mesh(commandBuffer);
+            lastMesh = object->get_mesh();
         }
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.MeshHandle->Indices.size()), 1, 0, 0, j++);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object->get_indices_size()), 1, 0, 0, j++);
     }
+
 
     if (m_SkyboxOn)
     {
-        if (m_SkyboxObj.MaterialHandle != lastMaterial) {
-            m_SkyboxObj.bind_materials(commandBuffer, { &m_SceneSets[imageIndex]}, imageIndex);
-            lastMaterial = m_SkyboxObj.MaterialHandle;
+        if (m_SkyboxObj->is_textured())
+        {
+            m_SkyboxObj->bind_texture(commandBuffer, textures, imageIndex);
+        }
+        //TODO (Hoce li sceneSets i ObjectSets biti dio objekta tj layouta? - NE JOS - Bufferi bi nekako morali bit dio materijala, tj materijal mora imat pointer na buffer, tAKODer - create_buffers ce biti layer dependent
+        if (m_SkyboxObj->get_pipeline() != lastPipeline) {
+
+            m_SkyboxObj->bind_materials(commandBuffer, imageIndex);
+            lastPipeline = m_SkyboxObj->get_pipeline();
         }
 
-        if (m_SkyboxObj.MeshHandle != lastMesh) {
-            m_SkyboxObj.bind_mesh(commandBuffer);
-            lastMesh = m_SkyboxObj.MeshHandle;
+        if (m_SkyboxObj->get_mesh() != lastMesh) {
+            m_SkyboxObj->bind_mesh(commandBuffer);
+            lastMesh = m_SkyboxObj->get_mesh();
         }
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_SkyboxObj.MeshHandle->Indices.size()), 1, 0, 0, 0);
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_SkyboxObj->get_indices_size()), 1, 0, 0, j++);
     }
 
 

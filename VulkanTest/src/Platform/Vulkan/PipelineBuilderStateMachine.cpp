@@ -7,12 +7,12 @@ VkPipeline PipelineBuilder::build_pipeline()//(std::string vertShaderName, std::
 	auto bindingDescription = Vertex::get_binding_description();
 	auto attributeDescriptions = Vertex::get_attribute_descriptions();
 
-	std::vector<uint32_t> vertexShaderSpirv;
-	compile_shader(VertexShaderName.c_str(), shaderc_vertex_shader, vertexShaderSpirv);
+	std::vector<char> vertexShaderSpirv;
+	compile_shader(VertexShaderName.c_str(), vertexShaderSpirv);
 
 
-	std::vector<uint32_t> fragmentShaderSpirv;
-	compile_shader(FragmentShaderName.c_str(), shaderc_fragment_shader, fragmentShaderSpirv);
+	std::vector<char> fragmentShaderSpirv;
+	compile_shader(FragmentShaderName.c_str(), fragmentShaderSpirv);
 
 	VkShaderModule vertShaderModule = create_shader_module(vertexShaderSpirv, Device);
 	VkShaderModule fragShaderModule = create_shader_module(fragmentShaderSpirv, Device);
@@ -323,42 +323,54 @@ VkPipeline PipelineBuilder::build_pipeline()//(std::string vertShaderName, std::
 //
 
 
-bool PipelineBuilder::compile_shader(std::string sourcePath, shaderc_shader_kind shaderKind, std::vector<uint32_t>& spirvCode)
+bool PipelineBuilder::compile_shader(std::string sourcePath, std::vector<char>& spirvCode)
 {
 	std::filesystem::path currentDir = std::filesystem::current_path();
 
 	// Initialize the shader compiler
-	shaderc::Compiler compiler;
-	shaderc::CompileOptions options;
+	//shaderc::Compiler compiler;
+	//shaderc::CompileOptions options;
+
+	size_t dotPosition = sourcePath.find_last_of('.');
+	sourcePath = sourcePath.substr(0, dotPosition) + sourcePath.substr(dotPosition+1) + ".spv";
 
 	// Load the shader source code from file
 	std::ifstream file(currentDir.string() + SHADER_PATH + sourcePath, std::ios::in | std::ios::binary);
 	if (!file) {
 		throw std::runtime_error("Failed to open the shader file");
 	}
-	std::vector<char> shaderSource((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	
+	file.seekg(0, std::ios::end);
+	size_t fileSize = static_cast<size_t>(file.tellg());
+	file.seekg(0, std::ios::beg);
+	std::vector<char> buffer(fileSize);
+	file.seekg(0);
+
+
+	file.read(buffer.data(), fileSize);
 	file.close();
 
-	// Compile the shader
-	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
-		shaderSource.data(), shaderSource.size(), shaderKind, sourcePath.c_str(), options);
-
-	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-//		std::cout << result.GetCompilationStatus() << std::endl;
-		throw std::runtime_error("Failed to compile shader ! ");
-	}
+//
+//	// Compile the shader
+//	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(
+//		shaderSource.data(), shaderSource.size(), shaderKind, sourcePath.c_str(), options);
+//
+//	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+////		std::cout << result.GetCompilationStatus() << std::endl;
+//		throw std::runtime_error("Failed to compile shader ! ");
+//	}
 
 	// Copy the SPIR-V bytecode to the output vector
-	spirvCode = { result.begin(), result.end() };
+	spirvCode = { buffer.begin(), buffer.end() };
 	return true;
 }
 
-VkShaderModule PipelineBuilder::create_shader_module(const std::vector<uint32_t>& code, VkDevice device)
+VkShaderModule PipelineBuilder::create_shader_module(const std::vector<char>& code, VkDevice device)
 {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size() * sizeof(uint32_t);
-	createInfo.pCode = code.data();
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 	VkShaderModule shaderModule;
 	if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create shader module!");

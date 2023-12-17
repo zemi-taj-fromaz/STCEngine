@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Application.h">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -69,16 +66,18 @@
     <ClCompile Include="src\Platform\Vulkan\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="resources\shaders\TextureShader.frag" />
-    <None Include="resources\shaders\TextureShader.vert" />
-    <None Include="resources\shaders\PlainShader.frag" />
-    <None Include="resources\shaders\PlainShader.vert" />
-    <None Include="resources\shaders\IlluminateShader.vert" />
-    <None Include="resources\shaders\IlluminateShader.frag" />
-    <None Include="resources\shaders\SkyboxShader.frag" />
-    <None Include="resources\shaders\SkyboxShader.vert" />
+    <ClCompile Include="src\Layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LayerStack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\Renderable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Vulkan\RenderParticle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h">
@@ -132,38 +131,23 @@
     <ClInclude Include="src\Platform\Vulkan\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\textures\statue.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\viking_room.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\BODYMAINCOLORCG.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\skybox\back.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\skybox\down.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\skybox\front.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\skybox\left.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\skybox\right.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="resources\textures\skybox\up.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="resources\animations\spiral.txt" />
-    <Text Include="resources\animations\line.txt" />
+    <ClInclude Include="src\Engine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EntryPoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Layer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LayerStack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\Renderable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\RenderParticle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

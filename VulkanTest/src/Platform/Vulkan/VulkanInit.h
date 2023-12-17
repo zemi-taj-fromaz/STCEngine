@@ -16,6 +16,9 @@
 
 #include <iostream>
 
+#include "HelperObjects.h"
+#include "Texture.h"
+
 #define VK_CHECK(x)                                                 \
 	do                                                              \
 	{                                                               \

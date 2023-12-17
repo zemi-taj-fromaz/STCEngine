@@ -1,8 +1,16 @@
 #include "Application.h"
 
+Application* Application::s_Application = nullptr;
+
 Application::Application()
 {
-    m_AppImpl = std::unique_ptr<AppImpl>(AppImpl::create());
+    if (!s_Application) {
+        s_Application = this;
+        m_AppImpl = std::unique_ptr<AppImpl>(AppImpl::create());
+    }
+    else {
+        throw;
+    }
 }
 
 Application::~Application()
@@ -18,6 +26,11 @@ void Application::run()
         this->main_loop();
         this->cleanup();
     }
+}
+
+void Application::push_layer(std::shared_ptr<Layer>& layer)
+{
+    m_AppImpl->push_layer(layer);
 }
 
 

@@ -20,6 +20,7 @@ struct Mesh
         VertexBufferMemory = mesh.VertexBufferMemory;
         IndexBufferMemory = mesh.IndexBufferMemory;
         Animation = mesh.Animation;
+        TextureSets = mesh.TextureSets;
         Animated = mesh.Animated;
         Filename = mesh.Filename;
     }
@@ -37,6 +38,8 @@ struct Mesh
     VkDeviceMemory IndexBufferMemory;
     bool Animated{ false };
     std::string Filename;
+
+    std::vector<VkDescriptorSet> TextureSets; //texture defaulted to null
 
     std::vector<glm::vec3> Animation;
 

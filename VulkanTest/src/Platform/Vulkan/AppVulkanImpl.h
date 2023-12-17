@@ -7,6 +7,7 @@
 #include "Mesh.h"
 #include "Camera.h"
 #include "RenderObject.h"
+#include "RenderParticle.h"
 #include "Texture.h"
 
 
@@ -41,7 +42,7 @@ public:
     virtual void main_loop() override;
     virtual void cleanup() override;
 
-    inline void set_frame_buffer_resized() { m_FramebufferResized = true;  }
+    inline void set_frame_buffer_resized() { m_FramebufferResized = true; } // TODO PROPAGACIJA FUNKCIJE AKTIVNOM LAYERU }
     inline void set_camera_offset(float offset) { float zoomSpeed = 1.f; camera_offset -= offset * zoomSpeed; update_camera_buffer(); }
 
 
@@ -51,7 +52,7 @@ public:
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_Camera.process_mouse_movement(xoffset, yoffset); }
     inline void set_field_of_view(float yoffset) { this->m_Camera.set_field_of_view(yoffset); };
 
-    bool m_SkyboxOn{ false };
+    bool m_SkyboxOn{ true };
 
 private:
     void create_instance();
@@ -62,9 +63,9 @@ private:
     void create_swapchain();
  //   void create_image_views();
     void create_render_pass();
-    void create_descriptor_set_layout();
-    void create_graphics_pipeline();
-    void create_framebuffers();
+    void create_descriptor_set_layout(std::shared_ptr<Layer>& layer); //LAYER
+    void create_graphics_pipeline(std::shared_ptr<Layer>& layer); //LAYER
+    void create_framebuffers(); 
     void create_depth_resources();
 
     void create_texture_image(Texture& texture);
@@ -72,11 +73,11 @@ private:
    // void create_texture_image_view();
     void create_texture_sampler();
 
-    void load_model();
+    void load_model(std::shared_ptr<Layer>& layer); //LAYER
 
-    void create_buffers();
+    void create_buffers(std::shared_ptr<Layer>& layer); //LAYER
 
-    void create_descriptors();
+    void create_descriptors(std::shared_ptr<Layer>& layer); //LAYER
 
     void create_commands();
 
@@ -89,6 +90,9 @@ private:
     void init_imgui();
 
 private:
+
+    int m_ActiveLayer{ 0 };
+
     void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
     bool check_validation_layer_support();
@@ -138,7 +142,7 @@ private:
 
   //  void update_transform_matrices();
     
-    void draw_objects(VkCommandBuffer commandBuffer, std::vector<RenderObject>& renderObjects, uint32_t imageIndex);
+    void draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex, float deltaTime);
     VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(int binding, int count, VkDescriptorType type, VkShaderStageFlagBits shaderStageFlag);
     VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorBufferInfo& bufferInfo);
     VkWriteDescriptorSet write_descriptor_image(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorImageInfo& imageInfo);
@@ -146,7 +150,8 @@ private:
 
     VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
 
-    void create_mesh(Mesh& mesh, bool illuminated, bool textured, std::optional<std::string> animation = std::nullopt);
+    void create_mesh_obj(Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation = std::nullopt);
+    void create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation);
   //  RenderObject create_render_object(std::string meshName, std::string materialName);
 
     VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);
@@ -155,6 +160,8 @@ private:
 
 
 private:
+
+    bool isInitialized{ false };
 
     static const AppType appType{ AppType::APP_TYPE_2D };
 
@@ -247,7 +254,9 @@ private:
     VkDeviceMemory m_DepthImageMemory;
     VkImageView m_DepthImageView;
 
+    std::vector<std::shared_ptr<Renderable>> m_Renderables;
     std::vector<RenderObject> m_RenderObjects;
+   // std::vector<RenderParticle> m_RenderParticles;
 
     //float x_offset{ 0.0f };
     //float y_offset{ 0.0f };
@@ -256,11 +265,12 @@ private:
 
     glm::vec2 m_MousePosition{ m_Width /2.0f, m_Height / 2.0f };
 
-    float camera_offset = 150.0f; 
+    float camera_offset = 10.0f; 
 
     Scene m_Scene;
 
     std::vector<Object> m_Objects;
+    std::vector<Object> m_Particles;
     VkDescriptorSetLayout m_ObjectSetLayout;
     VkDescriptorSetLayout m_TextureSetLayout;
     VkDescriptorSetLayout m_CubemapSetLayout;
@@ -274,9 +284,11 @@ private:
     Mesh m_TextureTest  { "texture.obj" };
     Mesh m_Spiral       { "spiral.obj" };
 
+    Mesh m_Square;
+
     VkDescriptorPool m_ImguiPool;
 
-    RenderObject m_SkyboxObj;
+    RenderObject* m_SkyboxObj{ nullptr };
 
     Material m_IlluminateMaterial;
     Material m_SkyboxMaterial;

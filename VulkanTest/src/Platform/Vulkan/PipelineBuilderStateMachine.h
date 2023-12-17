@@ -3,7 +3,7 @@
 #include "VulkanInit.h"
 #include "HelperObjects.h"
 
-#include <shaderc/shaderc.hpp>
+//#include <shaderc/shaderc.hpp>
 #include <filesystem>
 #include <fstream>
 
@@ -32,8 +32,8 @@ private:
 
 	const std::string SHADER_PATH = "/resources/shaders/";
 
-	bool compile_shader(std::string sourcePath, shaderc_shader_kind shaderKind, std::vector<uint32_t>& spirvCode);
-	VkShaderModule create_shader_module(const std::vector<uint32_t>& code, VkDevice device);
+	bool compile_shader(std::string sourcePath, std::vector<char>& spirvCode);
+	VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice device);
 	//std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create(const char* vertShaderName, const char* fragShaderName, VkDevice device);
 
 	//VkPipelineVertexInputStateCreateInfo create_vertex_input_info(std::vector<VkVertexInputAttributeDescription> attributeDescriptions, VkVertexInputBindingDescription bindingDescription);

@@ -124,9 +124,9 @@ struct DeletionQueue
 
 struct Material
 {
-    std::vector<VkDescriptorSet> TextureSets; //texture defaulted to null
     VkPipeline Pipeline;
     VkPipelineLayout PipelineLayout;
+    int descriptorSetCount;
 };
 
 struct SceneData {
@@ -141,6 +141,19 @@ struct SceneData {
 struct ObjectData
 {
     glm::mat4 Model;
+};
+
+struct ParticleData
+{
+    glm::mat4 Model;
+};
+
+struct Particle
+{
+    std::vector<ParticleData> Data;
+    VkBuffer Buffer;
+    VkDeviceMemory Memory;
+    void* Mapped;
 };
 
 struct Object
@@ -164,6 +177,8 @@ struct UploadContext {
     VkCommandPool CommandPool;
     VkCommandBuffer CommandBuffer;
 };
+
+
 
 
 
