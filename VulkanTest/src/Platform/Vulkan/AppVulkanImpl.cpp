@@ -548,44 +548,6 @@ void AppVulkanImpl::create_descriptor_set_layout(std::shared_ptr<Layer>& layer)
             },
             "DescriptorSetLayout");
     }
-
-    
-    //VkDescriptorSetLayoutBinding uboLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-    //VkDescriptorSetLayoutBinding sceneLayoutBinding = create_descriptor_set_layout_binding(1, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    //std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, sceneLayoutBinding };//, samplerLayoutBinding
-    //VkDescriptorSetLayoutCreateInfo sceneLayoutInfo = create_layout_info(bindings.data(), bindings.size());
-    //if (vkCreateDescriptorSetLayout(m_Device, &sceneLayoutInfo, nullptr, &m_SceneSetLayout) != VK_SUCCESS) {
-    //    throw std::runtime_error("failed to create descriptor set layout!");
-    //}
-
-    //VkDescriptorSetLayoutBinding objectLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-    //VkDescriptorSetLayoutCreateInfo objectLayoutInfo = create_layout_info(&objectLayoutBinding, 1);
-    //if (vkCreateDescriptorSetLayout(m_Device, &objectLayoutInfo, nullptr, &m_ObjectSetLayout) != VK_SUCCESS) {
-    //    throw std::runtime_error("failed to create descriptor set layout!");
-    //}
-
-    //VkDescriptorSetLayoutBinding textureLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    //VkDescriptorSetLayoutCreateInfo textureLayoutInfo = create_layout_info(&textureLayoutBinding, 1);
-    //if (vkCreateDescriptorSetLayout(m_Device, &textureLayoutInfo, nullptr, &m_TextureSetLayout) != VK_SUCCESS) {
-    //    throw std::runtime_error("failed to create descriptor set layout!");
-    //}
-
-    ////VkDescriptorSetLayoutBinding cameraLayoutBinding = create_descriptor_set_layout_binding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-    ////VkDescriptorSetLayoutBinding cubemapLayoutBinding = create_descriptor_set_layout_binding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    ////std::array<VkDescriptorSetLayoutBinding, 2> bindings2 = { cameraLayoutBinding, cubemapLayoutBinding };//, samplerLayoutBinding
-    ////VkDescriptorSetLayoutCreateInfo skyboxLayoutInfo = create_layout_info(bindings2.data(), bindings2.size());
-    ////if (vkCreateDescriptorSetLayout(m_Device, &skyboxLayoutInfo, nullptr, &m_CubemapSetLayout) != VK_SUCCESS) {
-    ////    throw std::runtime_error("failed to create descriptor set layout!");
-    ////}
-
-    //m_DeletionQueue.push_function([=]() {
-    //    vkDestroyDescriptorSetLayout(m_Device, m_SceneSetLayout, nullptr);
-    //    vkDestroyDescriptorSetLayout(m_Device, m_ObjectSetLayout, nullptr); 
-    //    vkDestroyDescriptorSetLayout(m_Device, m_TextureSetLayout, nullptr); 
-    //   // vkDestroyDescriptorSetLayout(m_Device, m_CubemapSetLayout, nullptr);
-    //    }, 
-    //   "DescriptorSetLayouts");
-
 }
 
 void AppVulkanImpl::create_graphics_pipeline(std::shared_ptr<Layer>& layer)
@@ -668,10 +630,6 @@ void AppVulkanImpl::create_depth_resources()
     create_image(m_SwapChainExtent.width, m_SwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
     m_DepthImageView = create_image_view(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    //m_DeletionQueue.push_function([=]() {
-    //    vkDestroyImage(m_Device, m_DepthImage, nullptr);
-    //vkFreeMemory(m_Device, m_DepthImageMemory, nullptr);
-    //vkDestroyImageView(m_Device, m_DepthImageView, nullptr); }, "DepthResources");
     transition_image_layout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
@@ -895,8 +853,6 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 
 void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
 {
-    //TODO rename ovo - ne svida mi se scene i camera da se kose sa scene layout(environment?)
-
     std::vector<Descriptor>& descriptors = layer->get_descriptors();
 
     for (Descriptor& descriptor : descriptors)
@@ -998,31 +954,8 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
 
 
     const int MAX_OBJECTS = 1000;
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-
-        //------------------------- BUFFER INFO -------------------------------------------------------------------------
-        //VkDescriptorBufferInfo cameraBufferInfo = create_descriptor_buffer_info(m_CameraBuffer, sizeof(CameraBufferObject));
-        //VkDescriptorBufferInfo sceneBufferInfo = create_descriptor_buffer_info(m_Scene.DataBuffer, sizeof(SceneData));
-        //VkDescriptorBufferInfo objectBufferInfo = create_descriptor_buffer_info(m_Objects[i].Buffer, sizeof(ObjectData) * MAX_OBJECTS);
-        //VkDescriptorImageInfo smokeBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[2].ImageView);
-        //VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[1].ImageView);
-        //VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[0].ImageView);
-
-        //------------------------- IMAGE INFO --------------------------------------------------------------------------
-
-        //OVO bi mogao bi dakle environment set i objects sets, a to ce uvijek bit prisutno
-        // tako da mislim da moze tako dobro mi zvuci iskr
-
-
-        //write_descriptor_image(textures[2].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, smokeBufferInfo),
-        //write_descriptor_image(textures[1].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo),
-        //write_descriptor_image(textures[0].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo)
-        /*       for (DescriptorData& data : descriptorsData)
-                {
-                    descriptorWrites.push_back(
-                        write_descriptor_set(data.descriptorSets[i], 0, data.)
-                    );
-                }*/
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+    {
         std::vector<VkWriteDescriptorSet> descriptorWrites;
         for(DescriptorSetLayout& layout : layouts)
         {
@@ -1047,9 +980,6 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
             vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
 
         }
-
-        // Now, call vkUpdateDescriptorSets to perform the updates
-      //  vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
     
@@ -1139,15 +1069,8 @@ void AppVulkanImpl::create_sync_objects()
     m_DeletionQueue.push_function([=]() {
         vkDestroyFence(m_Device, m_UploadContext.UploadFence, nullptr);
         }, "UploadFence");
-
-    //if (vkCreateFence(m_Device, &fenceInfo, nullptr, &m_UploadContext.UploadFence) != VK_SUCCESS) {
-    //    throw std::runtime_error("failed to create Upload Fence!");
-    //}
-    //m_DeletionQueue.push_function([=]() { vkDestroyFence(m_Device, m_UploadContext.UploadFence, nullptr); }, "Fence");
-
 }
-//
-// implementation
+
 VkCommandBufferBeginInfo command_buffer_begin_info(VkCommandBufferUsageFlags flags /*= 0*/)
 {
     VkCommandBufferBeginInfo info = {};
@@ -1202,8 +1125,6 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
     layer->update_buffers(this, imageIndex);
 
     draw_objects(m_CommandBuffers[m_CurrentFrame], m_Renderables, imageIndex);
-
-
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1272,13 +1193,10 @@ void AppVulkanImpl::init_imgui()
 
     vkCreateDescriptorPool(m_Device, &pool_info, nullptr, &m_ImguiPool);
 
-
-    // 2: initialize imgui library
-
     //this initializes the core structures of imgui
     ImGui::CreateContext();
 
-  //  ImGui_ImplVulkan_Init(m_Window);
+    //ImGui_ImplVulkan_Init(m_Window);
     ImGui_ImplGlfw_InitForVulkan(m_Window, false);
 
     //this initializes imgui for Vulkan
@@ -1293,11 +1211,6 @@ void AppVulkanImpl::init_imgui()
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
-
-    ////execute a gpu command to upload imgui font textures
-    //immediate_submit([&](VkCommandBuffer cmd) {
-    //    ImGui_ImplVulkan_CreateFontsTexture(cmd);
-    //    });
 
     //clear font textures from cpu data
     ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -1315,34 +1228,6 @@ void AppVulkanImpl::init_imgui()
 //--------------------------------HELPER METHODS--------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-
-//void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function)
-//{
-//    VkCommandBuffer cmd = m_UploadContext.CommandBuffer;
-//
-//    //begin the command buffer recording. We will use this command buffer exactly once before resetting, so we tell vulkan that
-//    VkCommandBufferBeginInfo cmdBeginInfo = command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-//
-//    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
-//
-//    //execute the function
-//    function(cmd);
-//
-//    vkEndCommandBuffer(cmd);
-//
-//    VkSubmitInfo submit = submit_info(&cmd);
-//
-//
-//    //submit command buffer to the queue and execute it.
-//    // _uploadFence will now block until the graphic commands finish execution
-//    vkQueueSubmit(m_GraphicsQueue, 1, &submit, m_UploadContext.UploadFence);
-//
-//    vkWaitForFences(m_Device, 1, &m_UploadContext.UploadFence, true, 9999999999);
-//    vkResetFences(m_Device, 1, &m_UploadContext.UploadFence);
-//
-//    // reset the command buffers inside the command pool
-//    vkResetCommandPool(m_Device, m_UploadContext.CommandPool, 0);
-//}
 
 bool AppVulkanImpl::check_validation_layer_support()
 {
@@ -1425,8 +1310,6 @@ bool AppVulkanImpl::is_device_suitable(VkPhysicalDevice device)
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
     if (!supportedFeatures.samplerAnisotropy) return false;
-
-
 
     SwapChainSupportDetails swapChainSupport = query_swap_chain_support(device);
     return !swapChainSupport.Formats.empty() && !swapChainSupport.PresentModes.empty();
@@ -1564,65 +1447,6 @@ VkShaderModule AppVulkanImpl::create_shader_module(const std::vector<uint32_t>& 
     return shaderModule;
 }
 
-void AppVulkanImpl::record_command_buffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
-{
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0; // Optional
-    beginInfo.pInheritanceInfo = nullptr; // Optional
-
-    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-        throw std::runtime_error("failed to begin recording command buffer!");
-    }
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_RenderPass;
-    renderPassInfo.framebuffer = m_SwapChainFramebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = m_SwapChainExtent;
-
-    std::array<VkClearValue, 2> clearValues{};
-    //float flash = abs(sin( imageIndex / 120.f));
-    clearValues[0].color = { {0.2f, 0.2f, 0.2f, 1.0f} };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexturePipeline);
-
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_Panda.VertexBuffer, 0);
-
-    vkCmdBindIndexBuffer(commandBuffer, m_Panda.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(m_SwapChainExtent.width);
-    viewport.height = static_cast<float>(m_SwapChainExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-    VkRect2D scissor{};
-    scissor.offset = { 0, 0 };
-    scissor.extent = m_SwapChainExtent;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexturePipelineLayout, 0, 1, &m_SceneSets[m_CurrentFrame], 0, nullptr);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Panda.Indices.size()), 1, 0, 0, 0);
-   // vkCmdDraw(commandBuffer, static_cast<uint32_t>(m_Panda.Vertices.size()), 1, 0, 0);
-
-    vkCmdEndRenderPass(commandBuffer);
-
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to record command buffer!");
-    }
-}
-
 void AppVulkanImpl::Recreate_swapchain()
 {
     int width = 0, height = 0;
@@ -1636,10 +1460,8 @@ void AppVulkanImpl::Recreate_swapchain()
 
     cleanup_swap_chain();
     create_swapchain();
-  //  create_image_views();
     create_depth_resources();
     create_framebuffers();
-    update_camera_buffer();
 }
 
 void AppVulkanImpl::cleanup_swap_chain()
@@ -1707,24 +1529,8 @@ void AppVulkanImpl::copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
     end_single_time_commands(commandBuffer);
-
 }
 
-void AppVulkanImpl::update_camera_buffer()
-{
-    //TODO - hoce li camera biti na strani klijenta ili aplikacije?
-    // Nije greda ako ostane ovako ali gubim opciju 2D
-    //layer->get_camera
-    CameraBufferObject cbo{};
-    cbo.view = glm::lookAt(m_Camera.Position, m_Camera.Position + m_Camera.Front, m_Camera.Up);
-    cbo.proj = glm::perspective(glm::radians(m_Camera.Fov), m_SwapChainExtent.width / (float)m_SwapChainExtent.height, 0.1f, 500.0f);
-
-    cbo.proj[1][1] *= -1;
-
-    cbo.pos = glm::vec4(m_Camera.Position,1.0f);
-
-    memcpy(m_CameraBufferMapped, &cbo, sizeof(cbo));
-}
 
 void AppVulkanImpl::create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int arrayLayers)
 {
@@ -1902,7 +1708,6 @@ void AppVulkanImpl::copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_
         &region
     );
 
-
     end_single_time_commands(commandBuffer);
 }
 
@@ -2071,11 +1876,6 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
     scissor.extent = m_SwapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-
-
-    //layer-> Update_objects() ( virtual = 0 -> OBAVEZNO NASLJEDIVANJE LAYERA)
-
-
     const MeshWrapper* lastMesh = nullptr;
     const Pipeline* lastPipeline = nullptr;
 
@@ -2089,7 +1889,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         {
             object->bind_texture(commandBuffer, textures, imageIndex);
         }
-        //TODO (Hoce li sceneSets i ObjectSets biti dio objekta tj layouta? - NE JOS - Bufferi bi nekako morali bit dio materijala, tj materijal mora imat pointer na buffer, tAKODer - create_buffers ce biti layer dependent
+        
         if (object->get_pipeline() != lastPipeline) {
             
             object->bind_materials(commandBuffer, imageIndex);
@@ -2111,7 +1911,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         {
             m_SkyboxObj->bind_texture(commandBuffer, textures, imageIndex);
         }
-        //TODO (Hoce li sceneSets i ObjectSets biti dio objekta tj layouta? - NE JOS - Bufferi bi nekako morali bit dio materijala, tj materijal mora imat pointer na buffer, tAKODer - create_buffers ce biti layer dependent
+
         if (m_SkyboxObj->get_pipeline() != lastPipeline) {
 
             m_SkyboxObj->bind_materials(commandBuffer, imageIndex);

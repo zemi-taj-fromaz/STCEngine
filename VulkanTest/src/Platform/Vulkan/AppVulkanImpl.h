@@ -43,7 +43,7 @@ public:
     virtual void cleanup() override;
 
     inline void set_frame_buffer_resized() { m_FramebufferResized = true; } // TODO PROPAGACIJA FUNKCIJE AKTIVNOM LAYERU }
-    inline void set_camera_offset(float offset) { float zoomSpeed = 1.f; camera_offset -= offset * zoomSpeed; update_camera_buffer(); }
+    inline void set_camera_offset(float offset) { float zoomSpeed = 1.f; camera_offset -= offset * zoomSpeed; }
 
 
     inline glm::vec2 get_mouse_position() { return this->m_MousePosition; }
@@ -118,7 +118,6 @@ private:
     VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities);
 
     VkShaderModule create_shader_module(const std::vector<uint32_t>& code);
-    void record_command_buffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
     void Recreate_swapchain();
     void cleanup_swap_chain();
@@ -128,7 +127,7 @@ private:
     void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-    void update_camera_buffer();
+   // void update_camera_buffer();
     void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int arrayLayers = 1);
 
     VkCommandBuffer  begin_single_time_commands();
@@ -160,10 +159,8 @@ private:
 
     void create_mesh_obj(Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation = std::nullopt);
     void create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation);
-  //  RenderObject create_render_object(std::string meshName, std::string materialName);
 
     VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);
-
     VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size,VkDeviceSize offset = 0);
 
 
@@ -184,11 +181,7 @@ private:
 
     PipelineBuilder m_PipelineBuilder;
     DeletionQueue m_DeletionQueue;
-
     
-    std::vector<Vertex> m_Vertices;
-
-    std::vector<uint32_t> m_Indices;
 
 #ifdef NDEBUG
     const bool ENABLED_VALIDATION_LAYERS = false;
@@ -202,12 +195,7 @@ private:
     VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
     VkDevice m_Device;
     VkSurfaceKHR m_Surface;
-
-
-
-
     
-
     const std::vector<const char*> m_ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
     const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     VkQueue m_GraphicsQueue;
@@ -221,18 +209,6 @@ private:
     std::vector<VkImageView> m_SwapChainImageViews;
     
     VkRenderPass m_RenderPass;
-    VkDescriptorSetLayout m_SceneSetLayout;
-
-    VkPipelineLayout m_TexturePipelineLayout;
-    VkPipeline m_TexturePipeline;
-
-    VkPipelineLayout m_PlainPipelineLayout;
-    VkPipeline m_PlainPipeline;
-
-    VkPipeline m_IlluminatedPipeline;
-
-    VkPipeline m_CubemapPipeline;
-    VkPipelineLayout m_CubemapPipelineLayout;
     
     std::vector<VkFramebuffer> m_SwapChainFramebuffers;
 
@@ -240,73 +216,27 @@ private:
     std::vector<VkCommandBuffer> m_CommandBuffers;
     std::vector<SyncObjects> m_SyncObjects;
 
-    VkBuffer m_VertexBuffer;
-    VkDeviceMemory m_VertexBufferMemory;
-    VkBuffer m_IndexBuffer;
-    VkDeviceMemory m_IndexBufferMemory;
-    
-    VkBuffer m_CameraBuffer;
-    VkDeviceMemory m_CameraBufferMemory;
-    void* m_CameraBufferMapped;
-
+ 
     VkDescriptorPool m_DescriptorPool;
-    std::vector<VkDescriptorSet> m_SceneSets;
-    std::vector<VkDescriptorSet> m_ObjectSets;
-    std::vector<VkDescriptorSet> m_TextureSets;
-
+  
     VkSampler m_TextureSampler;
-
-    VkSampler m_CubeSampler;
 
     VkImage m_DepthImage;
     VkDeviceMemory m_DepthImageMemory;
     VkImageView m_DepthImageView;
 
     std::vector<std::shared_ptr<Renderable>> m_Renderables;
-    std::vector<RenderObject> m_RenderObjects;
-   // std::vector<RenderParticle> m_RenderParticles;
-
-    //float x_offset{ 0.0f };
-    //float y_offset{ 0.0f };
-
-    Camera m_Camera;
-
-    glm::vec2 m_MousePosition{ m_Width /2.0f, m_Height / 2.0f };
-
-    float camera_offset = 10.0f; 
-
-    Scene m_Scene;
-
-    std::vector<Object> m_Objects;
-    std::vector<Object> m_Particles;
-    VkDescriptorSetLayout m_ObjectSetLayout;
-    VkDescriptorSetLayout m_TextureSetLayout;
-    VkDescriptorSetLayout m_CubemapSetLayout;
-
-    UploadContext m_UploadContext;
-
-    Mesh m_Jet          { "fighter_jet.obj" };
-    Mesh m_Panda        { "panda.obj" };
-    Mesh m_Cat          { "cat.obj" };
-    Mesh m_Skybox       { "skybox.obj" };
-    Mesh m_TextureTest  { "texture.obj" };
-    Mesh m_Spiral       { "spiral.obj" };
-
-    Mesh m_Square;
-
-    VkDescriptorPool m_ImguiPool;
-
     RenderObject* m_SkyboxObj{ nullptr };
 
-    Material m_IlluminateMaterial;
-    Material m_SkyboxMaterial;
-    Material m_TextureMaterial;
-    Material m_PlainMaterial;
+    Camera m_Camera;
+    Scene m_Scene;
 
-    Texture m_FighterJetMain    { "BODYMAINCOLORCG.png"};
-    Texture m_FighterJetCamo    {"BODYCAMBUMPCG.png"   };
-    Texture m_SkyboxTexture     {"stormydays/"             };
-    Texture m_Statue            {"statue.jpg"          };
+    glm::vec2 m_MousePosition{ m_Width /2.0f, m_Height / 2.0f };
+    float camera_offset = 10.0f; 
+
+    UploadContext m_UploadContext;
+    VkDescriptorPool m_ImguiPool;
+
 
     float totalTime;
     float deltaTime;
