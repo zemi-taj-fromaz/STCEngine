@@ -15,7 +15,7 @@ public:
     virtual ~Renderable() {};
 
     void compute_animation(float time);
-    virtual void update(float time, glm::vec3& cameraPosition) {}
+    virtual void update(float time, const glm::vec3& cameraPosition) {}
 
     void bind_materials(VkCommandBuffer& commandBuffer, uint32_t imageIndex);
     void bind_mesh(VkCommandBuffer& commandBuffer);

@@ -50,7 +50,15 @@ public:
     inline void set_mouse_position(glm::vec2 mousePosition) { this->m_MousePosition = mousePosition; }
 
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_Camera.process_mouse_movement(xoffset, yoffset); }
-    inline void set_field_of_view(float yoffset) { this->m_Camera.set_field_of_view(yoffset); };
+    inline void set_field_of_view(float yoffset) { this->m_Camera.set_field_of_view(yoffset); }
+
+    Camera get_camera() { return this->m_Camera; }
+    VkExtent2D get_swapchain_extent() { return this->m_SwapChainExtent; }
+
+    float get_total_time() { return totalTime; }
+    float get_delta_time() { return deltaTime; }
+    std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
+
 
     bool m_SkyboxOn{ true };
 
@@ -84,7 +92,7 @@ private:
     void create_sync_objects();
 
 
-    void draw_frame(float deltaTime);
+    void draw_frame(std::shared_ptr<Layer>& layer);
 
 
     void init_imgui();
@@ -93,7 +101,7 @@ private:
 
     int m_ActiveLayer{ 0 };
 
-    void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+   // void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
     bool check_validation_layer_support();
     std::vector<const char*> get_required_extensions();
@@ -142,7 +150,7 @@ private:
 
   //  void update_transform_matrices();
     
-    void draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex, float deltaTime);
+    void draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex);
     VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(int binding, int count, VkDescriptorType type, VkShaderStageFlagBits shaderStageFlag);
     VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorBufferInfo& bufferInfo);
     VkWriteDescriptorSet write_descriptor_image(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorImageInfo& imageInfo);
@@ -300,6 +308,8 @@ private:
     Texture m_SkyboxTexture     {"stormydays/"             };
     Texture m_Statue            {"statue.jpg"          };
 
+    float totalTime;
+    float deltaTime;
 };
 
 

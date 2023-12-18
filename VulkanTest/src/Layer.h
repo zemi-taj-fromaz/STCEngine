@@ -2,24 +2,54 @@
 
 #include "Platform/Vulkan/VulkanInit.h"
 #include "Platform/Vulkan/Mesh.h"
+#include "Platform/Vulkan/Camera.h"
 
+class AppVulkanImpl;
 
 #include <string>
 #include <vector>
+#include <functional>
+
+struct BufferWrapper
+{
+	size_t bufferSize;
+	int bufferCount{ 1 };
+	VkBuffer buffer;
+	VkDeviceMemory deviceMemory;
+	void* bufferMapped;
+};
 
 struct Descriptor
 {
+	Descriptor(VkDescriptorType descriptorType, VkShaderStageFlagBits shaderFlags)
+		: descriptorType(descriptorType), shaderFlags(shaderFlags)
+	{
+	}
+	Descriptor(VkDescriptorType descriptorType, VkShaderStageFlagBits shaderFlags, VkBufferUsageFlagBits usageFlags, size_t bufferSize, std::function<void(AppVulkanImpl*, void*)> updateFunc)
+		: Descriptor(descriptorType, shaderFlags, usageFlags, 1, bufferSize, updateFunc)
+	{
+	}
+	Descriptor(VkDescriptorType descriptorType, VkShaderStageFlagBits shaderFlags, VkBufferUsageFlagBits usageFlags,int bufferCount, size_t bufferSize, std::function<void(AppVulkanImpl*, void*)> updateFunc)
+		: Descriptor(descriptorType, shaderFlags)
+	{
+		bufferWrappers.resize(bufferCount, {bufferSize});
+		this->bufferUpdateFunc = updateFunc;
+		this->usageFlags = usageFlags;
+	}
+
 	VkDescriptorType descriptorType;
 	VkShaderStageFlagBits shaderFlags;
+	VkBufferUsageFlagBits usageFlags;
+	std::vector<BufferWrapper> bufferWrappers;
 	std::vector<VkDescriptorSet> descriptorSets;
+	std::function<void(AppVulkanImpl*, void*)> bufferUpdateFunc;
+
 };
 
 struct DescriptorSetLayout
 {
 	Descriptor* descriptor;
 	VkDescriptorSetLayout layout;
-
-
 };
 
 struct PipelineLayout
@@ -55,9 +85,15 @@ struct MeshWrapper
 };
 
 
+struct ParticleCreateStruct
+{
+	int particleNumber;
+	MeshWrapper meshWrapper;
+};
+
 struct Particles
 {
-	std::vector<MeshWrapper> meshStruct;
+	std::vector<MeshWrapper> particlesMesh;
 };
 
 
@@ -77,6 +113,18 @@ public:
 	std::vector<Texture>& get_textures() { return m_Textures; }
 	std::vector<MeshWrapper>& get_mesh() { return m_Mesh; }
 	std::vector<Particles>& get_particles() { return m_Particles; }
+
+	void update_buffers(AppVulkanImpl* app, int imageIndex)
+	{
+		for (Descriptor& descriptor : m_Descriptors)
+		{
+			if (descriptor.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+			{
+				continue;
+			}
+			descriptor.bufferUpdateFunc(app, descriptor.bufferWrappers[imageIndex % descriptor.bufferWrappers.size()].bufferMapped);
+		}
+	}
 
 
 protected:
@@ -128,16 +176,18 @@ protected:
 		}
 	}
 
-	void create_particles(std::vector<ParticleDatas> particles)
+	void create_particles(std::vector<ParticleCreateStruct> particles)
 	{
 		m_Particles.resize(particles.size());
 		for (int i = 0; i < particles.size(); i++)
 		{
-			particles[i].meshStruct.pipeline = &m_Pipelines[particles[i].meshStruct.PipelineIndex];
-			m_Particles[i].meshStruct.resize(particles[i].number, particles[i].meshStruct);
+			particles[i].meshWrapper.pipeline = &m_Pipelines[particles[i].meshWrapper.PipelineIndex];
+			m_Particles[i].particlesMesh.resize(particles[i].particleNumber, particles[i].meshWrapper);
 
 		}
 	}
+
+
 
 private:
 

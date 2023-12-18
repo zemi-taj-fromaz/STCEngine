@@ -7294,9 +7294,8 @@ ImVec2 ImGui::GetWindowPos()
 
 void ImGui::SetWindowPos(ImGuiWindow* window, const ImVec2& pos, ImGuiCond cond)
 {
-    // Test condition (NB: bit 0 is always true) and clear flags for next time
-    if (cond && (window->SetWindowPosAllowFlags & cond) == 0)
-        return;
+    // Test condition (NB: bit 0 is always true) and
+
 
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
     window->SetWindowPosAllowFlags &= ~(ImGuiCond_Once | ImGuiCond_FirstUseEver | ImGuiCond_Appearing);

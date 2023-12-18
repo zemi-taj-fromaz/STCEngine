@@ -15,7 +15,7 @@ public:
     RenderParticle(const RenderParticle& renderObject);
     ~RenderParticle(){}
 
-    void update(float time, glm::vec3& cameraPosition);
+    void update(float time, const glm::vec3& cameraPosition) override;
 
     std::shared_ptr<RenderObject> generator;
 private:

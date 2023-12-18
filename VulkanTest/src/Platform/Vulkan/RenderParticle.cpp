@@ -64,7 +64,7 @@ void RenderParticle::respawn()
     
 }
 
-void RenderParticle::update(float time, glm::vec3& CameraPosition)
+void RenderParticle::update(float time, const glm::vec3& CameraPosition)
 {
     if (this->LifeRemaining < time)
     {

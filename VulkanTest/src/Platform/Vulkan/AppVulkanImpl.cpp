@@ -141,12 +141,14 @@ void AppVulkanImpl::initialize_app()
 void AppVulkanImpl::main_loop()
 {
     float time = (float)glfwGetTime();
+    float initialTime = (float)glfwGetTime();
     while (!glfwWindowShouldClose(m_Window)) {
 
         glfwPollEvents();
         
         float currTime = (float)glfwGetTime();
-        float deltaTime = currTime - time;
+        deltaTime = currTime - time;
+        totalTime = currTime - initialTime;
         time = currTime;
 
         float cameraSpeed = 100.0f;
@@ -200,9 +202,10 @@ void AppVulkanImpl::main_loop()
         }
         //imgui new frame
 
-        for (auto layer : m_LayerStack) layer->on_update(deltaTime);
+        for (auto layer : m_LayerStack) layer->on_update();
 
-        draw_frame(deltaTime);
+        auto layer = m_LayerStack[m_ActiveLayer];
+        draw_frame(layer);
     }
     vkDeviceWaitIdle(m_Device);
 }
@@ -866,7 +869,7 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 
     for (Particles& particles : particlesV)
     {
-        for (MeshWrapper& meshStruct : particles.meshStruct)
+        for (MeshWrapper& meshStruct : particles.particlesMesh)
         {
             create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.textureIndex,meshStruct.animated);
             m_Renderables.push_back(std::shared_ptr<RenderParticle>(new RenderParticle(&meshStruct, meshStruct.isSkybox)));
@@ -894,51 +897,29 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
 {
     //TODO rename ovo - ne svida mi se scene i camera da se kose sa scene layout(environment?)
 
-    VkDeviceSize bufferSize = sizeof(CameraBufferObject);
+    std::vector<Descriptor>& descriptors = layer->get_descriptors();
 
     for (Descriptor& descriptor : descriptors)
-
-    vkMapMemory(m_Device, m_CameraBufferMemory, 0, bufferSize, 0, &m_CameraBufferMapped);
-
-
-    bufferSize = sizeof(SceneData);
-
-    create_buffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_Scene.DataBuffer, m_Scene.DataMemory);
-
-    vkMapMemory(m_Device, m_Scene.DataMemory, 0, bufferSize, 0, &m_Scene.DataMapped);
-
-    m_Objects.resize(MAX_FRAMES_IN_FLIGHT);
-    bufferSize = sizeof(ObjectData) * 1000;
-    for (size_t i = 0; i < m_Objects.size(); i++)
     {
-        create_buffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_Objects[i].Buffer, m_Objects[i].Memory);
+        if (descriptor.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+        {
+            continue;
+        }
+        for (BufferWrapper& bufferWrapper : descriptor.bufferWrappers)
+        {
+            VkDeviceSize bufferSize = bufferWrapper.bufferSize;
+            create_buffer(bufferSize, descriptor.usageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bufferWrapper.buffer, bufferWrapper.deviceMemory);
+            vkMapMemory(m_Device, bufferWrapper.deviceMemory, 0, bufferSize, 0, &bufferWrapper.bufferMapped);
+
+
+            m_DeletionQueue.push_function(
+                [=]() {
+                    vkDestroyBuffer(m_Device, bufferWrapper.buffer, nullptr);
+                    vkFreeMemory(m_Device, bufferWrapper.deviceMemory, nullptr);
+                }, "Buffers");
+        }
     }
 
-    //m_Particles.resize(MAX_FRAMES_IN_FLIGHT);
-    //bufferSize = sizeof(ObjectData) * 500;
-    //for (size_t i = 0; i < m_Particles.size(); i++)
-    //{
-    //    create_buffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_Particles[i].Buffer, m_Particles[i].Memory);
-    //}
-
-    m_DeletionQueue.push_function(
-        [=]() {
-            vkDestroyBuffer(m_Device, m_CameraBuffer, nullptr);
-            vkFreeMemory(m_Device, m_CameraBufferMemory, nullptr);
-            vkDestroyBuffer(m_Device, m_Scene.DataBuffer, nullptr);
-            vkFreeMemory(m_Device, m_Scene.DataMemory, nullptr);
-            for (size_t i = 0; i < m_Objects.size(); i++)
-            {
-                vkDestroyBuffer(m_Device, m_Objects[i].Buffer, nullptr);
-                vkFreeMemory(m_Device, m_Objects[i].Memory, nullptr);
-            }
-            //for (size_t i = 0; i < m_Particles.size(); i++)
-            //{
-            //    vkDestroyBuffer(m_Device, m_Particles[i].Buffer, nullptr);
-            //    vkFreeMemory(m_Device, m_Particles[i].Memory, nullptr);
-            //}
-        }, "Buffers"
-    );
 }
 
 VkDescriptorImageInfo AppVulkanImpl::create_descriptor_image_info(VkSampler sampler, VkImageView imageView) {
@@ -989,10 +970,10 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
     for (DescriptorSetLayout& layout : layouts)
     {
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts(MAX_FRAMES_IN_FLIGHT, layout.layout);
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
 
         if (layout.descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
         {
-            VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
             for (Texture& texture : textures)
             {
                 texture.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1005,7 +986,6 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
         else
         {
             layout.descriptor->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-            VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
 
             if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, layout.descriptor->descriptorSets.data()) != VK_SUCCESS) {
                 throw std::runtime_error("failed to allocate descriptor sets!");
@@ -1021,41 +1001,55 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 
         //------------------------- BUFFER INFO -------------------------------------------------------------------------
-        VkDescriptorBufferInfo cameraBufferInfo = create_descriptor_buffer_info(m_CameraBuffer, sizeof(CameraBufferObject));
-        VkDescriptorBufferInfo sceneBufferInfo = create_descriptor_buffer_info(m_Scene.DataBuffer, sizeof(SceneData));
-        VkDescriptorBufferInfo objectBufferInfo = create_descriptor_buffer_info(m_Objects[i].Buffer, sizeof(ObjectData) * MAX_OBJECTS);
-        VkDescriptorImageInfo smokeBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[2].ImageView);
-        VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[1].ImageView);
-        VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[0].ImageView);
+        //VkDescriptorBufferInfo cameraBufferInfo = create_descriptor_buffer_info(m_CameraBuffer, sizeof(CameraBufferObject));
+        //VkDescriptorBufferInfo sceneBufferInfo = create_descriptor_buffer_info(m_Scene.DataBuffer, sizeof(SceneData));
+        //VkDescriptorBufferInfo objectBufferInfo = create_descriptor_buffer_info(m_Objects[i].Buffer, sizeof(ObjectData) * MAX_OBJECTS);
+        //VkDescriptorImageInfo smokeBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[2].ImageView);
+        //VkDescriptorImageInfo imageBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[1].ImageView);
+        //VkDescriptorImageInfo skyboxBufferInfo = create_descriptor_image_info(m_TextureSampler, textures[0].ImageView);
 
         //------------------------- IMAGE INFO --------------------------------------------------------------------------
 
         //OVO bi mogao bi dakle environment set i objects sets, a to ce uvijek bit prisutno
         // tako da mislim da moze tako dobro mi zvuci iskr
-        std::vector<VkWriteDescriptorSet> descriptorWrites{
-            write_descriptor_set(layouts[0].descriptor->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, cameraBufferInfo),
-            write_descriptor_set(layouts[1].descriptor->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneBufferInfo),
-            write_descriptor_set(layouts[2].descriptor->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, objectBufferInfo),
-            write_descriptor_image(textures[2].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, smokeBufferInfo),
-            write_descriptor_image(textures[1].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo),
-            write_descriptor_image(textures[0].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo)
-        };
 
+
+        //write_descriptor_image(textures[2].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, smokeBufferInfo),
+        //write_descriptor_image(textures[1].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageBufferInfo),
+        //write_descriptor_image(textures[0].descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxBufferInfo)
         /*       for (DescriptorData& data : descriptorsData)
                 {
                     descriptorWrites.push_back(
                         write_descriptor_set(data.descriptorSets[i], 0, data.)
                     );
                 }*/
+        std::vector<VkWriteDescriptorSet> descriptorWrites;
+        for(DescriptorSetLayout& layout : layouts)
+        {
+            //SAMPLER TYPE CONTINUE
+            if (layout.descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+            {
+                continue;
+            }
+            int modulo = i % layout.descriptor->bufferWrappers.size();
+            VkDescriptorBufferInfo descriptorBufferInfo = create_descriptor_buffer_info(layout.descriptor->bufferWrappers[modulo].buffer, layout.descriptor->bufferWrappers[modulo].bufferSize);
+            VkWriteDescriptorSet descriptorWrite = write_descriptor_set(layout.descriptor->descriptorSets[i], 0, layout.descriptor->descriptorType, descriptorBufferInfo);
+            vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
 
-        //for (Texture& texture : textures)
-        //{
-        //    descriptorWrites
-        //    .push_back(write_descriptor_image(texture.descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, create_descriptor_image_info(m_TextureSampler, texture.ImageView)));
-        //}
+            descriptorWrites.push_back(descriptorWrite);
+        };
+
+        for(Texture& texture : textures)
+        {
+            VkDescriptorImageInfo descriptorImageInfo = create_descriptor_image_info(m_TextureSampler, texture.ImageView);
+            VkWriteDescriptorSet descriptorWrite = write_descriptor_image(texture.descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptorImageInfo);
+            descriptorWrites.push_back(descriptorWrite);
+            vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
+
+        }
 
         // Now, call vkUpdateDescriptorSets to perform the updates
-        vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+      //  vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
     
@@ -1182,7 +1176,7 @@ VkSubmitInfo submit_info(VkCommandBuffer* cmd)
     return info;
 }
 
-void AppVulkanImpl::draw_frame(float deltaTime)
+void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
 {
     if(s_ImGuiEnabled) ImGui::Render();
 
@@ -1204,37 +1198,10 @@ void AppVulkanImpl::draw_frame(float deltaTime)
     vkResetFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].InFlightFence);
     vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
 
-    update_camera_buffer();
 
-    //TODO + ( //TODO layer->pollInput  + //TODO -> layer->callbacs)
-    //layer->update_buffers();
+    layer->update_buffers(this, imageIndex);
 
-    float framed = (frameNumber++ / 120.f);
-  //  m_Scene.Data.ambientColor = { sin(framed),0,cos(framed),1 };
-    m_Scene.Data.ambientColor = { 0.2, 0.2, 0.2, 1.0 };
-    m_Scene.Data.sunlightColor = { 1.0, 1.0, 0.2, 1.0 };
-
-    static const float rotationSpeed = static_cast<float>(glm::two_pi<float>()) / 10.0f; // Radians per second for a full rotation in 10 seconds
-
-    float angle = rotationSpeed * deltaTime;
-    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-    
-    m_Scene.Data.sunPosition = rotationMatrix * m_Scene.Data.sunPosition;
-
-
-    memcpy(m_Scene.DataMapped, &m_Scene.Data, sizeof(SceneData));
-
-    //vkMapMemory(m_Device, m_Particles[imageIndex].Memory, 0, sizeof(ParticleData) * m_RenderParticles.size(), 0, &m_Particles[imageIndex].Mapped);
-    //ParticleData* particleArray = (ParticleData*)m_Particles[imageIndex].Mapped;
-    //for (size_t i = 0; i < m_RenderParticles.size(); i++)
-    //{
-    //    m_RenderParticles[i].update(deltaTime, m_Camera.Position);
-    //    particleArray[i].Model = m_RenderParticles[i].Model;
-    //}
-    //vkUnmapMemory(m_Device, m_Particles[imageIndex].Memory);
-
-  //  record_command_buffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
-    draw_objects(m_CommandBuffers[m_CurrentFrame], m_Renderables, imageIndex, deltaTime);
+    draw_objects(m_CommandBuffers[m_CurrentFrame], m_Renderables, imageIndex);
 
 
 
@@ -1327,10 +1294,10 @@ void AppVulkanImpl::init_imgui()
 
     ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
 
-    //execute a gpu command to upload imgui font textures
-    immediate_submit([&](VkCommandBuffer cmd) {
-        ImGui_ImplVulkan_CreateFontsTexture(cmd);
-        });
+    ////execute a gpu command to upload imgui font textures
+    //immediate_submit([&](VkCommandBuffer cmd) {
+    //    ImGui_ImplVulkan_CreateFontsTexture(cmd);
+    //    });
 
     //clear font textures from cpu data
     ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -1349,33 +1316,33 @@ void AppVulkanImpl::init_imgui()
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
-void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function)
-{
-    VkCommandBuffer cmd = m_UploadContext.CommandBuffer;
-
-    //begin the command buffer recording. We will use this command buffer exactly once before resetting, so we tell vulkan that
-    VkCommandBufferBeginInfo cmdBeginInfo = command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
-
-    //execute the function
-    function(cmd);
-
-    vkEndCommandBuffer(cmd);
-
-    VkSubmitInfo submit = submit_info(&cmd);
-
-
-    //submit command buffer to the queue and execute it.
-    // _uploadFence will now block until the graphic commands finish execution
-    vkQueueSubmit(m_GraphicsQueue, 1, &submit, m_UploadContext.UploadFence);
-
-    vkWaitForFences(m_Device, 1, &m_UploadContext.UploadFence, true, 9999999999);
-    vkResetFences(m_Device, 1, &m_UploadContext.UploadFence);
-
-    // reset the command buffers inside the command pool
-    vkResetCommandPool(m_Device, m_UploadContext.CommandPool, 0);
-}
+//void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function)
+//{
+//    VkCommandBuffer cmd = m_UploadContext.CommandBuffer;
+//
+//    //begin the command buffer recording. We will use this command buffer exactly once before resetting, so we tell vulkan that
+//    VkCommandBufferBeginInfo cmdBeginInfo = command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+//
+//    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+//
+//    //execute the function
+//    function(cmd);
+//
+//    vkEndCommandBuffer(cmd);
+//
+//    VkSubmitInfo submit = submit_info(&cmd);
+//
+//
+//    //submit command buffer to the queue and execute it.
+//    // _uploadFence will now block until the graphic commands finish execution
+//    vkQueueSubmit(m_GraphicsQueue, 1, &submit, m_UploadContext.UploadFence);
+//
+//    vkWaitForFences(m_Device, 1, &m_UploadContext.UploadFence, true, 9999999999);
+//    vkResetFences(m_Device, 1, &m_UploadContext.UploadFence);
+//
+//    // reset the command buffers inside the command pool
+//    vkResetCommandPool(m_Device, m_UploadContext.CommandPool, 0);
+//}
 
 bool AppVulkanImpl::check_validation_layer_support()
 {
@@ -2062,7 +2029,7 @@ void AppVulkanImpl::create_material(Material& material, VkPipeline pipeline, VkP
     material.PipelineLayout = layout;
 }
 
-void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex, float deltaTime)
+void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2104,26 +2071,10 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
     scissor.extent = m_SwapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    static auto startTime{ std::chrono::high_resolution_clock::now() };
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     //layer-> Update_objects() ( virtual = 0 -> OBAVEZNO NASLJEDIVANJE LAYERA)
 
-    vkMapMemory(m_Device, m_Objects[imageIndex].Memory, 0, sizeof(ObjectData) * m_Renderables.size(), 0, &m_Objects[imageIndex].Mapped);
-    ObjectData* objectArray = (ObjectData*)m_Objects[imageIndex].Mapped;
-    for (size_t i = 0; i < m_Renderables.size(); i++)
-    {
-        if (m_Renderables[i]->is_animated())
-        {
-            m_Renderables[i]->compute_animation(time);
-        }
-        m_Renderables[i]->update(deltaTime, m_Camera.Position);
-
-        objectArray[i].Model = m_Renderables[i]->get_model_matrix();
-    }
-    vkUnmapMemory(m_Device, m_Objects[imageIndex].Memory);
 
     const MeshWrapper* lastMesh = nullptr;
     const Pipeline* lastPipeline = nullptr;
