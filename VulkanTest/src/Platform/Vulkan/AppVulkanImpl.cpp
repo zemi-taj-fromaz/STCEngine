@@ -896,7 +896,7 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
 
     VkDeviceSize bufferSize = sizeof(CameraBufferObject);
 
-    create_buffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_CameraBuffer, m_CameraBufferMemory);
+    for (Descriptor& descriptor : descriptors)
 
     vkMapMemory(m_Device, m_CameraBufferMemory, 0, bufferSize, 0, &m_CameraBufferMapped);
 
