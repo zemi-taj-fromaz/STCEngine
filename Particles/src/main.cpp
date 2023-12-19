@@ -86,6 +86,7 @@ public:
 				{{0, 3}},
 				{{0, 1, 2}},
 				{{0, 2, 3}},
+				{{0}}
 			}
 			);
 
@@ -96,6 +97,7 @@ public:
 				{2, "IlluminateShader.vert", "IlluminateShader.frag"},
 				{1, "SkyboxShader.vert", "SkyboxShader.frag", VK_FALSE, true, VK_CULL_MODE_FRONT_BIT},
 				{3, "ParticleShader.vert", "ParticleShader.frag", VK_TRUE, false, VK_CULL_MODE_NONE },
+				{4, "GridShader.vert", "GridShader.frag", VK_TRUE, false, VK_CULL_MODE_NONE},
 			}
 			);
 
@@ -112,6 +114,7 @@ public:
 			//	{2, {"cat.obj"}, true, std::nullopt, "spiral.txt"},
 				//{1, {"panda.obj"}, false},
 				{0, {"fighter_jet.obj"}, false, 1, "spiral.txt"},
+				{5, {"texture.obj"}, false},
 				{3, {"skybox.obj"} , false, 0, std::nullopt, true},
 			}
 		);

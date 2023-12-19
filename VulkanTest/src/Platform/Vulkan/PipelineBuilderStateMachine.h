@@ -34,15 +34,6 @@ private:
 
 	bool compile_shader(std::string sourcePath, std::vector<char>& spirvCode);
 	VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice device);
-	//std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create(const char* vertShaderName, const char* fragShaderName, VkDevice device);
 
-	//VkPipelineVertexInputStateCreateInfo create_vertex_input_info(std::vector<VkVertexInputAttributeDescription> attributeDescriptions, VkVertexInputBindingDescription bindingDescription);
-	//VkPipelineInputAssemblyStateCreateInfo create_input_assembly_info(VkPrimitiveTopology topology);
-	//VkPipelineRasterizationStateCreateInfo create_rasterization_info(VkPolygonMode polygonMode);
-	//VkPipelineMultisampleStateCreateInfo create_multisample_info();
-	//VkPipelineDepthStencilStateCreateInfo create_depth_stencil_info();
-	//VkPipelineColorBlendStateCreateInfo create_color_blend_info();
-	//VkPipelineDynamicStateCreateInfo create_dynamic_state_info();
-	//VkPipelineViewportStateCreateInfo create_viewport_info(VkExtent2D extent);
 
 };
