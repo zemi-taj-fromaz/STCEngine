@@ -6,7 +6,7 @@ x64/
 HomeScreenApp/x64/
 VulkanTest/x64/
 .vs/
-
+.vs/VulkanTest/v17
 **.suo
 **.db
 
