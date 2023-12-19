@@ -7,6 +7,9 @@ HomeScreenApp/x64/
 VulkanTest/x64/
 .vs/
 
+**.suo
+**.db
+
 # Hazel files
 *.log
 *.obj
