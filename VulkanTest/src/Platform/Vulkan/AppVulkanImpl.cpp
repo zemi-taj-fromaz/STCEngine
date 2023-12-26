@@ -10,6 +10,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <random>
+
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_vulkan.h"
@@ -533,68 +535,70 @@ void AppVulkanImpl::create_render_pass()
 
 void AppVulkanImpl::create_descriptor_set_layout(std::shared_ptr<Layer>& layer)
 {
-    std::vector<DescriptorSetLayout>& layouts = layer->get_layouts();
+    auto& descriptors = layer->get_descriptors();
 
-    for (int i = 0; i < layouts.size(); ++i)
+    for (auto& descriptor : descriptors)
     {
-        VkDescriptorSetLayoutBinding binding = create_descriptor_set_layout_binding(0, 1, layouts[i].descriptor->descriptorType, layouts[i].descriptor->shaderFlags);
-        VkDescriptorSetLayoutCreateInfo layoutInfo = create_layout_info(&binding,1);
-        if (vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &layouts[i].layout) != VK_SUCCESS) {
+        VkDescriptorSetLayoutBinding binding = create_descriptor_set_layout_binding(0, 1, descriptor->descriptorType, descriptor->shaderFlags);
+        VkDescriptorSetLayoutCreateInfo layoutInfo = create_layout_info(&binding, 1);
+        if (vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &descriptor->layout) != VK_SUCCESS)
+        {
             throw std::runtime_error("failed to create descriptor set layout!");
         }
 
         m_DeletionQueue.push_function([=]() {
-            vkDestroyDescriptorSetLayout(m_Device, layouts[i].layout, nullptr);
+            vkDestroyDescriptorSetLayout(m_Device, descriptor->layout, nullptr);
             },
             "DescriptorSetLayout");
     }
+
 }
 
 void AppVulkanImpl::create_graphics_pipeline(std::shared_ptr<Layer>& layer)
 {
-    std::vector<DescriptorSetLayout>& layouts = layer->get_layouts();
-    std::vector<PipelineLayout>& pipelineLayouts = layer->get_pipeline_layouts();
+    auto& pipelineLayouts = layer->get_pipeline_layouts();
 
-    for (size_t i = 0; i < pipelineLayouts.size(); ++i)
+    for (auto& pipelineLayout : pipelineLayouts)
     {
         std::vector<VkDescriptorSetLayout> setLayouts;
-        for (int j = 0; j < pipelineLayouts[i].descriptorSetLayouts.size(); ++j)
+        for (int j = 0; j < pipelineLayout->descriptorSetLayout.size(); ++j)
         {
-            setLayouts.push_back(pipelineLayouts[i].descriptorSetLayouts[j]->layout);
+            setLayouts.push_back(pipelineLayout->descriptorSetLayout[j]->layout);
         }
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = setLayouts.size();// Optional
         pipelineLayoutInfo.pSetLayouts = setLayouts.data(); // Optional
 
-       // pipelineLayouts[i].descriptorSetLayout = &layouts[i];
+        // pipelineLayouts[i].descriptorSetLayout = &layouts[i];
 
-        if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo, nullptr, &pipelineLayouts[i].layout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo, nullptr, &pipelineLayout->layout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
-        m_DeletionQueue.push_function([=]() { vkDestroyPipelineLayout(m_Device, pipelineLayouts[i].layout, nullptr); }, "PipelineLAyout");
+        m_DeletionQueue.push_function([=]() { vkDestroyPipelineLayout(m_Device, pipelineLayout->layout, nullptr); }, "PipelineLAyout");
     }
  
     m_PipelineBuilder.Device = m_Device;
     m_PipelineBuilder.Pass = m_RenderPass;
     m_PipelineBuilder.Extent = m_SwapChainExtent;
 
-    std::vector<Pipeline>& pipelines = layer->get_pipelines();
+    auto& pipelines = layer->get_pipelines();
 
-    for (Pipeline& pipeline : pipelines)
+    for (auto& pipeline : pipelines)
     {
        // VkPipelineLayout pipelineLayout = pipelineLayouts[data.pipelineLayoutIndex];
-        m_PipelineBuilder.PolygonMode = pipeline.PolygonMode;
-        m_PipelineBuilder.Topology = pipeline.Topology;
-        m_PipelineBuilder.PipelineLayout = pipeline.pipelineLayout->layout;
-        m_PipelineBuilder.VertexShaderName = pipeline.VertexShaderName;
-        m_PipelineBuilder.FragmentShaderName = pipeline.FragmentShaderName;
-        m_PipelineBuilder.Skybox = pipeline.Skybox;
-        m_PipelineBuilder.cullMode = pipeline.cullMode;
+        m_PipelineBuilder.PolygonMode = pipeline->PolygonMode;
+        m_PipelineBuilder.Topology = pipeline->Topology;
+        m_PipelineBuilder.PipelineLayout = pipeline->pipelineLayout->layout;
+        //m_PipelineBuilder.VertexShaderName = pipeline.VertexShaderName;
+        //m_PipelineBuilder.FragmentShaderName = pipeline.FragmentShaderName;
+        m_PipelineBuilder.ShaderNames = pipeline->ShaderNames;
+        m_PipelineBuilder.Skybox = pipeline->Skybox;
+        m_PipelineBuilder.cullMode = pipeline->cullMode;
 
-        pipeline.pipeline = m_PipelineBuilder.build_pipeline();
-        m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, pipeline.pipeline, nullptr); }, "Pipeline");
+        pipeline->pipeline = m_PipelineBuilder.build_pipeline(m_DeletionQueue);
+        m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, pipeline->pipeline, nullptr); }, "Pipeline");
         
      //   create_material(layer->get_materials()[j], pipeline.pipeline, pipeline.pipelineLayout->layout);
     }
@@ -636,7 +640,7 @@ void AppVulkanImpl::create_depth_resources()
 void AppVulkanImpl::create_texture_image(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(std::string(Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
     if (!pixels) {
@@ -685,7 +689,8 @@ void AppVulkanImpl::create_cubemap(Texture& texture)
 
     for (int i = 0; i < 6; i++)
     {
-        pixels[i] = stbi_load(std::string(Texture::PATH + texture.Filename + texturePrefix[i]).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb);
+        std::string path = std::string(std::filesystem::current_path().parent_path().string() + "/" +Texture::PATH + texture.Filename + texturePrefix[i]);
+        pixels[i] = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb);
     
         if (!pixels[i]) {
             throw std::runtime_error("failed to load texture image!");
@@ -775,9 +780,9 @@ void AppVulkanImpl::create_texture_sampler()
 
 }
 
-void AppVulkanImpl::create_mesh_obj(Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation)
+void AppVulkanImpl::create_mesh_obj(Mesh& mesh, bool illuminated, std::shared_ptr<Texture> texture, std::optional<std::string> animation)
 {
-    mesh.load_from_obj(illuminated, textureIndex.has_value());
+    mesh.load_from_obj(illuminated, texture == nullptr);
     upload_mesh(mesh);
     if (animation.has_value()) mesh.load_animation(animation.value());
 }
@@ -793,16 +798,16 @@ void AppVulkanImpl::create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool i
 void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 {
     //INITIALIZE TEXTURES
-    std::vector<Texture>& textures = layer->get_textures();
-    for (Texture& texture : textures)
+    auto& textures = layer->get_textures();
+    for (auto& texture : textures)
     {
-        if (texture.Filename.find("/") != std::string::npos)
+        if (texture->Filename.find("/") != std::string::npos)
         {
-            create_cubemap(texture);
+            create_cubemap(*texture);
         }
         else
         {
-            create_texture_image(texture);
+            create_texture_image(*texture);
         }
     }
 
@@ -813,12 +818,12 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 
         if (meshStruct.isSkybox)
         {
-            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, std::nullopt, meshStruct.animated);
+            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, nullptr, meshStruct.animated);
             m_SkyboxObj = new RenderObject({ &meshStruct, true });
         }
         else
         {
-            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.textureIndex, meshStruct.animated);
+            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.texture, meshStruct.animated);
             m_Renderables.push_back(std::shared_ptr<RenderObject>(new RenderObject(&meshStruct, meshStruct.isSkybox)));
         }
     }
@@ -829,15 +834,14 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
     {
         for (MeshWrapper& meshStruct : particles.particlesMesh)
         {
-            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.textureIndex,meshStruct.animated);
+            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.texture,meshStruct.animated);
             m_Renderables.push_back(std::shared_ptr<RenderParticle>(new RenderParticle(&meshStruct, meshStruct.isSkybox)));
         }
     }
 
     for (auto& object : m_Renderables)
     {
-        object->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
-
+     //   object->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 1000.0f, 1000.0f)));
         if (std::shared_ptr<RenderParticle> derivedPtr = std::dynamic_pointer_cast<RenderParticle>(object); derivedPtr)
         {
             if (std::shared_ptr<RenderObject> derived = std::dynamic_pointer_cast<RenderObject>(m_Renderables[0]); derived)
@@ -847,27 +851,90 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
             }
         }
     }
+    m_Renderables[0]->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
 
 }
 
 
 void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
 {
-    std::vector<Descriptor>& descriptors = layer->get_descriptors();
 
-    for (Descriptor& descriptor : descriptors)
+    // Initialize particles
+    std::default_random_engine rndEngine((unsigned)time(nullptr));
+    std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
+
+    // Initial particle positions on a circle
+    std::vector<Cestica> particles(200);
+    for (auto& particle : particles) {
+        float r = 0.25f * sqrt(rndDist(rndEngine));
+        float theta = rndDist(rndEngine) * 2 * 3.14159265358979323846;
+        float x = r * cos(theta) * m_Height / m_Width;
+        float y = r * sin(theta);
+        particle.position = glm::vec2(x, y);
+        particle.velocity = glm::normalize(glm::vec2(x, y)) * 0.00025f;
+        particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
+    }
+
+
+    auto& descriptors = layer->get_descriptors();
+
+    for (auto& descriptor : descriptors)
     {
-        if (descriptor.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+
+        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
         {
             continue;
         }
-        for (BufferWrapper& bufferWrapper : descriptor.bufferWrappers)
+        
+        if (descriptor->isDeviceLocal())
+        {
+            if (descriptor->tie)
+            {
+                continue;
+            }
+            VkBuffer stagingBuffer;
+            VkDeviceMemory stagingBufferMemory;
+            size_t bufferSize = (descriptor->bufferWrappers[0].bufferSize);
+            create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+            void* data;
+            vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
+            memcpy(data, particles.data(), (size_t)bufferSize);
+            vkUnmapMemory(m_Device, stagingBufferMemory);
+
+            m_DeletionQueue.push_function(
+                [=]() {
+                    vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
+                    vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+                }, "VertexBuffer"
+            );
+
+            for (BufferWrapper& bufferWrapper : descriptor->bufferWrappers)
+            {
+                VkDeviceSize bufferSize = bufferWrapper.bufferSize;
+
+                create_buffer(bufferSize, descriptor->usageFlags, descriptor->propertyFlags, bufferWrapper.buffer, bufferWrapper.deviceMemory);
+
+                copy_buffer(stagingBuffer, bufferWrapper.buffer, bufferSize);
+
+
+                m_DeletionQueue.push_function(
+                    [=]() {
+                        vkDestroyBuffer(m_Device, bufferWrapper.buffer, nullptr);
+                        vkFreeMemory(m_Device, bufferWrapper.deviceMemory, nullptr);
+                    }, "Buffers");
+            }
+
+            return;
+        }
+
+        for (BufferWrapper& bufferWrapper : descriptor->bufferWrappers)
         {
             VkDeviceSize bufferSize = bufferWrapper.bufferSize;
-            create_buffer(bufferSize, descriptor.usageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bufferWrapper.buffer, bufferWrapper.deviceMemory);
+ 
+            create_buffer(bufferSize, descriptor->usageFlags, descriptor->propertyFlags, bufferWrapper.buffer, bufferWrapper.deviceMemory);
             vkMapMemory(m_Device, bufferWrapper.deviceMemory, 0, bufferSize, 0, &bufferWrapper.bufferMapped);
-
-
+            
+            
             m_DeletionQueue.push_function(
                 [=]() {
                     vkDestroyBuffer(m_Device, bufferWrapper.buffer, nullptr);
@@ -919,63 +986,71 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
     }
     m_DeletionQueue.push_function([=]() { vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr); }, "DescriptorPool");
 
-    std::vector<DescriptorSetLayout>& layouts = layer->get_layouts();
-    
-    std::vector<Texture>& textures = layer->get_textures();
 
-    for (DescriptorSetLayout& layout : layouts)
+    auto& descriptors = layer->get_descriptors();
+    auto& textures = layer->get_textures();
+
+    for (auto& descriptor : descriptors)
     {
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts(MAX_FRAMES_IN_FLIGHT, layout.layout);
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts(MAX_FRAMES_IN_FLIGHT, descriptor->layout);
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
 
-        if (layout.descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
         {
-            for (Texture& texture : textures)
+            for (auto& texture : textures)
             {
-                texture.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+                texture->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
-                if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, texture.descriptorSets.data()) != VK_SUCCESS) {
+                if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, texture->descriptorSets.data()) != VK_SUCCESS) {
                     throw std::runtime_error("failed to allocate descriptor sets!");
                 }
             }
         }
         else
         {
-            layout.descriptor->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+            descriptor->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
-            if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, layout.descriptor->descriptorSets.data()) != VK_SUCCESS) {
+            if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, descriptor->descriptorSets.data()) != VK_SUCCESS) {
                 throw std::runtime_error("failed to allocate descriptor sets!");
             }
         }
     }
 
-
-
-
-
     const int MAX_OBJECTS = 1000;
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
     {
         std::vector<VkWriteDescriptorSet> descriptorWrites;
-        for(DescriptorSetLayout& layout : layouts)
+        for(auto& descriptor : descriptors)
         {
             //SAMPLER TYPE CONTINUE
-            if (layout.descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+            if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             {
                 continue;
             }
-            int modulo = i % layout.descriptor->bufferWrappers.size();
-            VkDescriptorBufferInfo descriptorBufferInfo = create_descriptor_buffer_info(layout.descriptor->bufferWrappers[modulo].buffer, layout.descriptor->bufferWrappers[modulo].bufferSize);
-            VkWriteDescriptorSet descriptorWrite = write_descriptor_set(layout.descriptor->descriptorSets[i], 0, layout.descriptor->descriptorType, descriptorBufferInfo);
+
+            if (descriptor->tie)
+            {
+                int modulo = (i-1) % descriptor->bufferWrappers.size();
+                VkDescriptorBufferInfo descriptorBufferInfo = create_descriptor_buffer_info(descriptor->tie->bufferWrappers[modulo].buffer, descriptor->tie->bufferWrappers[modulo].bufferSize);
+                VkWriteDescriptorSet descriptorWrite = write_descriptor_set(descriptor->descriptorSets[i], 0, descriptor->descriptorType, descriptorBufferInfo);
+                vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
+
+                descriptorWrites.push_back(descriptorWrite);
+                continue;
+
+            }
+            int modulo = i % descriptor->bufferWrappers.size();
+            VkDescriptorBufferInfo descriptorBufferInfo = create_descriptor_buffer_info(descriptor->bufferWrappers[modulo].buffer, descriptor->bufferWrappers[modulo].bufferSize);
+            VkWriteDescriptorSet descriptorWrite = write_descriptor_set(descriptor->descriptorSets[i], 0, descriptor->descriptorType, descriptorBufferInfo);
             vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
 
             descriptorWrites.push_back(descriptorWrite);
         };
 
-        for(Texture& texture : textures)
+        for(auto& texture : textures)
         {
-            VkDescriptorImageInfo descriptorImageInfo = create_descriptor_image_info(m_TextureSampler, texture.ImageView);
-            VkWriteDescriptorSet descriptorWrite = write_descriptor_image(texture.descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptorImageInfo);
+            VkDescriptorImageInfo descriptorImageInfo = create_descriptor_image_info(m_TextureSampler, texture->ImageView);
+            VkWriteDescriptorSet descriptorWrite = write_descriptor_image(texture->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptorImageInfo);
             descriptorWrites.push_back(descriptorWrite);
             vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
 
@@ -1332,7 +1407,7 @@ QueueFamilyIndices AppVulkanImpl::find_queue_families(VkPhysicalDevice device)
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
 
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) ) {
             indices.GraphicsFamily = i;
         }
         if (presentSupport) {
@@ -1881,19 +1956,19 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
 
     auto layer = m_LayerStack[m_ActiveLayer];
 
-    std::vector<Texture>& textures = layer->get_textures();
+    auto& textures = layer->get_textures();
     int j = 0;
     for (auto& object : renderables)
     {
         if (object->is_textured())
         {
-            object->bind_texture(commandBuffer, textures, imageIndex);
+            object->bind_texture(commandBuffer, imageIndex);
         }
         
-        if (object->get_pipeline() != lastPipeline) {
+        if (object->get_pipeline().get() != lastPipeline) {
             
             object->bind_materials(commandBuffer, imageIndex);
-            lastPipeline = object->get_pipeline();
+            lastPipeline = object->get_pipeline().get();
         }
   
         if (object->get_mesh() != lastMesh) {
@@ -1909,13 +1984,13 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
     {
         if (m_SkyboxObj->is_textured())
         {
-            m_SkyboxObj->bind_texture(commandBuffer, textures, imageIndex);
+            m_SkyboxObj->bind_texture(commandBuffer, imageIndex);
         }
 
-        if (m_SkyboxObj->get_pipeline() != lastPipeline) {
+        if (m_SkyboxObj->get_pipeline().get() != lastPipeline) {
 
             m_SkyboxObj->bind_materials(commandBuffer, imageIndex);
-            lastPipeline = m_SkyboxObj->get_pipeline();
+            lastPipeline = m_SkyboxObj->get_pipeline().get();
         }
 
         if (m_SkyboxObj->get_mesh() != lastMesh) {

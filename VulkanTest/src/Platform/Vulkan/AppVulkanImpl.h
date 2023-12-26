@@ -9,6 +9,7 @@
 #include "RenderObject.h"
 #include "RenderParticle.h"
 #include "Texture.h"
+#include "Descriptor.h"
 
 
 #include <array>
@@ -157,7 +158,7 @@ private:
 
     VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
 
-    void create_mesh_obj(Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation = std::nullopt);
+    void create_mesh_obj(Mesh& mesh, bool illuminated, std::shared_ptr<Texture> texture, std::optional<std::string> animation = std::nullopt);
     void create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation);
 
     VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);

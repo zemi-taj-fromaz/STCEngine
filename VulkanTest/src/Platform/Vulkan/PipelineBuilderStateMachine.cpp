@@ -1,36 +1,13 @@
 #include "PipelineBuilderStateMachine.h"
 
-VkPipeline PipelineBuilder::build_pipeline()//(std::string vertShaderName, std::string fragShaderName, VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass pass, VkExtent2D extent, VkPolygonMode polygonMode, VkPrimitiveTopology topology)
+VkPipeline PipelineBuilder::build_pipeline(DeletionQueue& deletionQ)//(std::string vertShaderName, std::string fragShaderName, VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass pass, VkExtent2D extent, VkPolygonMode polygonMode, VkPrimitiveTopology topology)
 {
 
 
 	auto bindingDescription = Vertex::get_binding_description();
 	auto attributeDescriptions = Vertex::get_attribute_descriptions();
 
-	std::vector<char> vertexShaderSpirv;
-	compile_shader(VertexShaderName.c_str(), vertexShaderSpirv);
-
-
-	std::vector<char> fragmentShaderSpirv;
-	compile_shader(FragmentShaderName.c_str(), fragmentShaderSpirv);
-
-	VkShaderModule vertShaderModule = create_shader_module(vertexShaderSpirv, Device);
-	VkShaderModule fragShaderModule = create_shader_module(fragmentShaderSpirv, Device);
-
-	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vertShaderStageInfo.module = vertShaderModule;
-	vertShaderStageInfo.pName = "main";
-
-	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo.module = fragShaderModule;
-	fragShaderStageInfo.pName = "main";
-
-
-	auto shaderStages =  std::vector<VkPipelineShaderStageCreateInfo>({ vertShaderStageInfo, fragShaderStageInfo });
+	auto shaderStages = shader_stage_create(ShaderNames, Device, deletionQ);
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{}; //SEPARATE FUNCTION?
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -171,16 +148,13 @@ VkPipeline PipelineBuilder::build_pipeline()//(std::string vertShaderName, std::
 	if (vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
-
-	vkDestroyShaderModule(Device, fragShaderModule, nullptr);
-	vkDestroyShaderModule(Device, vertShaderModule, nullptr);
 	return newPipeline;
 }
 
 
 bool PipelineBuilder::compile_shader(std::string sourcePath, std::vector<char>& spirvCode)
 {
-	std::filesystem::path currentDir = std::filesystem::current_path();
+	std::filesystem::path currentDir = std::filesystem::current_path().parent_path();
 
 	// Initialize the shader compiler
 	//shaderc::Compiler compiler;
@@ -192,6 +166,7 @@ bool PipelineBuilder::compile_shader(std::string sourcePath, std::vector<char>& 
 	// Load the shader source code from file
 	std::ifstream file(currentDir.string() + SHADER_PATH + sourcePath, std::ios::in | std::ios::binary);
 	if (!file) {
+
 		throw std::runtime_error("Failed to open the shader file");
 	}
 	
@@ -232,36 +207,55 @@ VkShaderModule PipelineBuilder::create_shader_module(const std::vector<char>& co
 	}
 	return shaderModule;
 }
-//
-//std::vector<VkPipelineShaderStageCreateInfo> PipelineBuilder::shader_stage_create(const char* vertShaderName, const char* fragShaderName, VkDevice device)
-//{
-//
-//	auto bindingDescription = Vertex::get_binding_description();
-//	auto attributeDescriptions = Vertex::get_attribute_descriptions();
-//
-//	std::vector<uint32_t> vertexShaderSpirv;
-//	compile_shader(vertShaderName, shaderc_vertex_shader, vertexShaderSpirv);
-//	
-//
-//	std::vector<uint32_t> fragmentShaderSpirv;
-//	compile_shader(fragShaderName, shaderc_fragment_shader, fragmentShaderSpirv);
-//
-//	VkShaderModule vertShaderModule = create_shader_module(vertexShaderSpirv, device);
-//	VkShaderModule fragShaderModule = create_shader_module(fragmentShaderSpirv, device);
-//
-//	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-//	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-//	vertShaderStageInfo.module = vertShaderModule;
-//	vertShaderStageInfo.pName = "main";
-//
-//	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-//	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-//	fragShaderStageInfo.module = fragShaderModule;
-//	fragShaderStageInfo.pName = "main";
-//
-//
-//	return std::vector<VkPipelineShaderStageCreateInfo>({ vertShaderStageInfo, fragShaderStageInfo });
-//
-//}
+
+std::vector<VkPipelineShaderStageCreateInfo> PipelineBuilder::shader_stage_create(std::vector<std::string> shaders, VkDevice device, DeletionQueue& delQ)
+{
+
+	if (shaders.size() == 1)
+	{
+		std::vector<char> computeShader;
+		compile_shader(shaders[0], computeShader);
+		VkShaderModule shaderModule = create_shader_module(computeShader, Device);
+
+		VkPipelineShaderStageCreateInfo shaderStageInfo{};
+		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		shaderStageInfo.module = shaderModule;
+		shaderStageInfo.pName = "main";
+
+		delQ.push_function([=]() { vkDestroyShaderModule(Device, shaderModule, nullptr); }, "shaderModule");
+
+		return { shaderStageInfo };
+	}
+	else
+	{
+		std::vector<char> vertexShaderSpirv;
+		compile_shader(shaders[0], vertexShaderSpirv);
+
+
+		std::vector<char> fragmentShaderSpirv;
+		compile_shader(shaders[1], fragmentShaderSpirv);
+
+		VkShaderModule vertShaderModule = create_shader_module(vertexShaderSpirv, Device);
+		VkShaderModule fragShaderModule = create_shader_module(fragmentShaderSpirv, Device);
+
+		delQ.push_function([=]() { 
+			vkDestroyShaderModule(Device, vertShaderModule, nullptr); 
+			vkDestroyShaderModule(Device, fragShaderModule, nullptr); }, "shaderModules");
+
+		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		vertShaderStageInfo.module = vertShaderModule;
+		vertShaderStageInfo.pName = "main";
+
+		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		fragShaderStageInfo.module = fragShaderModule;
+		fragShaderStageInfo.pName = "main";
+
+		return { vertShaderStageInfo, fragShaderStageInfo };
+	}
+
+}

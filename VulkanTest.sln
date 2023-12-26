@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VulkanTest", "VulkanTest\Vu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Particles", "Particles\Particles.vcxproj", "{1A63C7CE-099F-43C3-9E17-43ED3DF5E9FA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lighting", "Lighting\Lighting.vcxproj", "{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -55,6 +57,18 @@ Global
 		{1A63C7CE-099F-43C3-9E17-43ED3DF5E9FA}.Release|x64.Build.0 = Release|x64
 		{1A63C7CE-099F-43C3-9E17-43ED3DF5E9FA}.Release|x86.ActiveCfg = Release|Win32
 		{1A63C7CE-099F-43C3-9E17-43ED3DF5E9FA}.Release|x86.Build.0 = Release|Win32
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Debug|x64.ActiveCfg = Debug|x64
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Debug|x64.Build.0 = Debug|x64
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Debug|x86.ActiveCfg = Debug|Win32
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Debug|x86.Build.0 = Debug|Win32
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Dist|x64.ActiveCfg = Debug|x64
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Dist|x64.Build.0 = Debug|x64
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Dist|x86.ActiveCfg = Debug|Win32
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Dist|x86.Build.0 = Debug|Win32
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Release|x64.ActiveCfg = Release|x64
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Release|x64.Build.0 = Release|x64
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Release|x86.ActiveCfg = Release|Win32
+		{AAD90E6F-F30B-42FC-A4CD-1914EA544C67}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -12,10 +12,9 @@
 class PipelineBuilder
 {
 public:
-	VkPipeline build_pipeline();// (std::string vertShaderName, std::string fragShaderName, VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass pass, VkExtent2D extent, VkPolygonMode polygonMode, VkPrimitiveTopology topology);
+	VkPipeline build_pipeline(DeletionQueue& deletionQ);// (std::string vertShaderName, std::string fragShaderName, VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass pass, VkExtent2D extent, VkPolygonMode polygonMode, VkPrimitiveTopology topology);
 	
-	std::string VertexShaderName;
-	std::string FragmentShaderName;
+	std::vector<std::string> ShaderNames;
 	VkDevice Device;
 	VkPipelineLayout PipelineLayout;
 	VkRenderPass Pass; 
@@ -26,6 +25,7 @@ public:
 	uint32_t Subpass{ 0 };
 	unsigned int DepthTest{ VK_TRUE };
 	bool Skybox{ false };
+	bool ComputeShader{ false };
 
 
 private:
@@ -34,6 +34,7 @@ private:
 
 	bool compile_shader(std::string sourcePath, std::vector<char>& spirvCode);
 	VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice device);
+	std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create(std::vector<std::string> shaders, VkDevice device, DeletionQueue& delQ);
 
 
 };

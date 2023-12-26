@@ -53,10 +53,10 @@ void Renderable::compute_animation(float time)
 
 void Renderable::bind_materials(VkCommandBuffer& commandBuffer, uint32_t imageIndex)
 {
-    for (int i = 0; i < this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayouts.size(); ++i)
+    for (int i = 0; i < this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
     {
-        if (this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayouts[i]->descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) continue;
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, i, 1, &this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayouts[i]->descriptor->descriptorSets[imageIndex], 0, nullptr);
+        if (this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) continue;
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, i, 1, &this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
     }
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipeline);
@@ -70,10 +70,10 @@ void Renderable::bind_mesh(VkCommandBuffer& commandBuffer)
     vkCmdBindIndexBuffer(commandBuffer, this->MeshHandle->mesh.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
-void Renderable::bind_texture(VkCommandBuffer& commandBuffer, std::vector<Texture>& textures, uint32_t imageIndex)
+void Renderable::bind_texture(VkCommandBuffer& commandBuffer, uint32_t imageIndex)
 {
-    if (this->MeshHandle->textureIndex != std::nullopt)
+    if (this->MeshHandle->texture != nullptr)
     {
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayouts.size() - 1, 1, &textures[this->MeshHandle->textureIndex.value()].descriptorSets[imageIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size() - 1, 1, &this->MeshHandle->texture->descriptorSets[imageIndex], 0, nullptr);
     }
 }

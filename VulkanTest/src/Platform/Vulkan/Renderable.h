@@ -19,15 +19,15 @@ public:
 
     void bind_materials(VkCommandBuffer& commandBuffer, uint32_t imageIndex);
     void bind_mesh(VkCommandBuffer& commandBuffer);
-    void bind_texture(VkCommandBuffer& commandBuffer, std::vector<Texture>& texture, uint32_t imageIndex);
+    void bind_texture(VkCommandBuffer& commandBuffer, uint32_t imageIndex);
 
     const glm::vec3& get_position() const { return Position; }
     const glm::vec3& get_direction() const { return Direction; }
 
     bool is_animated() const { return MeshHandle->animated != std::nullopt; }
-    bool is_textured() const { return MeshHandle->textureIndex != std::nullopt; }
+    bool is_textured() const { return MeshHandle->texture != nullptr; }
 
-    const Pipeline*  get_pipeline() const { return MeshHandle->pipeline; }
+    const std::shared_ptr<Pipeline>  get_pipeline() const { return MeshHandle->pipeline; }
     MeshWrapper* get_mesh() const { return this->MeshHandle; }
     const glm::mat4& get_model_matrix() const { return this->Model; }
 

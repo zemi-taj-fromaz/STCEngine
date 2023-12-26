@@ -2,6 +2,7 @@
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#include <filesystem>
 
 bool Mesh::load_from_obj(bool illuminated, bool texture)
 {
@@ -10,7 +11,7 @@ bool Mesh::load_from_obj(bool illuminated, bool texture)
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (MODEL_PATH + this->Filename).c_str())) {
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (std::filesystem::current_path().parent_path().string() + "/" + MODEL_PATH + this->Filename).c_str())) {
         throw std::runtime_error(warn + err);
     }
 
@@ -67,7 +68,7 @@ bool Mesh::load_animation(std::string filename)
 {
     Animated = true;
     std::string line;
-    std::ifstream inputFile(ANIMATION_PATH + filename);
+    std::ifstream inputFile(std::filesystem::current_path().parent_path().string() + "/" + ANIMATION_PATH + filename);
 
     if (!inputFile.is_open()) {
         std::cerr << "Failed to open the file." << std::endl;

@@ -1,0 +1,4 @@
+ToDO::
+Sve vezano za pool-ove i command buffere u jednu funkciju, sync strukture u drugu
+Apstrakcija setLayout i deskriptora, napisi shader sa i bez textura
+VMA

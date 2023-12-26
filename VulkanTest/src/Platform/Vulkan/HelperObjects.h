@@ -94,6 +94,12 @@ struct CameraBufferObject {
     glm::vec4 pos;
 };
 
+struct Cestica {
+    glm::vec2 position;
+    glm::vec2 velocity;
+    glm::vec4 color;
+};
+
 struct NamedFunction
 {
     std::function<void()> Function;
