@@ -28,6 +28,8 @@ struct SyncObjects
 {
     VkSemaphore ImageAvailableSemaphore;
     VkSemaphore RenderFinishedSemaphore;
+    VkSemaphore ComputeFinishedSemaphore;
+    VkFence ComputeInFlightFence;
     VkFence InFlightFence;
 };
 
@@ -94,10 +96,40 @@ struct CameraBufferObject {
     glm::vec4 pos;
 };
 
+struct ParameterUBO{
+    float deltaTime;
+};
+
 struct Cestica {
     glm::vec2 position;
     glm::vec2 velocity;
     glm::vec4 color;
+
+    static VkVertexInputBindingDescription get_binding_description() {
+
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Cestica);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::vector<VkVertexInputAttributeDescription> get_attribute_descriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Cestica, position);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Cestica, color);
+
+        return attributeDescriptions;
+    }
 };
 
 struct NamedFunction

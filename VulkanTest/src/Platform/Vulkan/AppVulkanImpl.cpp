@@ -362,6 +362,7 @@ void AppVulkanImpl::create_logical_device()
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.fillModeNonSolid = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -384,6 +385,7 @@ void AppVulkanImpl::create_logical_device()
     }
 
     vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
+    vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_ComputeQueue);
     vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_PresentQueue);
 }
 
@@ -568,7 +570,7 @@ void AppVulkanImpl::create_graphics_pipeline(std::shared_ptr<Layer>& layer)
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = setLayouts.size();// Optional
-        pipelineLayoutInfo.pSetLayouts = setLayouts.data(); // Optional
+        pipelineLayoutInfo.pSetLayouts = setLayouts.size() == 0 ? nullptr : setLayouts.data(); // Optional
 
         // pipelineLayouts[i].descriptorSetLayout = &layouts[i];
 
@@ -811,47 +813,56 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
         }
     }
 
-    std::vector<MeshWrapper>& meshStructs = layer->get_mesh();
+    std::vector<std::shared_ptr<MeshWrapper>>& meshStructs = layer->get_mesh();
 
-    for (MeshWrapper& meshStruct : meshStructs)
+    for (auto& meshStruct : meshStructs)
     {
 
-        if (meshStruct.isSkybox)
+        if (meshStruct->isSkybox)
         {
-            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, nullptr, meshStruct.animated);
-            m_SkyboxObj = new RenderObject({ &meshStruct, true });
+            create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, nullptr, meshStruct->animated);
+            m_SkyboxObj = new RenderObject({ meshStruct.get(), true});
         }
         else
         {
-            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.texture, meshStruct.animated);
-            m_Renderables.push_back(std::shared_ptr<RenderObject>(new RenderObject(&meshStruct, meshStruct.isSkybox)));
-        }
-    }
-
-    std::vector<Particles>& particlesV = layer->get_particles();
-
-    for (Particles& particles : particlesV)
-    {
-        for (MeshWrapper& meshStruct : particles.particlesMesh)
-        {
-            create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.texture,meshStruct.animated);
-            m_Renderables.push_back(std::shared_ptr<RenderParticle>(new RenderParticle(&meshStruct, meshStruct.isSkybox)));
-        }
-    }
-
-    for (auto& object : m_Renderables)
-    {
-     //   object->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 1000.0f, 1000.0f)));
-        if (std::shared_ptr<RenderParticle> derivedPtr = std::dynamic_pointer_cast<RenderParticle>(object); derivedPtr)
-        {
-            if (std::shared_ptr<RenderObject> derived = std::dynamic_pointer_cast<RenderObject>(m_Renderables[0]); derived)
+            create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, meshStruct->texture, meshStruct->animated);
+            if (meshStruct->head)
             {
-                derivedPtr->generator = derived;
-
+                auto particle = std::shared_ptr<RenderParticle>(new RenderParticle(meshStruct.get(), meshStruct->isSkybox));
+                particle->generator = meshStruct->head->object;
+                m_Renderables.push_back(particle);
+            }
+            else
+            {
+                m_Renderables.push_back(std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get(), meshStruct->isSkybox)));
             }
         }
     }
-    m_Renderables[0]->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
+
+    //std::vector<Particles>& particlesV = layer->get_particles();
+
+    //for (Particles& particles : particlesV)
+    //{
+    //    for (MeshWrapper& meshStruct : particles.particlesMesh)
+    //    {
+    //        create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.texture,meshStruct.animated);
+    //        m_Renderables.push_back(std::shared_ptr<RenderParticle>(new RenderParticle(&meshStruct, meshStruct.isSkybox)));
+    //    }
+    //}
+
+    //for (auto& object : m_Renderables)
+    //{
+    // //   object->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 1000.0f, 1000.0f)));
+    //    if (std::shared_ptr<RenderParticle> derivedPtr = std::dynamic_pointer_cast<RenderParticle>(object); derivedPtr)
+    //    {
+    //        if (std::shared_ptr<RenderObject> derived = std::dynamic_pointer_cast<RenderObject>(m_Renderables[0]); derived)
+    //        {
+    //            derivedPtr->generator = derived;
+
+    //        }
+    //    }
+    //}
+    //m_Renderables[0]->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
 
 }
 
@@ -1091,6 +1102,19 @@ void AppVulkanImpl::create_commands()
         if (vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
+
+
+        m_ComputeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        VkCommandBufferAllocateInfo callocInfo{};
+        callocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        callocInfo.commandPool = m_CommandPool;
+        callocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        callocInfo.commandBufferCount = static_cast<uint32_t>(m_ComputeCommandBuffers.size());
+
+
+        if (vkAllocateCommandBuffers(m_Device, &callocInfo, m_ComputeCommandBuffers.data()) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
     }
 
     //------------------------Upload Context------------------------------------------------------------------------
@@ -1130,12 +1154,16 @@ void AppVulkanImpl::create_sync_objects()
     {
         if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_SyncObjects[i].ImageAvailableSemaphore) != VK_SUCCESS ||
             vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_SyncObjects[i].RenderFinishedSemaphore) != VK_SUCCESS ||
+            vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_SyncObjects[i].ComputeFinishedSemaphore) != VK_SUCCESS ||
+            vkCreateFence(m_Device, &fenceInfo, nullptr, &m_SyncObjects[i].ComputeInFlightFence) != VK_SUCCESS ||
             vkCreateFence(m_Device, &fenceInfo, nullptr, &m_SyncObjects[i].InFlightFence) != VK_SUCCESS) {
             throw std::runtime_error("failed to create semaphores!");
         }
         m_DeletionQueue.push_function([=]() { vkDestroySemaphore(m_Device, m_SyncObjects[i].ImageAvailableSemaphore, nullptr); }, "Semaphore1");
         m_DeletionQueue.push_function([=]() { vkDestroySemaphore(m_Device, m_SyncObjects[i].RenderFinishedSemaphore, nullptr); }, "Sempahore2");
-        m_DeletionQueue.push_function([=]() { vkDestroyFence(m_Device, m_SyncObjects[i].InFlightFence, nullptr); }, "Fence");
+        m_DeletionQueue.push_function([=]() { vkDestroySemaphore(m_Device, m_SyncObjects[i].ComputeFinishedSemaphore, nullptr); }, "Sempahore3");
+        m_DeletionQueue.push_function([=]() { vkDestroyFence(m_Device, m_SyncObjects[i].ComputeInFlightFence, nullptr); }, "Fence1");
+        m_DeletionQueue.push_function([=]() { vkDestroyFence(m_Device, m_SyncObjects[i].InFlightFence, nullptr); }, "Fence2");
     }
     VkFenceCreateInfo uploadContextFenceCreateInfo{};
     uploadContextFenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -1179,7 +1207,8 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
     if(s_ImGuiEnabled) ImGui::Render();
 
     static int frameNumber{ 0 };
-    vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].InFlightFence, VK_TRUE, UINT64_MAX);
+
+    vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].ComputeInFlightFence, VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_SyncObjects[m_CurrentFrame].ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
@@ -1191,22 +1220,39 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
+
+
+    vkResetFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].ComputeInFlightFence);
+    vkResetCommandBuffer(m_ComputeCommandBuffers[m_CurrentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+   
+    layer->update_compute_buffers(this, imageIndex);
+    draw_compute(m_ComputeCommandBuffers[m_CurrentFrame], imageIndex);
+
+    VkSubmitInfo ssubmitInfo{};
+    ssubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    ssubmitInfo.commandBufferCount = 1;
+    ssubmitInfo.pCommandBuffers = &m_ComputeCommandBuffers[m_CurrentFrame];
+    ssubmitInfo.signalSemaphoreCount = 1;
+    ssubmitInfo.pSignalSemaphores = &m_SyncObjects[m_CurrentFrame].ComputeFinishedSemaphore;
+
+    if (vkQueueSubmit(m_ComputeQueue, 1, &ssubmitInfo, m_SyncObjects[m_CurrentFrame].ComputeInFlightFence) != VK_SUCCESS) {
+        throw std::runtime_error("failed to submit compute command buffer!");
+    };
     
+    vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].InFlightFence, VK_TRUE, UINT64_MAX);
 
     vkResetFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].InFlightFence);
     vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
 
-
     layer->update_buffers(this, imageIndex);
-
     draw_objects(m_CommandBuffers[m_CurrentFrame], m_Renderables, imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = { m_SyncObjects[m_CurrentFrame].ImageAvailableSemaphore };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo.waitSemaphoreCount = 1;
+    VkSemaphore waitSemaphores[] = { m_SyncObjects[m_CurrentFrame].ComputeFinishedSemaphore, m_SyncObjects[m_CurrentFrame].ImageAvailableSemaphore };
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    submitInfo.waitSemaphoreCount = 2;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
@@ -1385,6 +1431,7 @@ bool AppVulkanImpl::is_device_suitable(VkPhysicalDevice device)
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
     if (!supportedFeatures.samplerAnisotropy) return false;
+    if (!supportedFeatures.fillModeNonSolid) return false;
 
     SwapChainSupportDetails swapChainSupport = query_swap_chain_support(device);
     return !swapChainSupport.Formats.empty() && !swapChainSupport.PresentModes.empty();
@@ -2001,6 +2048,16 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_SkyboxObj->get_indices_size()), 1, 0, 0, j++);
     }
 
+    if (std::shared_ptr<Pipeline> computePipeline = layer->get_compute_pipeline(); computePipeline)
+    {
+        std::shared_ptr<Pipeline> computeGraphicsPipeline = layer->get_compute_graphics_pipeline();
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computeGraphicsPipeline->pipeline);
+        VkBuffer vertexBuffers[] = { computePipeline->pipelineLayout->descriptorSetLayout[2]->bufferWrappers[imageIndex].buffer};
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+        vkCmdDraw(commandBuffer, 200, 1, 0, 0);
+    }
 
     if(s_ImGuiEnabled) ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
     vkCmdEndRenderPass(commandBuffer);
@@ -2009,6 +2066,50 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         throw std::runtime_error("failed to record command buffer!");
     }
 
+}
+
+void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+{
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0; // Optional
+    beginInfo.pInheritanceInfo = nullptr; // Optional
+
+    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("failed to begin recording command buffer!");
+    }
+
+    auto layer = m_LayerStack[m_ActiveLayer];
+
+    auto& descriptors = layer->get_descriptors();
+
+    for (auto& descriptor : descriptors)
+    {
+        if (descriptor->shaderFlags == VK_SHADER_STAGE_COMPUTE_BIT && !descriptor->tie)
+        {
+            std::shared_ptr<Pipeline> computePipeline = layer->get_compute_pipeline();
+            for (int i = 0; i < computePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
+            {
+                if (computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) continue;
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipelineLayout->layout, i, 1, &computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+            }
+
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
+
+            vkCmdDispatch(commandBuffer, 200 / 256, 1, 1);
+            //VkBuffer vertexBuffers[] = { descriptor->bufferWrappers[imageIndex].buffer};
+            //VkDeviceSize offsets[] = { 0 };
+            //vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+            //vkCmdDraw(commandBuffer, 200, 1, 0, 0);
+            break;
+
+        }
+    }
+ //   vkCmdEndRenderPass(commandBuffer);
+
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
 }
 
 VkDescriptorSetLayoutBinding AppVulkanImpl::create_descriptor_set_layout_binding(int binding, int count, VkDescriptorType type, VkShaderStageFlagBits shaderStageFlag)

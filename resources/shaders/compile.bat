@@ -12,4 +12,7 @@ C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe Grid
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe GridShader.frag -o GridShaderfrag.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe CubemapShader.vert -o CubemapShadervert.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe CubemapShader.frag -o CubemapShaderfrag.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ComputeShader.comp -o ComputeShadercomp.spv 
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ComputeShader.vert -o ComputeShadervert.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ComputeShader.frag -o ComputeShaderfrag.spv
 pause

@@ -151,6 +151,7 @@ private:
   //  void update_transform_matrices();
     
     void draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex);
+    void draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(int binding, int count, VkDescriptorType type, VkShaderStageFlagBits shaderStageFlag);
     VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorBufferInfo& bufferInfo);
     VkWriteDescriptorSet write_descriptor_image(VkDescriptorSet set, int binding, VkDescriptorType type, const VkDescriptorImageInfo& imageInfo);
@@ -200,6 +201,7 @@ private:
     const std::vector<const char*> m_ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
     const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     VkQueue m_GraphicsQueue;
+    VkQueue m_ComputeQueue;
     VkQueue m_PresentQueue;
     
     
@@ -215,6 +217,7 @@ private:
 
     VkCommandPool m_CommandPool;
     std::vector<VkCommandBuffer> m_CommandBuffers;
+    std::vector<VkCommandBuffer> m_ComputeCommandBuffers;
     std::vector<SyncObjects> m_SyncObjects;
 
  

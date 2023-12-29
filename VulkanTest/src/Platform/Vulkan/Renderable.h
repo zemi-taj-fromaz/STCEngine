@@ -11,7 +11,21 @@ class Renderable
 {
 public:
     Renderable(MeshWrapper* meshHandle, bool isSkybox) : MeshHandle(meshHandle), isSkybox(isSkybox)
-    {}
+    {
+        if (this->MeshHandle->scale.has_value()) 
+        { 
+            setScale(MeshHandle->scale.value()); 
+        }
+        if(this->MeshHandle->rotation.has_value()) 
+        { 
+            setRotation(MeshHandle->rotation.value());
+        }
+        if(this->MeshHandle->translation.has_value()) 
+        { 
+            setTranslation(MeshHandle->translation.value());
+        }
+      
+    }
     virtual ~Renderable() {};
 
     void compute_animation(float time);

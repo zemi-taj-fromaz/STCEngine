@@ -4,8 +4,18 @@ VkPipeline PipelineBuilder::build_pipeline(DeletionQueue& deletionQ)//(std::stri
 {
 
 
-	auto bindingDescription = Vertex::get_binding_description();
-	auto attributeDescriptions = Vertex::get_attribute_descriptions();
+	VkVertexInputBindingDescription bindingDescription;
+	std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+	if (PolygonMode == VK_POLYGON_MODE_POINT)
+	{
+		bindingDescription = Cestica::get_binding_description();
+		attributeDescriptions = Cestica::get_attribute_descriptions();
+	}
+	else
+	{
+		bindingDescription = Vertex::get_binding_description();
+		attributeDescriptions = Vertex::get_attribute_descriptions();
+	}
 
 	auto shaderStages = shader_stage_create(ShaderNames, Device, deletionQ);
 
@@ -125,6 +135,21 @@ VkPipeline PipelineBuilder::build_pipeline(DeletionQueue& deletionQ)//(std::stri
 	viewportState.scissorCount = 1;
 	viewportState.pScissors = &scissor;
 
+	VkPipeline newPipeline;
+	if (shaderStages.size() == 1)
+	{
+		VkComputePipelineCreateInfo computePipelineInfo{};
+		computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		computePipelineInfo.layout = PipelineLayout;
+		computePipelineInfo.stage = shaderStages[0];
+
+		if (vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &newPipeline) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create compute pipeline!");
+		}
+
+		return newPipeline;
+	}
+
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
@@ -144,7 +169,6 @@ VkPipeline PipelineBuilder::build_pipeline(DeletionQueue& deletionQ)//(std::stri
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
-	VkPipeline newPipeline;
 	if (vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}

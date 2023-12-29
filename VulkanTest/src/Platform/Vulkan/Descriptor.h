@@ -7,6 +7,7 @@ class AppVulkanImpl;
 
 struct Descriptor
 {
+	Descriptor(){}
 	Descriptor(VkDescriptorType descriptorType, VkShaderStageFlagBits shaderFlags)
 		: descriptorType(descriptorType), shaderFlags(shaderFlags)
 	{

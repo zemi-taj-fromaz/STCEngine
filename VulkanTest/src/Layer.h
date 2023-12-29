@@ -4,8 +4,11 @@
 #include "Platform/Vulkan/Mesh.h"
 #include "Platform/Vulkan/Camera.h"
 #include "Platform/Vulkan/Descriptor.h"
+//#include "Platform/Vulkan/RenderObject.h"
+
 
 class AppVulkanImpl;
+class RenderObject;
 
 #include <string>
 #include <vector>
@@ -28,7 +31,7 @@ struct BufferWrapper
 
 struct PipelineLayout
 {
-
+	PipelineLayout(){}
 	PipelineLayout(std::vector<std::shared_ptr<Descriptor>> layouts) : descriptorSetLayout(layouts){}
 
 	std::vector<std::shared_ptr<Descriptor>> descriptorSetLayout;
@@ -67,6 +70,13 @@ struct MeshWrapper
 	std::optional<std::string> animated{ std::nullopt };
 	bool illuminated{ false };
 	bool isSkybox{ false };
+	
+	std::optional<glm::mat4> translation;
+	std::optional<glm::mat4> rotation;
+	std::optional<glm::mat4> scale;
+
+	std::shared_ptr<RenderObject> object;
+	std::shared_ptr<MeshWrapper> head;
 };
 
 
@@ -96,14 +106,32 @@ public:
 	std::vector<std::shared_ptr<PipelineLayout>>& get_pipeline_layouts() { return m_PipelineLayouts; }
 	std::vector<std::shared_ptr<Pipeline>>& get_pipelines() { return m_Pipelines; }
 	std::vector<std::shared_ptr<Texture>>& get_textures() { return m_Textures; }
-	std::vector<MeshWrapper>& get_mesh() { return m_Mesh; }
+	std::vector<std::shared_ptr<MeshWrapper>>& get_mesh() { return m_Mesh; }
 	std::vector<Particles>& get_particles() { return m_Particles; }
+	std::shared_ptr<Pipeline>& get_compute_pipeline() { return m_ComputePipeline; }
+	std::shared_ptr<Pipeline>& get_compute_graphics_pipeline() { return m_ComputeGraphicsPipeline; }
 
 	void update_buffers(AppVulkanImpl* app, int imageIndex)
 	{
 		for (std::shared_ptr<Descriptor>& descriptor : m_Descriptors)
 		{
-			if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+			if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+				descriptor->shaderFlags == VK_SHADER_STAGE_COMPUTE_BIT
+				)
+			{
+				continue;
+			}
+			descriptor->bufferUpdateFunc(app, descriptor->bufferWrappers[imageIndex % descriptor->bufferWrappers.size()].bufferMapped);
+		}
+	}
+
+	void update_compute_buffers(AppVulkanImpl* app, int imageIndex)
+	{
+		for (std::shared_ptr<Descriptor>& descriptor : m_Descriptors)
+		{
+			if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+				descriptor->shaderFlags != VK_SHADER_STAGE_COMPUTE_BIT
+				)
 			{
 				continue;
 			}
@@ -134,7 +162,7 @@ protected:
 		this->m_Textures = textures;
 	}
 
-	void create_mesh(std::vector<MeshWrapper> mesh)
+	void create_mesh(std::vector<std::shared_ptr<MeshWrapper>> mesh)
 	{
 		m_Mesh = mesh;
 
@@ -152,6 +180,8 @@ protected:
 	}
 
 
+	std::shared_ptr<Pipeline> m_ComputePipeline;
+	std::shared_ptr<Pipeline> m_ComputeGraphicsPipeline;
 
 private:
 
@@ -163,7 +193,8 @@ private:
 	std::vector<std::shared_ptr<PipelineLayout>> m_PipelineLayouts;
 	std::vector<std::shared_ptr<Pipeline>> m_Pipelines;
 
-	std::vector<MeshWrapper> m_Mesh;
+
+	std::vector<std::shared_ptr<MeshWrapper>> m_Mesh;
 	std::vector<Particles> m_Particles;
 	std::vector<std::shared_ptr<Texture>> m_Textures;
 };
