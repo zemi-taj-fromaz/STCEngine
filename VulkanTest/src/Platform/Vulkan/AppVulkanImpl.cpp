@@ -55,7 +55,7 @@ void AppVulkanImpl::initialize_window()
     //const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
 
-    m_Window = glfwCreateWindow(m_Width, m_Height, "Vulkan Fullscreen", nullptr, NULL);
+    m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
     glfwSetWindowUserPointer(m_Window, this);
     glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -820,6 +820,7 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 
         if (meshStruct->isSkybox)
         {
+            m_SkyboxOn = true;
             create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, nullptr, meshStruct->animated);
             m_SkyboxObj = new RenderObject({ meshStruct.get(), true});
         }
@@ -839,53 +840,10 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
         }
     }
 
-    //std::vector<Particles>& particlesV = layer->get_particles();
-
-    //for (Particles& particles : particlesV)
-    //{
-    //    for (MeshWrapper& meshStruct : particles.particlesMesh)
-    //    {
-    //        create_mesh_obj(meshStruct.mesh, meshStruct.illuminated, meshStruct.texture,meshStruct.animated);
-    //        m_Renderables.push_back(std::shared_ptr<RenderParticle>(new RenderParticle(&meshStruct, meshStruct.isSkybox)));
-    //    }
-    //}
-
-    //for (auto& object : m_Renderables)
-    //{
-    // //   object->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 1000.0f, 1000.0f)));
-    //    if (std::shared_ptr<RenderParticle> derivedPtr = std::dynamic_pointer_cast<RenderParticle>(object); derivedPtr)
-    //    {
-    //        if (std::shared_ptr<RenderObject> derived = std::dynamic_pointer_cast<RenderObject>(m_Renderables[0]); derived)
-    //        {
-    //            derivedPtr->generator = derived;
-
-    //        }
-    //    }
-    //}
-    //m_Renderables[0]->setScale(glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f)));
-
 }
-
 
 void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
 {
-
-    // Initialize particles
-    std::default_random_engine rndEngine((unsigned)time(nullptr));
-    std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
-
-    // Initial particle positions on a circle
-    std::vector<Cestica> particles(200);
-    for (auto& particle : particles) {
-        float r = 0.25f * sqrt(rndDist(rndEngine));
-        float theta = rndDist(rndEngine) * 2 * 3.14159265358979323846;
-        float x = r * cos(theta) * m_Height / m_Width;
-        float y = r * sin(theta);
-        particle.position = glm::vec2(x, y);
-        particle.velocity = glm::normalize(glm::vec2(x, y)) * 0.00025f;
-        particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
-    }
-
 
     auto& descriptors = layer->get_descriptors();
 
@@ -897,45 +855,35 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
             continue;
         }
         
-        if (descriptor->isDeviceLocal())
+        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER && descriptor->shaderFlags == VK_SHADER_STAGE_COMPUTE_BIT)
         {
             if (descriptor->tie)
             {
                 continue;
             }
-            VkBuffer stagingBuffer;
-            VkDeviceMemory stagingBufferMemory;
-            size_t bufferSize = (descriptor->bufferWrappers[0].bufferSize);
-            create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-            void* data;
-            vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-            memcpy(data, particles.data(), (size_t)bufferSize);
-            vkUnmapMemory(m_Device, stagingBufferMemory);
 
-            m_DeletionQueue.push_function(
-                [=]() {
-                    vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-                    vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
-                }, "VertexBuffer"
-            );
+            WindowDims dims{ width, height };
+
+            particles = descriptor->particlesCreateFunction(&dims);
+
 
             for (BufferWrapper& bufferWrapper : descriptor->bufferWrappers)
             {
                 VkDeviceSize bufferSize = bufferWrapper.bufferSize;
 
                 create_buffer(bufferSize, descriptor->usageFlags, descriptor->propertyFlags, bufferWrapper.buffer, bufferWrapper.deviceMemory);
+                vkMapMemory(m_Device, bufferWrapper.deviceMemory, 0, bufferSize, 0, &bufferWrapper.bufferMapped);
 
-                copy_buffer(stagingBuffer, bufferWrapper.buffer, bufferSize);
-
+                memcpy(bufferWrapper.bufferMapped, particles.data(), sizeof(Particle) * particles.size());
 
                 m_DeletionQueue.push_function(
                     [=]() {
                         vkDestroyBuffer(m_Device, bufferWrapper.buffer, nullptr);
-                        vkFreeMemory(m_Device, bufferWrapper.deviceMemory, nullptr);
+                vkFreeMemory(m_Device, bufferWrapper.deviceMemory, nullptr);
                     }, "Buffers");
             }
 
-            return;
+            continue;
         }
 
         for (BufferWrapper& bufferWrapper : descriptor->bufferWrappers)
@@ -1419,6 +1367,14 @@ bool AppVulkanImpl::is_device_suitable(VkPhysicalDevice device)
 {
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+
+    uint32_t maxLocalWorkgroupSizeX = deviceProperties.limits.maxComputeWorkGroupSize[0];
+    uint32_t maxLocalWorkgroupSizeY = deviceProperties.limits.maxComputeWorkGroupSize[1];
+    uint32_t maxLocalWorkgroupSizeZ = deviceProperties.limits.maxComputeWorkGroupSize[2];
+    uint32_t maxLocalWorkgroupSize = deviceProperties.limits.maxComputeWorkGroupInvocations;
+    std::cout << "Max work groupd sizes" << maxLocalWorkgroupSizeX << " " << maxLocalWorkgroupSizeY << " " << maxLocalWorkgroupSizeZ << " " << maxLocalWorkgroupSize << std::endl;
+
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
@@ -2051,12 +2007,15 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
     if (std::shared_ptr<Pipeline> computePipeline = layer->get_compute_pipeline(); computePipeline)
     {
         std::shared_ptr<Pipeline> computeGraphicsPipeline = layer->get_compute_graphics_pipeline();
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computeGraphicsPipeline->pipelineLayout->layout, 0, 1, &computeGraphicsPipeline->pipelineLayout->descriptorSetLayout[0]->descriptorSets[imageIndex], 0, nullptr);
+      
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computeGraphicsPipeline->pipeline);
         VkBuffer vertexBuffers[] = { computePipeline->pipelineLayout->descriptorSetLayout[2]->bufferWrappers[imageIndex].buffer};
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-        vkCmdDraw(commandBuffer, 200, 1, 0, 0);
+
+        vkCmdDraw(commandBuffer, particles.size(), 1, 0, 0);
     }
 
     if(s_ImGuiEnabled) ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -2096,11 +2055,7 @@ void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIn
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
 
-            vkCmdDispatch(commandBuffer, 200 / 256, 1, 1);
-            //VkBuffer vertexBuffers[] = { descriptor->bufferWrappers[imageIndex].buffer};
-            //VkDeviceSize offsets[] = { 0 };
-            //vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-            //vkCmdDraw(commandBuffer, 200, 1, 0, 0);
+            vkCmdDispatch(commandBuffer, particles.size() / 256, 1, 1);
             break;
 
         }

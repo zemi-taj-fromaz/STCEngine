@@ -8,8 +8,8 @@ VkPipeline PipelineBuilder::build_pipeline(DeletionQueue& deletionQ)//(std::stri
 	std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	if (PolygonMode == VK_POLYGON_MODE_POINT)
 	{
-		bindingDescription = Cestica::get_binding_description();
-		attributeDescriptions = Cestica::get_attribute_descriptions();
+		bindingDescription = Particle::get_binding_description();
+		attributeDescriptions = Particle::get_attribute_descriptions();
 	}
 	else
 	{

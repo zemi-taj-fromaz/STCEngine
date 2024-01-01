@@ -761,7 +761,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
     int prev_visible_column_idx = -1;
     bool has_auto_fit_request = false;
     bool has_resizable = false;
-    float stretch_sum_width_auto = 0.0f;
+    float stretch_suwidth_auto = 0.0f;
     float fixed_max_width_auto = 0.0f;
     for (int order_n = 0; order_n < table->ColumnsCount; order_n++)
     {
@@ -836,7 +836,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
             has_auto_fit_request = true;
         if (column->Flags & ImGuiTableColumnFlags_WidthStretch)
         {
-            stretch_sum_width_auto += column->WidthAuto;
+            stretch_suwidth_auto += column->WidthAuto;
             count_stretch++;
         }
         else
@@ -859,7 +859,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
         table->IsSettingsDirty = true;
 
     // [Part 3] Fix column flags and record a few extra information.
-    float sum_width_requests = 0.0f;    // Sum of all width for fixed and auto-resize columns, excluding width contributed by Stretch columns but including spacing/padding.
+    float suwidth_requests = 0.0f;    // Sum of all width for fixed and auto-resize columns, excluding width contributed by Stretch columns but including spacing/padding.
     float stretch_sum_weights = 0.0f;   // Sum of all weights for stretch columns.
     table->LeftMostStretchedColumn = table->RightMostStretchedColumn = -1;
     for (int column_n = 0; column_n < table->ColumnsCount; column_n++)
@@ -891,7 +891,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
             // FIXME: This break IsPreserveWidthAuto from not flickering if the stored WidthAuto was smaller.
             if (column->AutoFitQueue > 0x01 && table->IsInitializing && !column->IsPreserveWidthAuto)
                 column->WidthRequest = ImMax(column->WidthRequest, table->MinColumnWidth * 4.0f); // FIXME-TABLE: Another constant/scale?
-            sum_width_requests += column->WidthRequest;
+            suwidth_requests += column->WidthRequest;
         }
         else
         {
@@ -901,7 +901,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
                 if (column->InitStretchWeightOrWidth > 0.0f)
                     column->StretchWeight = column->InitStretchWeightOrWidth;
                 else if (table_sizing_policy == ImGuiTableFlags_SizingStretchProp)
-                    column->StretchWeight = (column->WidthAuto / stretch_sum_width_auto) * count_stretch;
+                    column->StretchWeight = (column->WidthAuto / stretch_suwidth_auto) * count_stretch;
                 else
                     column->StretchWeight = 1.0f;
             }
@@ -913,7 +913,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
                 table->RightMostStretchedColumn = (ImGuiTableColumnIdx)column_n;
         }
         column->IsPreserveWidthAuto = false;
-        sum_width_requests += table->CellPaddingX * 2.0f;
+        suwidth_requests += table->CellPaddingX * 2.0f;
     }
     table->ColumnsEnabledFixedCount = (ImGuiTableColumnIdx)count_fixed;
     table->ColumnsStretchSumWeights = stretch_sum_weights;
@@ -923,7 +923,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
     const float width_spacings = (table->OuterPaddingX * 2.0f) + (table->CellSpacingX1 + table->CellSpacingX2) * (table->ColumnsEnabledCount - 1);
     const float width_removed = (table->HasScrollbarYPrev && !table->InnerWindow->ScrollbarY) ? g.Style.ScrollbarSize : 0.0f; // To synchronize decoration width of synched tables with mismatching scrollbar state (#5920)
     const float width_avail = ImMax(1.0f, (((table->Flags & ImGuiTableFlags_ScrollX) && table->InnerWidth == 0.0f) ? table->InnerClipRect.GetWidth() : work_rect.GetWidth()) - width_removed);
-    const float width_avail_for_stretched_columns = width_avail - width_spacings - sum_width_requests;
+    const float width_avail_for_stretched_columns = width_avail - width_spacings - suwidth_requests;
     float width_remaining_for_stretched_columns = width_avail_for_stretched_columns;
     table->ColumnsGivenWidth = width_spacings + (table->CellPaddingX * 2.0f) * table->ColumnsEnabledCount;
     for (int column_n = 0; column_n < table->ColumnsCount; column_n++)

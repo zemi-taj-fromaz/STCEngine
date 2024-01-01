@@ -35,4 +35,6 @@ struct Descriptor
 	VkMemoryPropertyFlagBits propertyFlags;
 	Descriptor* tie{ nullptr };
 	VkDescriptorSetLayout layout;
+	std::function<std::vector<Particle>(void*)> particlesCreateFunction;
+
 };

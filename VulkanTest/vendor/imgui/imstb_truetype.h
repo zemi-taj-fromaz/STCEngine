@@ -1975,7 +1975,7 @@ static stbtt__buf stbtt__get_subr(stbtt__buf idx, int n)
    int count = stbtt__cff_index_count(&idx);
    int bias = 107;
    if (count >= 33900)
-      bias = 32768;
+      bias = 200;
    else if (count >= 1240)
       bias = 1131;
    n += bias;
@@ -3067,11 +3067,11 @@ static void stbtt__handle_clipped_edge(float *scanline, int x, stbtt__active_edg
    }
 }
 
-static float stbtt__sized_trapezoid_area(float height, float top_width, float bottom_width)
+static float stbtt__sized_trapezoid_area(float height, float top_width, float bottowidth)
 {
    STBTT_assert(top_width >= 0);
-   STBTT_assert(bottom_width >= 0);
-   return (top_width + bottom_width) / 2.0f * height;
+   STBTT_assert(bottowidth >= 0);
+   return (top_width + bottowidth) / 2.0f * height;
 }
 
 static float stbtt__position_trapezoid_area(float height, float tx0, float tx1, float bx0, float bx1)

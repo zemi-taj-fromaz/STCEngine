@@ -100,16 +100,16 @@ struct ParameterUBO{
     float deltaTime;
 };
 
-struct Cestica {
-    glm::vec2 position;
-    glm::vec2 velocity;
+struct Particle {
+    glm::vec3 position;
+    glm::vec2 velocity{ 0.0f, 0.0f };
     glm::vec4 color;
 
     static VkVertexInputBindingDescription get_binding_description() {
 
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Cestica);
+        bindingDescription.stride = sizeof(Particle);
         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         return bindingDescription;
@@ -120,13 +120,13 @@ struct Cestica {
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Cestica, position);
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Particle, position);
 
         attributeDescriptions[1].binding = 0;
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Cestica, color);
+        attributeDescriptions[1].offset = offsetof(Particle, color);
 
         return attributeDescriptions;
     }
@@ -158,8 +158,6 @@ struct DeletionQueue
     }
 };
 
-
-
 struct Material
 {
     VkPipeline Pipeline;
@@ -179,19 +177,6 @@ struct SceneData {
 struct ObjectData
 {
     glm::mat4 Model;
-};
-
-struct ParticleData
-{
-    glm::mat4 Model;
-};
-
-struct Particle
-{
-    std::vector<ParticleData> Data;
-    VkBuffer Buffer;
-    VkDeviceMemory Memory;
-    void* Mapped;
 };
 
 struct Object
@@ -214,6 +199,12 @@ struct UploadContext {
     VkFence UploadFence;
     VkCommandPool CommandPool;
     VkCommandBuffer CommandBuffer;
+};
+
+struct WindowDims
+{
+    int W;
+    int H;
 };
 
 

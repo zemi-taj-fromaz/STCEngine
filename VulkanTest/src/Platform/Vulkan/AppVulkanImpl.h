@@ -58,10 +58,11 @@ public:
 
     float get_total_time() { return totalTime; }
     float get_delta_time() { return deltaTime; }
+    size_t get_particles_size() { return particles.size(); }
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
 
 
-    bool m_SkyboxOn{ true };
+    bool m_SkyboxOn{ false };
 
 private:
     void create_instance();
@@ -165,8 +166,15 @@ private:
     VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);
     VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size,VkDeviceSize offset = 0);
 
+    void create_fireworks(std::vector<Particle>& particles);
+    void create_mandelbrot(std::vector<Particle>& particles);
+
+   
+
 
 private:
+
+    std::vector<Particle> particles;
 
     bool isInitialized{ false };
 
@@ -175,8 +183,8 @@ private:
     static bool s_ImGuiEnabled;
 
     GLFWwindow* m_Window;
-    const uint32_t m_Width = 1280;
-    const uint32_t m_Height = 720;
+    const uint32_t width = 1280;
+    const uint32_t height = 720;
     int MAX_FRAMES_IN_FLIGHT = 2;
     uint32_t m_CurrentFrame{ 0 };
     bool m_FramebufferResized = false;
@@ -235,7 +243,7 @@ private:
     Camera m_Camera;
     Scene m_Scene;
 
-    glm::vec2 m_MousePosition{ m_Width /2.0f, m_Height / 2.0f };
+    glm::vec2 m_MousePosition{ width /2.0f, height / 2.0f };
     float camera_offset = 10.0f; 
 
     UploadContext m_UploadContext;

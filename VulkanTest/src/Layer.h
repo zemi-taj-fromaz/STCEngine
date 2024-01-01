@@ -135,6 +135,7 @@ public:
 			{
 				continue;
 			}
+			if (descriptor->tie) continue;
 			descriptor->bufferUpdateFunc(app, descriptor->bufferWrappers[imageIndex % descriptor->bufferWrappers.size()].bufferMapped);
 		}
 	}
