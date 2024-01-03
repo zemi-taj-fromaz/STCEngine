@@ -2,6 +2,8 @@
 
 #include "VulkanInit.h"
 
+struct MeshWrapper;
+
 struct Camera
 {
     Camera()
@@ -29,4 +31,9 @@ struct Camera
 
     void process_mouse_movement(float xoffset, float yoffset);
     void set_field_of_view(float yoffset);
+    void update_position(glm::vec3 position);
+
+    void update_object(glm::vec3 position, glm::vec3 Front);
+
+     std::shared_ptr<MeshWrapper> mesh;
 };

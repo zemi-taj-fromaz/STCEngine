@@ -21,6 +21,21 @@ void Renderable::setScale(glm::mat4& scale)
     compute_model_matrix();
 }
 
+void Renderable::update_position(glm::vec3 position, glm::vec3 Front)
+{
+    this->Position = position;
+    setTranslation(glm::translate(glm::mat4(1.0f), Position));
+
+
+    glm::vec3 GoalRotation = Front;
+    this->Direction = GoalRotation;
+
+    glm::vec3 rotationAxis = glm::normalize(glm::cross(this->InitialRotation, GoalRotation));
+    float rotationAngle = std::acos(glm::dot(glm::normalize(InitialRotation), glm::normalize(GoalRotation))) * 180.0f / static_cast<float>(M_PI);
+
+    setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
+}
+
 void Renderable::compute_animation(float time)
 {
     int segment = static_cast<int>(std::floor(time));

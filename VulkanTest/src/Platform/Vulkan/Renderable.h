@@ -42,7 +42,7 @@ public:
     bool is_textured() const { return MeshHandle->texture != nullptr; }
 
     const std::shared_ptr<Pipeline>  get_pipeline() const { return MeshHandle->pipeline; }
-    MeshWrapper* get_mesh() const { return this->MeshHandle; }
+    MeshWrapper* get_mesh() { return this->MeshHandle; }
     const glm::mat4& get_model_matrix() const { return this->Model; }
 
     size_t get_indices_size() const { return this->MeshHandle->mesh.Indices.size(); }
@@ -51,6 +51,8 @@ public:
     void setTranslation(glm::mat4& translation);
     void setRotation(glm::mat4& rotation);
     void setScale(glm::mat4& scale);
+
+    void update_position(glm::vec3 position, glm::vec3 Front);
 
 protected:
     void compute_model_matrix();// { Model = Translation * Rotation * Scale; }

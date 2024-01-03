@@ -54,58 +54,17 @@ void AppVulkanImpl::initialize_window()
     //// Get the mode of the primary monitor
     //const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
-
     m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
     glfwSetWindowUserPointer(m_Window, this);
-    glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
-        app->set_frame_buffer_resized();
-        //TODO
-        //app->set_frame_b
-
-        });
-
-    glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xoffset, double yoffset) {
-        auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
-        app->set_field_of_view(static_cast<float>(yoffset));
-        //app->setScrollCallback();
-        });
-
-
-    glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xpos, double ypos) {
-        auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
-        glm::vec2 mousePosition = app->get_mouse_position();
-
-        app->set_mouse_position({ static_cast<float>(xpos), static_cast<float>(ypos) });
-
-        float xoffset = static_cast<float>(xpos) - mousePosition.x;
-        float yoffset = mousePosition.y - static_cast<float>(ypos); // reversed since y-coordinates range from bottom to top
-
-        const float sensitivity = 0.1f;
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
-
-        app->process_mouse_movement(xoffset, yoffset);
-       // app->process_mouse_movement(0.0f, 0.0f);
-        });
-    
-    glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
-        {
-            auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
-            if (action == GLFW_PRESS) {
-                app->m_SkyboxOn = false;
-            }
-            else if (action == GLFW_RELEASE) {
-                app->m_SkyboxOn = true;
-            }
-        });
 }
 
 void AppVulkanImpl::initialize_app()
 {
     auto layer = m_LayerStack[m_ActiveLayer];
+
+    layer->set_callbacks(m_Window);
+   
     if (!isInitialized)
     {
         create_instance();
@@ -146,6 +105,8 @@ void AppVulkanImpl::main_loop()
     float initialTime = (float)glfwGetTime();
     while (!glfwWindowShouldClose(m_Window)) {
 
+        auto layer = m_LayerStack[m_ActiveLayer];
+
         glfwPollEvents();
         
         float currTime = (float)glfwGetTime();
@@ -153,43 +114,9 @@ void AppVulkanImpl::main_loop()
         totalTime = currTime - initialTime;
         time = currTime;
 
-        float cameraSpeed = 100.0f;
-
-        // Check for key presses
-        if (glfwGetKey(m_Window, GLFW_KEY_W) == GLFW_PRESS) {
-            m_Camera.Position += cameraSpeed * deltaTime * m_Camera.Front;
-        }
-     
-
-        if (glfwGetKey(m_Window, GLFW_KEY_A) == GLFW_PRESS) {
-            m_Camera.Position += cameraSpeed * deltaTime * m_Camera.Right;
-
-        }
-  
-        if (glfwGetKey(m_Window, GLFW_KEY_S) == GLFW_PRESS) {
-            m_Camera.Position -= cameraSpeed * deltaTime * m_Camera.Front;
-
-        }
-     
-        if (glfwGetKey(m_Window, GLFW_KEY_D) == GLFW_PRESS) {
-            m_Camera.Position -= cameraSpeed * deltaTime * m_Camera.Right;
-
-        }
-
-        if (glfwGetKey(m_Window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        if (!layer->poll_inputs(m_Window, deltaTime))
         {
-            m_Camera.Position += cameraSpeed * deltaTime * m_Camera.Up;
-        }
-
-
-        if (glfwGetKey(m_Window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        {
-            m_Camera.Position -= cameraSpeed * deltaTime * m_Camera.Up;
-        }
-
-        if (glfwGetKey(m_Window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             break;
-
         }
 
         if (s_ImGuiEnabled)
@@ -206,7 +133,6 @@ void AppVulkanImpl::main_loop()
 
         for (auto layer : m_LayerStack) layer->on_update();
 
-        auto layer = m_LayerStack[m_ActiveLayer];
         draw_frame(layer);
     }
     vkDeviceWaitIdle(m_Device);
@@ -820,7 +746,6 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 
         if (meshStruct->isSkybox)
         {
-            m_SkyboxOn = true;
             create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, nullptr, meshStruct->animated);
             m_SkyboxObj = new RenderObject({ meshStruct.get(), true});
         }
@@ -835,7 +760,10 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
             }
             else
             {
-                m_Renderables.push_back(std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get(), meshStruct->isSkybox)));
+                auto renderObj = std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get(), meshStruct->isSkybox));
+                renderObj->get_mesh()->object = renderObj;
+                m_Renderables.push_back(renderObj);
+
             }
         }
     }
@@ -1983,7 +1911,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
     }
 
 
-    if (m_SkyboxOn)
+    if (m_SkyboxObj)
     {
         if (m_SkyboxObj->is_textured())
         {
@@ -2013,7 +1941,6 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         VkBuffer vertexBuffers[] = { computePipeline->pipelineLayout->descriptorSetLayout[2]->bufferWrappers[imageIndex].buffer};
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
 
         vkCmdDraw(commandBuffer, particles.size(), 1, 0, 0);
     }

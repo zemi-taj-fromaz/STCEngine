@@ -8,6 +8,7 @@
 
 
 class AppVulkanImpl;
+
 class RenderObject;
 
 #include <string>
@@ -64,6 +65,8 @@ struct MeshWrapper
 	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh,  std::shared_ptr<Texture> texture) : pipeline(pipeline), mesh(mesh), texture(texture) {}
 	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh, std::string animation) : pipeline(pipeline), mesh(mesh), animated(animation) {}
 
+	void update_position(glm::vec3 position, glm::vec3 Front);
+
 	std::shared_ptr<Pipeline> pipeline;
 	Mesh mesh;
 	std::shared_ptr<Texture> texture{ nullptr };
@@ -96,9 +99,13 @@ class Layer
 {
 public:
 	Layer(const std::string& name = "Layer");
-	virtual ~Layer() {};
+	virtual ~Layer() 
+	{
+	};
 
 	virtual void on_update(float timeStep = 0) {}
+	virtual bool poll_inputs(GLFWwindow* window, float deltaTime);
+	virtual void set_callbacks(GLFWwindow* window);
 
 	inline const std::string& get_name() const { return m_DebugName; }
 	std::vector<std::shared_ptr<Descriptor>>& get_descriptors() { return m_Descriptors; }
@@ -110,6 +117,8 @@ public:
 	std::vector<Particles>& get_particles() { return m_Particles; }
 	std::shared_ptr<Pipeline>& get_compute_pipeline() { return m_ComputePipeline; }
 	std::shared_ptr<Pipeline>& get_compute_graphics_pipeline() { return m_ComputeGraphicsPipeline; }
+
+	Camera m_Camera;
 
 	void update_buffers(AppVulkanImpl* app, int imageIndex)
 	{

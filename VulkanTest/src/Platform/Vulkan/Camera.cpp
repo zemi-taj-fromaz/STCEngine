@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include "VulkanInit.h"
+#include "Layer.h"
 
 void Camera::process_mouse_movement(float xoffset, float yoffset)
 {
@@ -17,7 +18,12 @@ void Camera::process_mouse_movement(float xoffset, float yoffset)
     Front = glm::normalize(direction);
     Right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), Front));
     Up = glm::cross(Front, Right);
+
+    update_object(Position, this->Front);
+
 }
+
+
 
 void Camera::set_field_of_view(float yoffset)
 {
@@ -26,5 +32,16 @@ void Camera::set_field_of_view(float yoffset)
         Fov = 1.0f;
     if (Fov > 45.0f)
         Fov = 45.0f;
+}
+
+void Camera::update_position(glm::vec3 position)
+{
+    Position += position;
+    update_object(Position, this->Front);
+}
+
+void Camera::update_object(glm::vec3 position, glm::vec3 Front)
+{
+    mesh->update_position(position + 50.0f * Front, Front);
 }
 

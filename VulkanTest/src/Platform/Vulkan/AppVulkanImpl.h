@@ -50,19 +50,16 @@ public:
     inline glm::vec2 get_mouse_position() { return this->m_MousePosition; }
     inline void set_mouse_position(glm::vec2 mousePosition) { this->m_MousePosition = mousePosition; }
 
-    inline void process_mouse_movement(float xoffset, float yoffset) { this->m_Camera.process_mouse_movement(xoffset, yoffset); }
-    inline void set_field_of_view(float yoffset) { this->m_Camera.set_field_of_view(yoffset); }
+    inline void process_mouse_movement(float xoffset, float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.process_mouse_movement(xoffset, yoffset); }
+    inline void set_field_of_view(float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.set_field_of_view(yoffset); }
 
-    Camera get_camera() { return this->m_Camera; }
+    Camera get_camera() { return this->m_LayerStack[m_ActiveLayer]->m_Camera; }
     VkExtent2D get_swapchain_extent() { return this->m_SwapChainExtent; }
 
     float get_total_time() { return totalTime; }
     float get_delta_time() { return deltaTime; }
     size_t get_particles_size() { return particles.size(); }
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
-
-
-    bool m_SkyboxOn{ false };
 
 private:
     void create_instance();
