@@ -5,6 +5,20 @@ void Renderable::compute_model_matrix()
     this->Model = this->Translation * this->Rotation * this->Scale;
 }
 
+void Renderable::update_billboard(glm::vec3 CameraPosition)
+{
+
+    glm::vec3 GoalRotation = glm::normalize(CameraPosition - this->Position);
+
+    //  if (GoalRotation == glm::vec3(0.0f, 0.0f, 1.0f)) return;
+
+    glm::vec3 rotationAxis = glm::normalize(glm::cross(this->InitialRotation, GoalRotation));
+    float rotationAngle = std::acos(glm::dot(glm::normalize(InitialRotation), glm::normalize(GoalRotation))) * 180.0f / static_cast<float>(M_PI);
+
+    setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
+    
+}
+
 void Renderable::setTranslation(glm::mat4& translation)
 {
     this->Translation = translation;
@@ -25,7 +39,6 @@ void Renderable::update_position(glm::vec3 position, glm::vec3 Front)
 {
     this->Position = position;
     setTranslation(glm::translate(glm::mat4(1.0f), Position));
-
 
     glm::vec3 GoalRotation = Front;
     this->Direction = GoalRotation;

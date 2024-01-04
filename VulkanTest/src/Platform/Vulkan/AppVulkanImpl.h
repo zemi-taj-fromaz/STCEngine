@@ -58,6 +58,7 @@ public:
 
     float get_total_time() { return totalTime; }
     float get_delta_time() { return deltaTime; }
+    glm::vec2 get_resolution() { return glm::vec2(width,height); }
     size_t get_particles_size() { return particles.size(); }
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
 

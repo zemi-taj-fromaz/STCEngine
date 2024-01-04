@@ -73,6 +73,7 @@ struct MeshWrapper
 	std::optional<std::string> animated{ std::nullopt };
 	bool illuminated{ false };
 	bool isSkybox{ false };
+	bool Billboard{ false };
 	
 	std::optional<glm::mat4> translation;
 	std::optional<glm::mat4> rotation;

@@ -96,6 +96,11 @@ struct CameraBufferObject {
     glm::vec4 pos;
 };
 
+struct Resolution
+{
+    glm::vec2 resolution;
+};
+
 struct ParameterUBO{
     float deltaTime;
 };

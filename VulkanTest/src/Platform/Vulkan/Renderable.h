@@ -47,6 +47,9 @@ public:
 
     size_t get_indices_size() const { return this->MeshHandle->mesh.Indices.size(); }
 
+    bool is_billboard() const { return this->MeshHandle->Billboard; }
+    void update_billboard(glm::vec3 CameraPosition);
+
 public:
     void setTranslation(glm::mat4& translation);
     void setRotation(glm::mat4& rotation);

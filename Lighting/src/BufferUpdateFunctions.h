@@ -9,5 +9,7 @@ namespace Functions
 	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> sceneUpdateFunc;
 	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> objectsUpdateFunc;
 	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> particlesUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> timeUpdateFunc;
+	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> deltaTimeUpdateFunc;
+	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> totalTimeUpdateFunc;
+	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc;
 }

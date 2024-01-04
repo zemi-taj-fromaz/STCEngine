@@ -50,6 +50,10 @@ namespace Functions
 			{
 				renderables[i]->compute_animation(time);
 			}
+			if (renderables[i]->is_billboard())
+			{
+				renderables[i]->update_billboard(camera.Position);
+			}
 			renderables[i]->update(deltaTime, camera.Position);
 
 			objectArray[i].Model = renderables[i]->get_model_matrix();
@@ -78,12 +82,27 @@ namespace Functions
 
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> timeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<void(AppVulkanImpl* app, void* bufferMapped)> deltaTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		auto deltaTime = app->get_delta_time();
 		ParameterUBO ubo{};
 		ubo.deltaTime = deltaTime;
-
 		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
+	};
+
+	std::function<void(AppVulkanImpl* app, void* bufferMapped)> totalTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+		auto totalTime = app->get_total_time();
+		ParameterUBO ubo{};
+		ubo.deltaTime = totalTime;
+		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
+	};
+
+	std::function<void(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+		Resolution ubo{};
+		ubo.resolution = app->get_resolution();
+
+		memcpy(bufferMapped, &ubo, sizeof(Resolution));
 	};
 }

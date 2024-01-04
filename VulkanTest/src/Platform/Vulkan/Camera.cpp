@@ -42,6 +42,7 @@ void Camera::update_position(glm::vec3 position)
 
 void Camera::update_object(glm::vec3 position, glm::vec3 Front)
 {
+    if (!mesh) return;
     mesh->update_position(position + 50.0f * Front, Front);
 }
 
