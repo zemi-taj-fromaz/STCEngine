@@ -48,6 +48,8 @@ public:
 
 
     inline glm::vec2 get_mouse_position() { return this->m_MousePosition; }
+    inline glm::vec3 get_light_position() { return this->m_LightSource->get_position(); }
+    inline glm::vec3 get_light_color() { return this->m_LightSource->get_color(); }
     inline void set_mouse_position(glm::vec2 mousePosition) { this->m_MousePosition = mousePosition; }
 
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.process_mouse_movement(xoffset, yoffset); }
@@ -171,6 +173,8 @@ private:
 
 
 private:
+
+    std::shared_ptr<RenderObject> m_LightSource;
 
     std::vector<Particle> particles;
 

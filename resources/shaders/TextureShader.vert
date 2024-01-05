@@ -21,6 +21,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 struct ObjectData
 {
     mat4 model;
+    vec4 color;
 };
 
 //all object matrices

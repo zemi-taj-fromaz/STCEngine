@@ -20,7 +20,9 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 struct ObjectData
 {
     mat4 model;
+    vec4 color;
 };
+
 
 //all object matrices
 layout(std140, set = 2, binding = 0) buffer ObjectBuffer{
@@ -33,7 +35,7 @@ void main() {
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
     gl_Position =  MVP * vec4(inPosition, 1.0);
-    texCoord = inTexCoord;
-    fragColor = inColor;
-    normal = inNormal;
+    mat3 normalMatrix = transpose(inverse(mat3(model)));
+    fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
+    normal = normalize(normalMatrix * inNormal);
 }

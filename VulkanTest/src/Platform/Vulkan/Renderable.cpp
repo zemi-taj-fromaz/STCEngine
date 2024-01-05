@@ -3,6 +3,7 @@
 void Renderable::compute_model_matrix()
 {
     this->Model = this->Translation * this->Rotation * this->Scale;
+    this->Position = glm::vec3(this->Translation * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 }
 
 void Renderable::update_billboard(glm::vec3 CameraPosition)
@@ -17,6 +18,15 @@ void Renderable::update_billboard(glm::vec3 CameraPosition)
 
     setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
     
+}
+
+void Renderable::update_light_source(float deltaTime)
+{
+    static const float rotationSpeed = static_cast<float>(glm::two_pi<float>()) / 10.0f; // Radians per second for a full rotation in 10 seconds
+
+    float angle = rotationSpeed * deltaTime;
+    this->Model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)) * this->Model;
+    this->Position = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(Position, 1.0f);;
 }
 
 void Renderable::setTranslation(glm::mat4& translation)

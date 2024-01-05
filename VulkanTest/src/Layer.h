@@ -15,6 +15,14 @@ class RenderObject;
 #include <vector>
 #include <functional>
 
+enum class LightType
+{
+	None = 0,
+	Directional = 1,
+	PointLight = 2,
+	FlashLight = 3
+};
+
 struct BufferWrapper
 {
 	size_t bufferSize;
@@ -74,6 +82,7 @@ struct MeshWrapper
 	bool illuminated{ false };
 	bool isSkybox{ false };
 	bool Billboard{ false };
+	LightType lightType{ LightType::None  };
 	
 	std::optional<glm::mat4> translation;
 	std::optional<glm::mat4> rotation;
@@ -81,6 +90,8 @@ struct MeshWrapper
 
 	std::shared_ptr<RenderObject> object;
 	std::shared_ptr<MeshWrapper> head;
+
+	glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
 

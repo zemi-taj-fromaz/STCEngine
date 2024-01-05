@@ -13,7 +13,7 @@ public:
 		auto camera = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(CameraBufferObject), Functions::cameraUpdateFunc);
 		auto scene = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(SceneData), Functions::sceneUpdateFunc);
 		auto objects = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(ObjectData) * 1000, Functions::objectsUpdateFunc);
-		auto resolution = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Resolution), Functions::resolutionUpdateFunc);
+		auto resolution = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Resolution), Functions::resolutionUpdateFunc);
 		auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 		auto deltaTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), sizeof(float), Functions::deltaTimeUpdateFunc);
 		auto totalTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
@@ -89,10 +89,17 @@ public:
 		Mesh jetMesh("fighter_jet.obj");
 		Mesh box("skybox.obj");
 		Mesh particle("texture - Copy.obj");
-		
+		Mesh catMesh("cat.obj");
 		Mesh square("texture - Copy.obj");
 
 
+		// Seed the random number generator with the current time
+		std::random_device rd;
+		std::mt19937 rng(rd());
+
+		// Define the distribution for the range -300 to 300
+		std::uniform_real_distribution<float> dist(-300.0f, 300.0f);
+		
 		auto jet = std::make_shared<MeshWrapper>(texturedPipeline, jetMesh);
 		jet->texture = jetTex;
 		jet->animated = "spiral.txt";
@@ -102,8 +109,21 @@ public:
 		skybox->texture = skyboxTex;
 		skybox->isSkybox = true;
 
+		auto sun = std::make_shared<MeshWrapper>(plainPipeline, box);
+		sun->translation = glm::translate(glm::mat4(1.0f), glm::vec3(30.0f, 50.0f, 50.0f));
+		sun->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
+		sun->lightType = LightType::PointLight;
+		sun->color = glm::vec4(0.8f, 0.8f, 0.0f, 1.0f);
+
+		auto target = std::make_shared<MeshWrapper>(illuminatePipeline, box);
+		target->scale = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
+		target->color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		target->illuminated = true;
+
+
 		auto woodbox = std::make_shared<MeshWrapper>(cubemapPipeline, box);
 		woodbox->texture = woodboxTex;
+		woodbox->illuminated = true;
 
 		auto smoke = std::make_shared<MeshWrapper>(particlesPipeline, particle);
 		smoke->texture = smokeTex;
@@ -113,12 +133,27 @@ public:
 		auto mandelbulb = std::make_shared<MeshWrapper>(mandelbulbPipeline, square);
 		mandelbulb->scale = glm::scale(glm::mat4(1.0f), glm::vec3(20.0f, 20.0f, 20.0f));
 		mandelbulb->Billboard = true;
+		//mandelbulb->translation = glm::translate(glm::mat4(1.0f), glm::vec3(dist(rng), dist(rng), dist(rng)));
+
+		auto cat = std::make_shared<MeshWrapper>(illuminatePipeline, catMesh);
+	//	cat->color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f);
+		cat->illuminated = true;
+		cat->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
+
+
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
+		meshWrappers.push_back(sun);
+
 		meshWrappers.push_back(jet);
 		meshWrappers.push_back(skybox);
+	//	meshWrappers.push_back(target);
 		meshWrappers.push_back(woodbox);
-		meshWrappers.push_back(mandelbulb);
+		//meshWrappers.push_back(cat);
+	//	meshWrappers.push_back(mandelbulb);
+		for (int i = 0; i < 40; i++)
+		{
+		}
 		for (int i = 0; i < 150; i++)
 		{
 			meshWrappers.push_back(smoke);

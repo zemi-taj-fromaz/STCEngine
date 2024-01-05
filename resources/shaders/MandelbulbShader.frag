@@ -15,9 +15,7 @@ layout(set = 1, binding = 0) uniform  SceneData{
 	vec4 sunPosition;
 } sceneData;
 
-layout(set = 3, binding = 0) uniform Resolution{
-	vec2 res;
-} resolution;
+
 
 layout (set = 4, binding = 0) uniform ParameterUBO {
     float totalTime;
@@ -106,17 +104,10 @@ void main() {
     vec2 rxz = vec2(0.0, -1.8) * rot;
     vec3 origin = vec3(rxz.x, sin(theta*1.61)*0.1, rxz.y);
 
-
-    float aspectRation = resolution.res.x / resolution.res.y;
 	vec2 uv = texCoord;
-	uv.x *= aspectRation;
 
     vec3 ray_direction =  normalize(vec3(uv, 1.1));
 	ray_direction.xz *=rot;
-	//vec3 origin = vec3(0., 0., -2.);//cameraPos.xyz;
-	
-	//vec3 ray_direction =   position.xyz;
-	//vec3 origin = cameraPos.xyz;
 	
 	vec2 res = march(origin, ray_direction);
 
@@ -143,7 +134,7 @@ void main() {
         outColor = vec4(light, 1.0);
     } else {
         outColor = vec4(BACKGROUND - length(uv) / 4.0, 1.0);
-
+	discard;
     }
 
     //outColor = vec4(color + sceneData.ambientColor.xyz, 1.0f);

@@ -22,17 +22,25 @@ namespace Functions
 
 		auto deltaTime = app->get_delta_time();
 
+		auto sunPosition = app->get_light_position();
+		auto sunColor = app->get_light_color();
+
 		SceneData sceneData{};
 		sceneData.ambientColor = { sin(framed),0,cos(framed),1 };
 		sceneData.ambientColor = { 0.2, 0.2, 0.2, 1.0 };
-		sceneData.sunlightColor = { 1.0, 1.0, 0.2, 1.0 };
+		sceneData.sunlightColor = glm::vec4(sunColor, 1.0f);
+		
+		sceneData.sunPosition = glm::vec4(sunPosition, 1.0f);// *glm::vec4(sunPosition, 1.0f);
 
-		static const float rotationSpeed = static_cast<float>(glm::two_pi<float>()) / 10.0f; // Radians per second for a full rotation in 10 seconds
+		//sceneData.sunlightColor = { 1.0, 1.0, 0.2, 1.0 };
 
-		float angle = rotationSpeed * deltaTime;
-		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+		//static const float rotationSpeed = static_cast<float>(glm::two_pi<float>()) / 10.0f; // Radians per second for a full rotation in 10 seconds
 
-		sceneData.sunPosition = rotationMatrix * sceneData.sunPosition;
+		//float angle = rotationSpeed * deltaTime;
+		//glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		//sceneData.sunPosition = rotationMatrix * sceneData.sunPosition;
+
 		memcpy(bufferMapped, &sceneData, sizeof(SceneData));
 	};
 
@@ -54,9 +62,16 @@ namespace Functions
 			{
 				renderables[i]->update_billboard(camera.Position);
 			}
+
+			if (renderables[i]->is_light_source())
+			{
+				renderables[i]->update_light_source(deltaTime);
+
+			}
 			renderables[i]->update(deltaTime, camera.Position);
 
 			objectArray[i].Model = renderables[i]->get_model_matrix();
+			objectArray[i].Color = renderables[i]->get_color();
 		}
 	};
 

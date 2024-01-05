@@ -182,6 +182,7 @@ struct SceneData {
 struct ObjectData
 {
     glm::mat4 Model;
+    glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
 struct Object

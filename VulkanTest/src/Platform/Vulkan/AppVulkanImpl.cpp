@@ -751,6 +751,7 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
         }
         else
         {
+
             create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, meshStruct->texture, meshStruct->animated);
             if (meshStruct->head)
             {
@@ -762,6 +763,10 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
             {
                 auto renderObj = std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get(), meshStruct->isSkybox));
                 renderObj->get_mesh()->object = renderObj;
+                if (meshStruct->lightType != LightType::None)
+                {
+                    this->m_LightSource = renderObj;
+                }
                 m_Renderables.push_back(renderObj);
 
             }

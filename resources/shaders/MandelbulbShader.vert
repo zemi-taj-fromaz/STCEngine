@@ -17,11 +17,16 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
     vec4 pos;
 } camera;
 
+layout(set = 3, binding = 0) uniform Resolution{
+	vec2 res;
+} resolution;
+
 //push constants block
 
 struct ObjectData
 {
     mat4 model;
+    vec4 color;
 };
 
 //all object matrices
@@ -40,5 +45,10 @@ void main() {
    // normal = inPosition - camera.pos.xyz;
 	position = inPosition;
 	cameraPos = camera.pos;
+
+	
+    float aspectRatio = resolution.res.x / resolution.res.y;
 	texCoord = inTexCoord;
+	texCoord.y -= 1.0;
+	//texCoord.x *= aspectRatio;
 }

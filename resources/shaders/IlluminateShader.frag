@@ -23,16 +23,18 @@ void main() {
 	vec3 norm = normalize(normal);
 	vec3 lightDir = normalize(sceneData.sunPosition.xyz - fragPos);
 
+
+	float diff = max(dot(norm, lightDir), 0.0);
+	vec3 diffuse = diff * sceneData.sunlightColor.xyz;
+
 	float specularStrength = 0.5;
 	vec3 viewDir = normalize(cameraPos - fragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
 	
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 	vec3 specular = specularStrength * spec * sceneData.sunlightColor.xyz;  
-	
-	float diff = max(dot(norm, lightDir), 0.0);
-	vec3 diffuse = diff * sceneData.sunlightColor.xyz;
-	vec3 result = (sceneData.ambientColor.xyz + diffuse + specular) * fragColor;
+
+	vec3 result = (sceneData.ambientColor.xyz + diffuse) * fragColor;
 
     outColor = vec4(result, 1.0f);
 }
