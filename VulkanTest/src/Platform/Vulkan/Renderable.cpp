@@ -112,6 +112,6 @@ void Renderable::bind_texture(VkCommandBuffer& commandBuffer, uint32_t imageInde
 {
     if (this->MeshHandle->texture != nullptr)
     {
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size() - 1, 1, &this->MeshHandle->texture->descriptorSets[imageIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, static_cast<uint32_t>(this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size()) - 1, 1, &this->MeshHandle->texture->descriptorSets[imageIndex], 0, nullptr);
     }
 }

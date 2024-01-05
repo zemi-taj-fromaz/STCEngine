@@ -495,7 +495,7 @@ void AppVulkanImpl::create_graphics_pipeline(std::shared_ptr<Layer>& layer)
         }
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = setLayouts.size();// Optional
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());// Optional
         pipelineLayoutInfo.pSetLayouts = setLayouts.size() == 0 ? nullptr : setLayouts.data(); // Optional
 
         // pipelineLayouts[i].descriptorSetLayout = &layouts[i];
@@ -938,7 +938,7 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
 
             if (descriptor->tie)
             {
-                int modulo = (i-1) % descriptor->bufferWrappers.size();
+                int modulo = (i-1) % static_cast<uint32_t>(descriptor->bufferWrappers.size());
                 VkDescriptorBufferInfo descriptorBufferInfo = create_descriptor_buffer_info(descriptor->tie->bufferWrappers[modulo].buffer, descriptor->tie->bufferWrappers[modulo].bufferSize);
                 VkWriteDescriptorSet descriptorWrite = write_descriptor_set(descriptor->descriptorSets[i], 0, descriptor->descriptorType, descriptorBufferInfo);
                 vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
@@ -947,7 +947,7 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
                 continue;
 
             }
-            int modulo = i % descriptor->bufferWrappers.size();
+            int modulo = i % static_cast<uint32_t>(descriptor->bufferWrappers.size());
             VkDescriptorBufferInfo descriptorBufferInfo = create_descriptor_buffer_info(descriptor->bufferWrappers[modulo].buffer, descriptor->bufferWrappers[modulo].bufferSize);
             VkWriteDescriptorSet descriptorWrite = write_descriptor_set(descriptor->descriptorSets[i], 0, descriptor->descriptorType, descriptorBufferInfo);
             vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
@@ -1963,7 +1963,7 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-        vkCmdDraw(commandBuffer, particles.size(), 1, 0, 0);
+        vkCmdDraw(commandBuffer, static_cast<uint32_t>(particles.size()), 1, 0, 0);
     }
 
     if(s_ImGuiEnabled) ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -2003,7 +2003,7 @@ void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIn
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
 
-            vkCmdDispatch(commandBuffer, particles.size() / 256, 1, 1);
+            vkCmdDispatch(commandBuffer, static_cast<uint32_t>(particles.size()) / 256, 1, 1);
             break;
 
         }

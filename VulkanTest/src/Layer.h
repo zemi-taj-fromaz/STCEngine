@@ -84,8 +84,8 @@ struct LightProperties
 	glm::vec3 CLQ{ 1.0, 0.014, 0.0007 };
 
 	glm::vec3 direction;
-	float innerCutoff{ 0.91 }; //25 degrees
-	float outerCutoff{ 0.82 }; //35 degrees
+	float innerCutoff{ 0.91f }; //25 degrees
+	float outerCutoff{ 0.82f }; //35 degrees
 };
 
 

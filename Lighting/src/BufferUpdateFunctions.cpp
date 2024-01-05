@@ -140,7 +140,7 @@ namespace Functions
 			pointLightsArray[i].specColor =		glm::vec4(lightProperties->specularLight, 1.0f);
 			pointLightsArray[i].clq =			glm::vec4(lightProperties->CLQ, 1.0f);
 
-			pointLightsArray[i].size = pointLights.size();
+			pointLightsArray[i].size = static_cast<uint32_t>(pointLights.size());
 
 		}
 	};
@@ -167,7 +167,7 @@ namespace Functions
 			flashLightsArray[i].innerCutoff = lightProperties->innerCutoff;
 			flashLightsArray[i].outerCutoff = lightProperties->outerCutoff;
 
-			flashLightsArray[i].size = flashLights.size();
+			flashLightsArray[i].size = static_cast<uint32_t>(flashLights.size());
 
 		}
 	};

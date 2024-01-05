@@ -36,32 +36,31 @@ namespace Functions
 		std::vector<Particle> particles;
 		int DIM = 128;
 
-		const double MIN_X = -1.0;
-		const double MAX_X = 1.0;
-		const double MIN_Y = -1.0;
-		const double MAX_Y = 1.0;
-		const double MIN_Z = -1.0;
-		const double MAX_Z = 1.0;
+		const float MIN_X = -1.0f;
+		const float MAX_X = 1.0f;
+		const float MIN_Y = -1.0f;
+		const float MAX_Y = 1.0f;
+		const float MIN_Z = -1.0f;
+		const float MAX_Z = 1.0f;
 
 		glm::vec3 startColor(1.0f, 0.0f, 1.0f); // Starting color (e.g., black)
 		glm::vec3 endColor(1.0f, 1.0f, 0.0f);
 
-		float r, theta, phi;
-		int step = 2;
+		float step = 2;
 		int divergence_count = 0;
 
-		int from = -DIM / 2;
-		int to = DIM / 2;
+		float from = -static_cast<float>(DIM) / 2.f;
+		float to = static_cast<float>(DIM) / 2.f;
 		int white_count = 0;
-		for (int i = 0; i < DIM; i += step)
+		for (float i = 0; i < DIM; i += step)
 		{
-			for (int j = 0; j < DIM; j += step)
+			for (float j = 0; j < DIM; j += step)
 			{
-				for (int k = 0; k < DIM; k += step * 0.5)
+				for (float k = 0; k < DIM; k += step * 0.5f)
 				{
-					float x = MIN_X + (MAX_X - MIN_X) * static_cast<double>(i) / DIM;
-					float y = MIN_Y + (MAX_Y - MIN_Y) * static_cast<double>(j) / DIM;
-					float z = MIN_Z + (MAX_Z - MIN_Z) * static_cast<double>(k) / DIM;
+					float x = MIN_X + (MAX_X - MIN_X) * static_cast<float>(i) / DIM;
+					float y = MIN_Y + (MAX_Y - MIN_Y) * static_cast<float>(j) / DIM;
+					float z = MIN_Z + (MAX_Z - MIN_Z) * static_cast<float>(k) / DIM;
 
 					glm::vec3 C{ x, y, z };
 
@@ -119,13 +118,13 @@ namespace Functions
 		std::vector<Particle> particles;
 
 		auto windowDims = reinterpret_cast<WindowDims*>(n);
-		int width = windowDims->W;
-		int height = windowDims->H;
+		uint32_t width = windowDims->W;
+		uint32_t height = windowDims->H;
 
-		const double MIN_X = -2.5;
-		const double MAX_X = 1.5;
-		const double MIN_Y = -1.5;
-		const double MAX_Y = 1.5;
+		const float MIN_X = -2.5f;
+		const float MAX_X = 1.5f;
+		const float MIN_Y = -1.5f;
+		const float MAX_Y = 1.5f;
 
 		glm::vec3 startColor(0.0f, 0.0f, 0.0f); // Starting color (e.g., black)
 		glm::vec3 endColor(1.0f, 1.0f, 1.0f);
@@ -133,12 +132,12 @@ namespace Functions
 		int step = 3;
 		float aspectRatio = static_cast<float>(width) / height;
 
-		for (int i = 0; i < width; i += step * aspectRatio)
+		for (float i = 0; i < width; i += step * aspectRatio)
 		{
-			for (int j = 0; j < height; j += step)
+			for (float j = 0; j < height; j += step)
 			{
-				float x = MIN_X + (MAX_X - MIN_X) * static_cast<double>(i) / width;
-				float y = MIN_Y + (MAX_Y - MIN_Y) * static_cast<double>(j) / height;
+				float x = MIN_X + (MAX_X - MIN_X) * static_cast<float>(i) / width;
+				float y = MIN_Y + (MAX_Y - MIN_Y) * static_cast<float>(j) / height;
 
 				glm::vec2 C{ x, y };
 
@@ -155,7 +154,7 @@ namespace Functions
 					glm::vec2 Ztemp = Z2;
 
 					Z2.x = Ztemp.x * Ztemp.x - Ztemp.y * Ztemp.y + C.x;
-					Z2.y = 2.0 * Ztemp.x * Ztemp.y + C.y;
+					Z2.y = 2.0f * Ztemp.x * Ztemp.y + C.y;
 
 					Z = glm::vec3(Z2.x, Z2.y, 0.0);
 
@@ -192,7 +191,7 @@ namespace Functions
 		std::vector<Particle> particles(200);
 		for (auto& particle : particles) {
 			float r = 0.25f * sqrt(rndDist(rndEngine));
-			float theta = rndDist(rndEngine) * 2 * 3.14159265358979323846;
+			float theta = rndDist(rndEngine) * 2.f * 3.14159265358979323846f;
 			float x = r * cos(theta) * height / width;
 			float y = r * sin(theta);
 

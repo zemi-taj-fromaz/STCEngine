@@ -216,8 +216,8 @@ struct UploadContext {
 
 struct WindowDims
 {
-    int W;
-    int H;
+    uint32_t W;
+    uint32_t H;
 };
 
 struct PointLight
