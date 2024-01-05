@@ -10,7 +10,7 @@
 class Renderable
 {
 public:
-    Renderable(MeshWrapper* meshHandle, bool isSkybox) : MeshHandle(meshHandle), isSkybox(isSkybox)
+    Renderable(MeshWrapper* meshHandle ) : MeshHandle(meshHandle)
     {
         if (this->MeshHandle->scale.has_value()) 
         { 
@@ -66,7 +66,6 @@ protected:
 
 protected:
     MeshWrapper* MeshHandle;
-    bool isSkybox;
 
     glm::mat4 Model{ glm::mat4(1.0f) };
     glm::vec3 Direction{ 0.0f, 0.0f, 1.0f };

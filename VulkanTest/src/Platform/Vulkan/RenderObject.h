@@ -7,14 +7,12 @@ class RenderObject : public Renderable
 public:
    // RenderObject(){}
 
-    RenderObject(MeshWrapper* meshHandle, bool isSkybox) : Renderable(meshHandle, isSkybox)
+    RenderObject(MeshWrapper* meshHandle ) : Renderable(meshHandle)
     {
 
        // this->MeshHandle->object = std::shared_ptr<RenderObject>(this);
     }
 
-    RenderObject(MeshWrapper* meshHandle) : RenderObject(meshHandle, false)
-    {}
     RenderObject(const RenderObject& renderObject);
 
     ~RenderObject(){}

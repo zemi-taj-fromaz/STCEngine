@@ -4,13 +4,10 @@
 class RenderParticle : public Renderable
 {
 public:
-    RenderParticle(MeshWrapper* meshHandle, bool isSkybox) : Renderable(meshHandle, isSkybox)
+    RenderParticle(MeshWrapper* meshHandle) : Renderable(meshHandle)
     {
     }
 
-    RenderParticle(MeshWrapper* meshHandle) : Renderable(meshHandle, false)
-    {
-    }
 
     RenderParticle(const RenderParticle& renderObject);
     ~RenderParticle(){}

@@ -747,7 +747,7 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
         if (meshStruct->isSkybox)
         {
             create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, nullptr, meshStruct->animated);
-            m_SkyboxObj = new RenderObject({ meshStruct.get(), true});
+            m_SkyboxObj = new RenderObject({ meshStruct.get()});
         }
         else
         {
@@ -755,13 +755,13 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
             create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, meshStruct->texture, meshStruct->animated);
             if (meshStruct->head)
             {
-                auto particle = std::shared_ptr<RenderParticle>(new RenderParticle(meshStruct.get(), meshStruct->isSkybox));
+                auto particle = std::shared_ptr<RenderParticle>(new RenderParticle(meshStruct.get()));
                 particle->generator = meshStruct->head->object;
                 m_Renderables.push_back(particle);
             }
             else
             {
-                auto renderObj = std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get(), meshStruct->isSkybox));
+                auto renderObj = std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get()));
                 renderObj->get_mesh()->object = renderObj;
                 if (meshStruct->lightType != LightType::None)
                 {
