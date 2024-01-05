@@ -6,18 +6,7 @@ layout(location = 2) in vec3 position;
 layout(location = 3) in vec4 cameraPos;
 layout(location = 4) in vec2 texCoord;
 
-layout(set = 1, binding = 0) uniform  SceneData{
-    vec4 fogColor; // w is for exponent
-	vec4 fogDistances; //x for min, y for max, zw unused.
-	vec4 ambientColor;
-	vec4 sunlightDirection; //w for sun power
-	vec4 sunlightColor;
-	vec4 sunPosition;
-} sceneData;
-
-
-
-layout (set = 4, binding = 0) uniform ParameterUBO {
+layout (set = 3, binding = 0) uniform ParameterUBO {
     float totalTime;
 } ubo;
 

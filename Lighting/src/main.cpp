@@ -3,6 +3,7 @@
 
 #include "BufferUpdateFunctions.h"
 #include "ParticlesCreationFunctions.h"
+#include "BufferUpdateObjects.h"
 
 class ExampleLayer : public Layer
 {
@@ -13,7 +14,7 @@ public:
 		//------------------------------ DESCRIPTORS ---------------------------------------------------
 
 			auto camera = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(CameraBufferObject), Functions::cameraUpdateFunc);
-			auto scene = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(SceneData), Functions::sceneUpdateFunc);
+			//auto scene = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(SceneData), Functions::sceneUpdateFunc);
 			auto objects = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(ObjectData) * 1000, Functions::objectsUpdateFunc);
 			auto pointLights = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(PointLight) * 20, Functions::pointLightsUpdateFunc);
 			auto flashLights = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(FlashLight) * 20, Functions::flashLightsUpdateFunc);
@@ -32,19 +33,19 @@ public:
 
 		//	ssboOut->particlesCreateFunction = Functions::mandelbulb;
 
-			create_descriptors({ camera,scene,objects, resolution, sampler, totalTime, pointLights, flashLights, globalLight });// , deltaTime, ssboIn, ssboOut
+			create_descriptors({ camera,objects, resolution, sampler, totalTime, pointLights, flashLights, globalLight });// , deltaTime, ssboIn, ssboOut
 
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
 
 			using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
-			TopoloG topology1({ camera,scene,objects,sampler });
-			TopoloG topology2({ camera, objects});
-			TopoloG topology3({ camera,scene,objects });
-			TopoloG topology4({ camera,objects,sampler });
+			TopoloG topology1({ camera, objects, sampler });
+			TopoloG topology2({ camera, objects });
+			TopoloG topology3({ camera, objects });
+			TopoloG topology4({ camera, objects, sampler });
 			TopoloG topology5({ camera, sampler });
-			TopoloG topology6({ camera, scene, objects, resolution, totalTime });
+			TopoloG topology6({ camera, objects, resolution, totalTime });
 			TopoloG topology7({ camera, objects, pointLights, flashLights, globalLight });
 			  
 		//	TopoloG topologyCompute({ deltaTime, ssboIn, ssboOut });

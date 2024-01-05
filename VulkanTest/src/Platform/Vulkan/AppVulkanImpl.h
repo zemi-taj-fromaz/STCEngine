@@ -131,7 +131,6 @@ private:
     void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-   // void update_camera_buffer();
     void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int arrayLayers = 1);
 
     VkCommandBuffer  begin_single_time_commands();
@@ -148,8 +147,6 @@ private:
     }
 
     void upload_mesh(Mesh& mesh);
-    void create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout);
-    void create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout, std::vector<VkDescriptorSet> textureSet);
 
   //  void update_transform_matrices();
     
@@ -167,12 +164,6 @@ private:
 
     VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);
     VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size,VkDeviceSize offset = 0);
-
-    void create_fireworks(std::vector<Particle>& particles);
-    void create_mandelbrot(std::vector<Particle>& particles);
-
-   
-
 
 private:
 
@@ -245,9 +236,6 @@ private:
 
     std::vector<std::shared_ptr<Renderable>> m_Renderables;
     RenderObject* m_SkyboxObj{ nullptr };
-
-    Camera m_Camera;
-    Scene m_Scene;
 
     glm::vec2 m_MousePosition{ width /2.0f, height / 2.0f };
     float camera_offset = 10.0f; 

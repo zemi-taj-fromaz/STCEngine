@@ -25,7 +25,7 @@ struct ObjectData
 
 
 //all object matrices
-layout(std140, set = 2, binding = 0) buffer ObjectBuffer{
+layout(std140, set = 1, binding = 0) buffer ObjectBuffer{
 
 	ObjectData objects[];
 } objectBuffer;

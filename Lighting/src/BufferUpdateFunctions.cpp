@@ -1,5 +1,7 @@
 #include "BufferUpdateFunctions.h"
 
+#include "BufferUpdateObjects.h"
+
 namespace Functions
 {
 	std::function<void(AppVulkanImpl* app, void* bufferMapped)> cameraUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
@@ -12,36 +14,6 @@ namespace Functions
 		cbo.proj[1][1] *= -1;
 		cbo.pos = glm::vec4(camera.Position, 1.0f);
 		memcpy(bufferMapped, &cbo, sizeof(cbo));
-	};
-
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> sceneUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
-	{
-		static int frameNumber = 0;
-		frameNumber++;
-		float framed = (frameNumber / 120.f);
-
-		auto deltaTime = app->get_delta_time();
-
-		auto sunPosition = glm::vec4(0.f, 0.f, 0.f, 1.f); // app->get_light_position();
-		auto sunColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-
-		SceneData sceneData{};
-		sceneData.ambientColor = { sin(framed),0,cos(framed),1 };
-		sceneData.ambientColor = { 0.2, 0.2, 0.2, 1.0 };
-		sceneData.sunlightColor = sunColor;
-		
-		sceneData.sunPosition = sunPosition;// *glm::vec4(sunPosition, 1.0f);
-
-		//sceneData.sunlightColor = { 1.0, 1.0, 0.2, 1.0 };
-
-		//static const float rotationSpeed = static_cast<float>(glm::two_pi<float>()) / 10.0f; // Radians per second for a full rotation in 10 seconds
-
-		//float angle = rotationSpeed * deltaTime;
-		//glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-		//sceneData.sunPosition = rotationMatrix * sceneData.sunPosition;
-
-		memcpy(bufferMapped, &sceneData, sizeof(SceneData));
 	};
 
 	std::function<void(AppVulkanImpl* app, void* bufferMapped)> objectsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)

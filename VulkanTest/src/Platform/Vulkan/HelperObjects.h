@@ -163,96 +163,10 @@ struct DeletionQueue
     }
 };
 
-
-//TODO ukloni ovu klasu
-struct Material
-{
-    VkPipeline Pipeline;
-    VkPipelineLayout PipelineLayout;
-    int descriptorSetCount;
-};
-
-
-//TODO SOON TO BE GONE
-
-struct SceneData {
-    glm::vec4 fogColor{ 0.0f, 0.0f, 0.0f, 0.0f }; // w is for exponent
-    glm::vec4 fogDistances{ 0.0f, 0.0f, 0.0f, 0.0f }; //x for min, y for max, zw unused.
-    glm::vec4 ambientColor{ 0.0f, 0.0f, 0.0f, 0.0f };
-    glm::vec4 sunlightDirection{ 0.0f, 0.0f, 0.0f, 0.0f }; //w for sun power
-    glm::vec4 sunlightColor{ 0.0f, 0.0f, 0.0f, 0.0f };
-    glm::vec4 sunPosition{ -500.0f, 400.0f, 350.0f, 0.0f };
-};
-
-struct ObjectData
-{
-    glm::mat4 Model;
-    glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
-};
-
-// i ovo je useless? TODO
-struct Object
-{
-    std::vector<ObjectData> Data;
-    VkBuffer Buffer;
-    VkDeviceMemory Memory;
-    void* Mapped;
-};
-
-//I ovo? TODO
-struct Scene
-{
-    SceneData Data;
-    VkBuffer DataBuffer;
-    VkDeviceMemory DataMemory;
-    void* DataMapped;
-};
-
 struct UploadContext {
     VkFence UploadFence;
     VkCommandPool CommandPool;
     VkCommandBuffer CommandBuffer;
-};
-
-struct WindowDims
-{
-    uint32_t W;
-    uint32_t H;
-};
-
-struct PointLight
-{
-    glm::vec4 position;
-    glm::vec4 ambientColor;
-    glm::vec4 diffColor;
-    glm::vec4 specColor;
-    glm::vec4 clq;
-
-    int size;
-};
-
-
-struct GlobalLight
-{
-    glm::vec4 ambientColor;
-    glm::vec4 diffColor;
-    glm::vec4 specColor;
-    glm::vec4 direction;
-};
-
-struct FlashLight
-{
-    glm::vec4 position;
-    glm::vec4 ambientColor;
-    glm::vec4 diffColor;
-    glm::vec4 specColor;
-    glm::vec4 clq;
-
-    glm::vec4 direction;
-    float innerCutoff;
-    float outerCutoff;
-
-    int size;
 };
 
 

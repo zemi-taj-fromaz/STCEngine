@@ -811,7 +811,12 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
                 continue;
             }
 
-            WindowDims dims{ width, height };
+            struct WindowDim {
+                uint32_t width;
+                uint32_t height;
+            };
+
+            WindowDim dims{ this->width, this->height };
 
             particles = descriptor->particlesCreateFunction(&dims);
 
@@ -1848,17 +1853,6 @@ void AppVulkanImpl::upload_mesh(Mesh& mesh)
             vkFreeMemory(m_Device, stagingBufferMemory2, nullptr);
         }, "IndexBuffer"
     );
-}
-
-void AppVulkanImpl::create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout)
-{
-    return create_material(material, pipeline, layout, {VK_NULL_HANDLE});
-}
-
-void AppVulkanImpl::create_material(Material& material, VkPipeline pipeline, VkPipelineLayout layout, std::vector<VkDescriptorSet> textureSets)
-{
-    material.Pipeline = pipeline;
-    material.PipelineLayout = layout;
 }
 
 void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex)

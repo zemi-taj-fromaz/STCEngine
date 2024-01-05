@@ -1,4 +1,5 @@
 #include "ParticlesCreationFunctions.h"
+#include "BufferUpdateObjects.h"
 
 namespace Functions
 {
