@@ -17,6 +17,7 @@ public:
 			auto objects = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(ObjectData) * 1000, Functions::objectsUpdateFunc);
 			auto pointLights = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(PointLight) * 20, Functions::pointLightsUpdateFunc);
 			auto flashLights = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(FlashLight) * 20, Functions::flashLightsUpdateFunc);
+			auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight) , Functions::globalLightUpdateFunc);
 			auto resolution = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Resolution), Functions::resolutionUpdateFunc);
 			auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 			auto deltaTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), sizeof(float), Functions::deltaTimeUpdateFunc);
@@ -31,7 +32,7 @@ public:
 
 		//	ssboOut->particlesCreateFunction = Functions::mandelbulb;
 
-			create_descriptors({ camera,scene,objects, resolution, sampler, totalTime, pointLights, flashLights });// , deltaTime, ssboIn, ssboOut
+			create_descriptors({ camera,scene,objects, resolution, sampler, totalTime, pointLights, flashLights, globalLight });// , deltaTime, ssboIn, ssboOut
 
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
@@ -44,7 +45,7 @@ public:
 			TopoloG topology4({ camera,objects,sampler });
 			TopoloG topology5({ camera, sampler });
 			TopoloG topology6({ camera, scene, objects, resolution, totalTime });
-			TopoloG topology7({ camera, objects, pointLights, flashLights });
+			TopoloG topology7({ camera, objects, pointLights, flashLights, globalLight });
 			  
 		//	TopoloG topologyCompute({ deltaTime, ssboIn, ssboOut });
 
@@ -114,6 +115,7 @@ public:
 
 			auto pointLight = std::make_shared<LightProperties>(LightType::PointLight, glm::vec3(0.0f, 1.0f, 0.0f));
 			auto flashLight = std::make_shared<LightProperties>(LightType::FlashLight, glm::vec3(1.0f, 0.0f, 0.0f));
+			auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(1.0f, 1.0f, -1.0f));
 
 		//-------------------- MESH WRAPPERS ----------------------------------------------------------------
 
@@ -138,6 +140,12 @@ public:
 		moon->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
 		moon->lightProperties = flashLight;
 		moon->color = glm::vec4(flashLight->diffuseLight, 1.0f);
+
+		auto globe = std::make_shared<MeshWrapper>(plainPipeline, box);
+		globe->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-60.0f, 20.0f, 30.0f));
+		globe->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
+		globe->lightProperties = globalLighter;
+		globe->color = glm::vec4(globalLighter->diffuseLight, 1.0f);
 
 		auto target = std::make_shared<MeshWrapper>(illuminatePipeline, box);
 		target->scale = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
@@ -169,6 +177,7 @@ public:
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 		meshWrappers.push_back(sun);
 		meshWrappers.push_back(moon);
+		meshWrappers.push_back(globe);
 
 		meshWrappers.push_back(jet);
 		meshWrappers.push_back(skybox);

@@ -14,4 +14,5 @@ namespace Functions
 	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc;
 	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> pointLightsUpdateFunc;
 	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> flashLightsUpdateFunc;
+	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc;
 }

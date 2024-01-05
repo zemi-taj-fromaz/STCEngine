@@ -18,7 +18,7 @@ class RenderObject;
 enum class LightType
 {
 	None = 0,
-	Directional = 1,
+	GlobalLight = 1,
 	PointLight = 2,
 	FlashLight = 3
 };

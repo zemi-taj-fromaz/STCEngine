@@ -64,6 +64,7 @@ public:
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
     std::vector<std::shared_ptr<RenderLight>>& get_point_lights() { return m_PointLights; }
     std::vector<std::shared_ptr<RenderLight>>& get_flash_lights() { return m_FlashLights; }
+    std::shared_ptr<RenderLight>& get_global_light() { return m_GlobalLight; }
 
 private:
     void create_instance();
@@ -177,6 +178,7 @@ private:
 
     std::vector<std::shared_ptr<RenderLight>> m_PointLights;
     std::vector<std::shared_ptr<RenderLight>> m_FlashLights;
+    std::shared_ptr<RenderLight> m_GlobalLight;
 
     std::vector<Particle> particles;
 

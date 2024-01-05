@@ -33,6 +33,14 @@ struct FlashLight
 
 };
 
+struct GlobalLight
+{
+    vec4 ambientColor;
+    vec4 diffColor;
+    vec4 specColor;
+    vec4 direction;
+};
+
 //all object matrices
 layout(std140, set = 2, binding = 0) buffer PointLightBuffer{
 
@@ -45,12 +53,33 @@ layout(std140, set = 3, binding = 0) buffer FlashLightBuffer{
 	FlashLight objects[];
 } flashLights;
 
+//all object matrices
+layout(set = 4, binding = 0) uniform GlobalLightUniform{
+
+	GlobalLight light;
+} global;
+
 layout(location = 0) out vec4 outColor;
 
+vec3 CalcDirLight(GlobalLight light, vec3 normal, vec3 viewDir, vec3 fragColor)
+{
+    vec3 lightDir = normalize(-light.direction.xyz);
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    // combine results
+    vec3 ambient  = light.ambientColor.xyz  * fragColor;
+    vec3 diffuse  = light.diffColor.xyz  * diff * fragColor;
+    vec3 specular = light.specColor.xyz * spec * fragColor;
+    return (ambient + diffuse + specular);
+}  
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 fragColor)
 {
 
+	
 
     vec3 lightDir = normalize(light.position.xyz - fragPos);
 
@@ -110,25 +139,23 @@ vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 }
 
 void main() {	
-
-	vec3 result = vec3(0.0, 0.0, 0.0);
 	vec3 norm = normalize(normal);
-
+	vec3 viewDir = normalize(cameraPos - fragPos);
+	
+	vec3 result = CalcDirLight(global.light, norm, viewDir, fragColor);
 
 	int numPointLights = pointLights.objects[0].size;
 
     // Iterate through all objects
     for (int i = 0; i < numPointLights; ++i) 
 	{
-		vec3 viewDir = normalize(cameraPos - fragPos);
 		result += CalcPointLight(pointLights.objects[i], norm, fragPos, viewDir, fragColor);    
 	}
 	
 	int numFlashLights = flashLights.objects[0].size;
 	
-	    for (int i = 0; i < numFlashLights; ++i) 
+	for (int i = 0; i < numFlashLights; ++i) 
 	{
-		vec3 viewDir = normalize(cameraPos - fragPos);
 		result += CalcFlashLight(flashLights.objects[i], norm, fragPos, viewDir, fragColor);    
 	}
     outColor = vec4(result, 1.0f);

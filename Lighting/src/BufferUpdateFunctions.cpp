@@ -172,5 +172,20 @@ namespace Functions
 		}
 	};
 
+	std::function<void(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+
+		GlobalLight* globalLightObj = (GlobalLight*)bufferMapped;
+		auto& globalLight = app->get_global_light();
+
+		auto& lightProperties = globalLight->get_mesh()->lightProperties;
+
+		globalLightObj->ambientColor = glm::vec4(lightProperties->ambientLight, 1.0f);
+		globalLightObj->diffColor = glm::vec4(lightProperties->diffuseLight, 1.0f);
+		globalLightObj->specColor = glm::vec4(lightProperties->specularLight, 1.0f);
+		globalLightObj->direction = glm::vec4(lightProperties->direction, 1.0f);
+
+	};
+
 
 }

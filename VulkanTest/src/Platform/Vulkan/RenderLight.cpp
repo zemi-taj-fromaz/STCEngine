@@ -2,7 +2,6 @@
 
 void RenderLight::update(float time, const glm::vec3& cameraPosition)
 {
-
     //TODO - neka lightProperties ima update function pa se svako svjetlo zasbeno update-a // meshWrapper->lightProperties->Update() i ovo je defaultna implementacija
     
     static const float rotationSpeed = static_cast<float>(glm::two_pi<float>()) / 10.0f; // Radians per second for a full rotation in 10 seconds

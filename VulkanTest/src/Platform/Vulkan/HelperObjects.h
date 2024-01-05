@@ -231,6 +231,15 @@ struct PointLight
     int size;
 };
 
+
+struct GlobalLight
+{
+    glm::vec4 ambientColor;
+    glm::vec4 diffColor;
+    glm::vec4 specColor;
+    glm::vec4 direction;
+};
+
 struct FlashLight
 {
     glm::vec4 position;

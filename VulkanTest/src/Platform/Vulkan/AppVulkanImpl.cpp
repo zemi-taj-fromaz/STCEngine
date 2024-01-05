@@ -763,7 +763,6 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
             {
 
                 auto light = std::shared_ptr<RenderLight>(new RenderLight(meshStruct.get()));
-                m_Renderables.push_back(light);
 
                 if (meshStruct->lightProperties->lightType == LightType::PointLight)
                 {
@@ -773,7 +772,13 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
                 {
                     m_FlashLights.push_back(light);
                 }
+                else if (meshStruct->lightProperties->lightType == LightType::GlobalLight)
+                {
+                    m_GlobalLight = light;
+                    continue;
+                }
 
+                m_Renderables.push_back(light);
             }
             else
             {
