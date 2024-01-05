@@ -10,95 +10,113 @@ public:
 	ExampleLayer() : Layer("Example") 
 	{
 
-		auto camera = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(CameraBufferObject), Functions::cameraUpdateFunc);
-		auto scene = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(SceneData), Functions::sceneUpdateFunc);
-		auto objects = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(ObjectData) * 1000, Functions::objectsUpdateFunc);
-		auto resolution = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Resolution), Functions::resolutionUpdateFunc);
-		auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-		auto deltaTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), sizeof(float), Functions::deltaTimeUpdateFunc);
-		auto totalTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
-		//auto ssboIn = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT), 3, sizeof(Particle) * 10e6,
-		//	Functions::particlesUpdateFunc);
-		//auto ssboOut = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT), 3, sizeof(Particle) * 10e6,
-		//	Functions::particlesUpdateFunc);
+		//------------------------------ DESCRIPTORS ---------------------------------------------------
+
+			auto camera = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(CameraBufferObject), Functions::cameraUpdateFunc);
+			auto scene = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT,   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(SceneData), Functions::sceneUpdateFunc);
+			auto objects = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(ObjectData) * 1000, Functions::objectsUpdateFunc);
+			auto pointLights = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(PointLight) * 20, Functions::pointLightsUpdateFunc);
+			auto flashLights = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(FlashLight) * 20, Functions::flashLightsUpdateFunc);
+			auto resolution = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Resolution), Functions::resolutionUpdateFunc);
+			auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			auto deltaTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), sizeof(float), Functions::deltaTimeUpdateFunc);
+			auto totalTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
 		
-	//	ssboIn->tie = ssboOut.get();
+			//auto ssboIn = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT), 3, sizeof(Particle) * 10e6,
+			//	Functions::particlesUpdateFunc);
+			//auto ssboOut = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT), 3, sizeof(Particle) * 10e6,
+			//	Functions::particlesUpdateFunc);
+		
+		//	ssboIn->tie = ssboOut.get();
 
-	//	ssboOut->particlesCreateFunction = Functions::mandelbulb;
+		//	ssboOut->particlesCreateFunction = Functions::mandelbulb;
 
-		create_descriptors({ camera,scene,objects, resolution, sampler, totalTime });// , deltaTime, ssboIn, ssboOut
+			create_descriptors({ camera,scene,objects, resolution, sampler, totalTime, pointLights, flashLights });// , deltaTime, ssboIn, ssboOut
 
 
-		using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
-		TopoloG topology1({ camera,scene,objects,sampler });
-		TopoloG topology2({ camera, objects});
-		TopoloG topology3({ camera,scene,objects });
-		TopoloG topology4({ camera,objects,sampler });
-		TopoloG topology5({ camera, sampler });
-		TopoloG topology6({ camera, scene, objects, resolution, totalTime });
+		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
+
+
+			using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
+			TopoloG topology1({ camera,scene,objects,sampler });
+			TopoloG topology2({ camera, objects});
+			TopoloG topology3({ camera,scene,objects });
+			TopoloG topology4({ camera,objects,sampler });
+			TopoloG topology5({ camera, sampler });
+			TopoloG topology6({ camera, scene, objects, resolution, totalTime });
+			TopoloG topology7({ camera, objects, pointLights, flashLights });
 			  
-	//	TopoloG topologyCompute({ deltaTime, ssboIn, ssboOut });
+		//	TopoloG topologyCompute({ deltaTime, ssboIn, ssboOut });
 
-		TopoloG topologyComputeGraphics({ camera });
-		//Topoogy topologyEmpty({});
+			TopoloG topologyComputeGraphics({ camera });
+			//Topoogy topologyEmpty({});
 
-		auto pipelineLayout1 = std::make_shared<PipelineLayout>(topology1);
-		auto pipelineLayout2 = std::make_shared<PipelineLayout>(topology2);
-		auto pipelineLayout3 = std::make_shared<PipelineLayout>(topology3);
-		auto pipelineLayout4 = std::make_shared<PipelineLayout>(topology4);
-		auto pipelineLayout5 = std::make_shared<PipelineLayout>(topology5);
-		auto pipelineLayout6 = std::make_shared<PipelineLayout>(topology6);
+			auto pipelineLayout1 = std::make_shared<PipelineLayout>(topology1);
+			auto pipelineLayout2 = std::make_shared<PipelineLayout>(topology2);
+			auto pipelineLayout3 = std::make_shared<PipelineLayout>(topology3);
+			auto pipelineLayout4 = std::make_shared<PipelineLayout>(topology4);
+			auto pipelineLayout5 = std::make_shared<PipelineLayout>(topology5);
+			auto pipelineLayout6 = std::make_shared<PipelineLayout>(topology6);
+			auto pipelineLayout7 = std::make_shared<PipelineLayout>(topology7);
 
 
-		//auto pipelineLayoutCompute = std::make_shared<PipelineLayout>(topologyCompute);
-		auto pipelineLayoutGraphics = std::make_shared<PipelineLayout>(topologyComputeGraphics);
+			//auto pipelineLayoutCompute = std::make_shared<PipelineLayout>(topologyCompute);
+			auto pipelineLayoutGraphics = std::make_shared<PipelineLayout>(topologyComputeGraphics);
 		
-		create_layouts({ pipelineLayout1, pipelineLayout2 , pipelineLayout3 , pipelineLayout4 , pipelineLayout5, pipelineLayout6 });// , pipelineLayoutCompute, pipelineLayoutGraphics
+			create_layouts({ pipelineLayout1, pipelineLayout2 , pipelineLayout3 , pipelineLayout4 , pipelineLayout5, pipelineLayout6, pipelineLayout7 });// , pipelineLayoutCompute, pipelineLayoutGraphics
+
+		//------------------------------- SHADERS ------------------------------------------------------------------
 
 
-		std::vector<std::string> textureShaderNames({  "TextureShader.vert", "TextureShader.frag"  });
-		std::vector<std::string> plainShaderNames({  "PlainShader.vert", "PlainShader.frag"});
-		std::vector<std::string> illuminateShaderNames({  "IlluminateShader.vert", "IlluminateShader.frag"  });
-		std::vector<std::string> skyboxShaderNames({  "SkyboxShader.vert", "SkyboxShader.frag"  });
-		std::vector<std::string> particleShaderNames({  "ParticleShader.vert", "ParticleShader.frag"  });
-		std::vector<std::string> cubemapShaderNames({  "CubemapShader.vert", "CubemapShader.frag"  });
-		std::vector<std::string> computeShaderName({  "ComputeShader.comp"  });
-		std::vector<std::string> computeShaderNames({  "ComputeShader.vert", "ComputeShader.frag"});
-		std::vector<std::string> mandelbulbShaderNames({  "MandelbulbShader.vert", "MandelbulbShader.frag"});
+			std::vector<std::string> textureShaderNames({  "TextureShader.vert", "TextureShader.frag"  });
+			std::vector<std::string> plainShaderNames({  "PlainShader.vert", "PlainShader.frag"});
+			std::vector<std::string> illuminateShaderNames({  "IlluminateShader.vert", "IlluminateShader.frag"  });
+			std::vector<std::string> skyboxShaderNames({  "SkyboxShader.vert", "SkyboxShader.frag"  });
+			std::vector<std::string> particleShaderNames({  "ParticleShader.vert", "ParticleShader.frag"  });
+			std::vector<std::string> cubemapShaderNames({  "CubemapShader.vert", "CubemapShader.frag"  });
+			std::vector<std::string> computeShaderName({  "ComputeShader.comp"  });
+			std::vector<std::string> computeShaderNames({  "ComputeShader.vert", "ComputeShader.frag"});
+			std::vector<std::string> mandelbulbShaderNames({  "MandelbulbShader.vert", "MandelbulbShader.frag"});
+
+		//------------------------------- PIPELINES ----------------------------------------------------------
 
 
-		auto texturedPipeline = std::make_shared<Pipeline>(pipelineLayout1, textureShaderNames);
-		auto plainPipeline = std::make_shared<Pipeline>(pipelineLayout3, plainShaderNames);
-		auto illuminatePipeline = std::make_shared<Pipeline>(pipelineLayout3, illuminateShaderNames);
-		auto skyboxPipeline = std::make_shared<Pipeline>(pipelineLayout5, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
-		auto particlesPipeline = std::make_shared<Pipeline>(pipelineLayout4, particleShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
-		auto cubemapPipeline = std::make_shared<Pipeline>(pipelineLayout4, cubemapShaderNames);
-		auto mandelbulbPipeline = std::make_shared<Pipeline>(pipelineLayout6, mandelbulbShaderNames);
-	//	this->m_ComputePipeline = std::make_shared<Pipeline>(pipelineLayoutCompute, computeShaderName);
-	//	this->m_ComputeGraphicsPipeline = std::make_shared<Pipeline>(pipelineLayoutGraphics, computeShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
-	//	this->m_ComputeGraphicsPipeline->PolygonMode = VK_POLYGON_MODE_POINT;
-	//	this->m_ComputeGraphicsPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-		create_pipelines({ texturedPipeline, plainPipeline, illuminatePipeline, skyboxPipeline, particlesPipeline, cubemapPipeline, mandelbulbPipeline });//, m_ComputePipeline, m_ComputeGraphicsPipeline});
+			auto texturedPipeline = std::make_shared<Pipeline>(pipelineLayout1, textureShaderNames);
+			auto plainPipeline = std::make_shared<Pipeline>(pipelineLayout3, plainShaderNames);
+			auto illuminatePipeline = std::make_shared<Pipeline>(pipelineLayout7, illuminateShaderNames);
+			auto skyboxPipeline = std::make_shared<Pipeline>(pipelineLayout5, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
+			auto particlesPipeline = std::make_shared<Pipeline>(pipelineLayout4, particleShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
+			auto cubemapPipeline = std::make_shared<Pipeline>(pipelineLayout4, cubemapShaderNames);
+			auto mandelbulbPipeline = std::make_shared<Pipeline>(pipelineLayout6, mandelbulbShaderNames);
+		//	this->m_ComputePipeline = std::make_shared<Pipeline>(pipelineLayoutCompute, computeShaderName);
+		//	this->m_ComputeGraphicsPipeline = std::make_shared<Pipeline>(pipelineLayoutGraphics, computeShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
+		//	this->m_ComputeGraphicsPipeline->PolygonMode = VK_POLYGON_MODE_POINT;
+		//	this->m_ComputeGraphicsPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+			create_pipelines({ texturedPipeline, plainPipeline, illuminatePipeline, skyboxPipeline, particlesPipeline, cubemapPipeline, mandelbulbPipeline });//, m_ComputePipeline, m_ComputeGraphicsPipeline});
 
-		std::shared_ptr<Texture> skyboxTex	 = std::make_shared<Texture>("stormydays/");
-		std::shared_ptr<Texture> jetTex		 = std::make_shared<Texture>("BODYMAINCOLORCG.png");
-		std::shared_ptr<Texture> smokeTex	 = std::make_shared<Texture>("statue.jpg");
-		std::shared_ptr<Texture> woodboxTex	 = std::make_shared<Texture>("wood/");
-		create_textures({ skyboxTex, jetTex, smokeTex, woodboxTex});
+		//------------------------- TEXTURES ---------------------------------------------------------------
 
-		Mesh jetMesh("fighter_jet.obj");
-		Mesh box("skybox.obj");
-		Mesh particle("texture - Copy.obj");
-		Mesh catMesh("cat.obj");
-		Mesh square("texture - Copy.obj");
+			std::shared_ptr<Texture> skyboxTex	 = std::make_shared<Texture>("stormydays/");
+			std::shared_ptr<Texture> jetTex		 = std::make_shared<Texture>("BODYMAINCOLORCG.png");
+			std::shared_ptr<Texture> smokeTex	 = std::make_shared<Texture>("statue.jpg");
+			std::shared_ptr<Texture> woodboxTex	 = std::make_shared<Texture>("wood/");
+			create_textures({ skyboxTex, jetTex, smokeTex, woodboxTex});
 
+		//----------------------- MESH --------------------------------------------------------------------
 
-		// Seed the random number generator with the current time
-		std::random_device rd;
-		std::mt19937 rng(rd());
+			Mesh jetMesh("fighter_jet.obj");
+			Mesh box("skybox.obj");
+			Mesh particle("texture - Copy.obj");
+			Mesh catMesh("cat.obj");
+			Mesh square("texture - Copy.obj");
 
-		// Define the distribution for the range -300 to 300
-		std::uniform_real_distribution<float> dist(-300.0f, 300.0f);
+		//-------------------- LIGHTS -----------------------------------------------------------------------
+
+			auto pointLight = std::make_shared<LightProperties>(LightType::PointLight, glm::vec3(0.0f, 1.0f, 0.0f));
+			auto flashLight = std::make_shared<LightProperties>(LightType::FlashLight, glm::vec3(1.0f, 0.0f, 0.0f));
+
+		//-------------------- MESH WRAPPERS ----------------------------------------------------------------
+
 		
 		auto jet = std::make_shared<MeshWrapper>(texturedPipeline, jetMesh);
 		jet->texture = jetTex;
@@ -112,8 +130,14 @@ public:
 		auto sun = std::make_shared<MeshWrapper>(plainPipeline, box);
 		sun->translation = glm::translate(glm::mat4(1.0f), glm::vec3(30.0f, 50.0f, 50.0f));
 		sun->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
-		sun->lightType = LightType::PointLight;
-		sun->color = glm::vec4(0.8f, 0.8f, 0.0f, 1.0f);
+		sun->lightProperties = pointLight;
+		sun->color = glm::vec4(pointLight->diffuseLight, 1.0f);
+
+		auto moon = std::make_shared<MeshWrapper>(plainPipeline, box);
+		moon->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-60.0f, 20.0f, 30.0f));
+		moon->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
+		moon->lightProperties = flashLight;
+		moon->color = glm::vec4(flashLight->diffuseLight, 1.0f);
 
 		auto target = std::make_shared<MeshWrapper>(illuminatePipeline, box);
 		target->scale = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
@@ -144,12 +168,13 @@ public:
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 		meshWrappers.push_back(sun);
+		meshWrappers.push_back(moon);
 
 		meshWrappers.push_back(jet);
 		meshWrappers.push_back(skybox);
 	//	meshWrappers.push_back(target);
-		meshWrappers.push_back(woodbox);
-		//meshWrappers.push_back(cat);
+		//meshWrappers.push_back(woodbox);
+		meshWrappers.push_back(cat);
 	//	meshWrappers.push_back(mandelbulb);
 		for (int i = 0; i < 40; i++)
 		{

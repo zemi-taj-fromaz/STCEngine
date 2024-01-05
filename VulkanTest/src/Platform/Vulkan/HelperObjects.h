@@ -163,12 +163,17 @@ struct DeletionQueue
     }
 };
 
+
+//TODO ukloni ovu klasu
 struct Material
 {
     VkPipeline Pipeline;
     VkPipelineLayout PipelineLayout;
     int descriptorSetCount;
 };
+
+
+//TODO SOON TO BE GONE
 
 struct SceneData {
     glm::vec4 fogColor{ 0.0f, 0.0f, 0.0f, 0.0f }; // w is for exponent
@@ -185,6 +190,7 @@ struct ObjectData
     glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
+// i ovo je useless? TODO
 struct Object
 {
     std::vector<ObjectData> Data;
@@ -193,6 +199,7 @@ struct Object
     void* Mapped;
 };
 
+//I ovo? TODO
 struct Scene
 {
     SceneData Data;
@@ -213,6 +220,31 @@ struct WindowDims
     int H;
 };
 
+struct PointLight
+{
+    glm::vec4 position;
+    glm::vec4 ambientColor;
+    glm::vec4 diffColor;
+    glm::vec4 specColor;
+    glm::vec4 clq;
+
+    int size;
+};
+
+struct FlashLight
+{
+    glm::vec4 position;
+    glm::vec4 ambientColor;
+    glm::vec4 diffColor;
+    glm::vec4 specColor;
+    glm::vec4 clq;
+
+    glm::vec4 direction;
+    float innerCutoff;
+    float outerCutoff;
+
+    int size;
+};
 
 
 

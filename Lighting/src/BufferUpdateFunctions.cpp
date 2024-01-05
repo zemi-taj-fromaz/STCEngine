@@ -22,15 +22,15 @@ namespace Functions
 
 		auto deltaTime = app->get_delta_time();
 
-		auto sunPosition = app->get_light_position();
-		auto sunColor = app->get_light_color();
+		auto sunPosition = glm::vec4(0.f, 0.f, 0.f, 1.f); // app->get_light_position();
+		auto sunColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		SceneData sceneData{};
 		sceneData.ambientColor = { sin(framed),0,cos(framed),1 };
 		sceneData.ambientColor = { 0.2, 0.2, 0.2, 1.0 };
-		sceneData.sunlightColor = glm::vec4(sunColor, 1.0f);
+		sceneData.sunlightColor = sunColor;
 		
-		sceneData.sunPosition = glm::vec4(sunPosition, 1.0f);// *glm::vec4(sunPosition, 1.0f);
+		sceneData.sunPosition = sunPosition;// *glm::vec4(sunPosition, 1.0f);
 
 		//sceneData.sunlightColor = { 1.0, 1.0, 0.2, 1.0 };
 
@@ -63,11 +63,12 @@ namespace Functions
 				renderables[i]->update_billboard(camera.Position);
 			}
 
-			if (renderables[i]->is_light_source())
-			{
-				renderables[i]->update_light_source(deltaTime);
+			//if (renderables[i]->is_light_source())
+			//{
+			//	renderables[i]->update_light_source(deltaTime);
+			//	error
 
-			}
+			//}
 			renderables[i]->update(deltaTime, camera.Position);
 
 			objectArray[i].Model = renderables[i]->get_model_matrix();
@@ -120,4 +121,56 @@ namespace Functions
 
 		memcpy(bufferMapped, &ubo, sizeof(Resolution));
 	};
+
+	std::function<void(AppVulkanImpl* app, void* bufferMapped)> pointLightsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+
+		PointLight* pointLightsArray = (PointLight*)bufferMapped;
+		auto& pointLights = app->get_point_lights();
+
+
+		for(int i = 0; i < pointLights.size(); i++)
+		{
+			//pointLights[i]->update(deltaTime, camera.Position);
+			auto& lightProperties = pointLights[i]->get_mesh()->lightProperties;
+
+			pointLightsArray[i].position =		glm::vec4(pointLights[i]->get_position(), 1.0f);
+			pointLightsArray[i].ambientColor =	glm::vec4(lightProperties->ambientLight, 1.0f);
+			pointLightsArray[i].diffColor =		glm::vec4(lightProperties->diffuseLight, 1.0f);
+			pointLightsArray[i].specColor =		glm::vec4(lightProperties->specularLight, 1.0f);
+			pointLightsArray[i].clq =			glm::vec4(lightProperties->CLQ, 1.0f);
+
+			pointLightsArray[i].size = pointLights.size();
+
+		}
+	};
+
+
+	std::function<void(AppVulkanImpl* app, void* bufferMapped)> flashLightsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+		
+		FlashLight* flashLightsArray = (FlashLight*)bufferMapped;
+		auto& flashLights = app->get_flash_lights();
+
+		for (int i = 0; i < flashLights.size(); i++)
+		{
+			//pointLights[i]->update(deltaTime, camera.Position);
+			auto& lightProperties = flashLights[i]->get_mesh()->lightProperties;
+
+			flashLightsArray[i].position = glm::vec4(flashLights[i]->get_position(), 1.0f);
+			flashLightsArray[i].ambientColor = glm::vec4(lightProperties->ambientLight, 1.0f);
+			flashLightsArray[i].diffColor = glm::vec4(lightProperties->diffuseLight, 1.0f);
+			flashLightsArray[i].specColor = glm::vec4(lightProperties->specularLight, 1.0f);
+			flashLightsArray[i].clq = glm::vec4(lightProperties->CLQ, 1.0f);
+
+			flashLightsArray[i].direction = glm::vec4(flashLights[i]->get_direction(), 1.0f);
+			flashLightsArray[i].innerCutoff = lightProperties->innerCutoff;
+			flashLightsArray[i].outerCutoff = lightProperties->outerCutoff;
+
+			flashLightsArray[i].size = flashLights.size();
+
+		}
+	};
+
+
 }

@@ -49,6 +49,45 @@ struct PipelineLayout
 
 };
 
+struct LightProperties
+{
+
+	LightProperties(LightType type, glm::vec3 diffColor) : lightType(type) , diffuseLight(diffColor)
+	{
+		ambientLight = 0.2f * diffuseLight;
+		specularLight = glm::vec3(1.0f);
+	}
+
+	LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 direction) : LightProperties(type,diffColor)
+	{
+		this->direction = direction;
+	}
+
+	//LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 specColor) : lightType(type), diffuseLight(diffColor), specularLight(specColor)
+	//{
+	//	ambientLight = 0.2f * diffuseLight;
+	//}
+
+	LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 specColor, glm::vec3 direction) : LightProperties(type, diffColor, specColor)
+	{
+		this->direction = direction;
+	}
+
+	glm::vec3 ambientLight;
+	glm::vec3 diffuseLight;
+	glm::vec3 specularLight;
+
+	LightType lightType{ LightType::None };
+
+	// https://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation 
+	// Distance = 325
+	glm::vec3 CLQ{ 1.0, 0.014, 0.0007 };
+
+	glm::vec3 direction;
+	float innerCutoff{ 0.91 }; //25 degrees
+	float outerCutoff{ 0.82 }; //35 degrees
+};
+
 
 struct Pipeline
 {
@@ -82,7 +121,6 @@ struct MeshWrapper
 	bool illuminated{ false };
 	bool isSkybox{ false };
 	bool Billboard{ false };
-	LightType lightType{ LightType::None  };
 	
 	std::optional<glm::mat4> translation;
 	std::optional<glm::mat4> rotation;
@@ -90,6 +128,9 @@ struct MeshWrapper
 
 	std::shared_ptr<RenderObject> object;
 	std::shared_ptr<MeshWrapper> head;
+	std::shared_ptr<LightProperties> lightProperties;
+
+	LightType lightType{ LightType::None  };
 
 	glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };

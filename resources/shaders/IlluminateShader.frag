@@ -6,35 +6,130 @@ layout(location = 2) in vec3 fragPos;
 layout(location = 3) in vec3 cameraPos;
 layout(location = 4) in vec2 texCoord;
 
-layout(set = 1, binding = 0) uniform  SceneData{
-    vec4 fogColor; // w is for exponent
-	vec4 fogDistances; //x for min, y for max, zw unused.
-	vec4 ambientColor;
-	vec4 sunlightDirection; //w for sun power
-	vec4 sunlightColor;
-	vec4 sunPosition;
-} sceneData;
+struct PointLight
+{
+    vec4 position;
+    vec4 ambientColor;
+    vec4 diffColor;
+    vec4 specColor;
+    vec4 clq;
+	
+	int size;
+};
 
+struct FlashLight
+{
+    vec4 position;
+    vec4 ambientColor;
+    vec4 diffColor;
+    vec4 specColor;
+    vec4 clq;
+
+    vec4 direction;
+    float innerCutoff;
+    float outerCutoff;
+	
+	int size;
+
+};
+
+//all object matrices
+layout(std140, set = 2, binding = 0) buffer PointLightBuffer{
+
+	PointLight objects[];
+} pointLights;
+
+//all object matrices
+layout(std140, set = 3, binding = 0) buffer FlashLightBuffer{
+
+	FlashLight objects[];
+} flashLights;
 
 layout(location = 0) out vec4 outColor;
 
+
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 fragColor)
+{
+
+
+    vec3 lightDir = normalize(light.position.xyz - fragPos);
+
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+
+    float distance    = length(light.position.xyz - fragPos);
+    float attenuation = 1.0 / (light.clq.x + light.clq.y * distance + 
+  			     light.clq.z * (distance * distance));    
+
+    vec3 ambient  = light.ambientColor.xyz  * fragColor;
+    vec3 diffuse  = light.diffColor.xyz  * diff * fragColor;
+    vec3 specular = light.specColor.xyz * spec * fragColor;
+	
+    ambient  *= attenuation;
+    diffuse  *= attenuation;
+
+	specular *= attenuation;
+
+	
+    return (ambient + diffuse + specular);
+}
+
+
+vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 fragColor)
+{
+    vec3 lightDir = normalize(light.position.xyz - fragPos);
+	
+	float theta     = dot(lightDir, normalize(-light.direction.xyz));
+	float epsilon   = light.innerCutoff - light.outerCutoff;
+	float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);    
+
+
+
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+
+    float distance    = length(light.position.xyz - fragPos);
+    float attenuation = 1.0 / (light.clq.x + light.clq.y * distance + 
+  			     light.clq.z * (distance * distance));    
+
+    vec3 ambient  = light.ambientColor.xyz  * fragColor;
+    vec3 diffuse  = light.diffColor.xyz  * diff * fragColor;
+    vec3 specular = light.specColor.xyz * spec * fragColor;
+	
+    ambient  *= attenuation;
+    diffuse  *= attenuation;
+    diffuse *= intensity;
+	specular *= attenuation;
+	specular *= intensity;
+	
+    return (ambient + diffuse + specular);
+}
+
 void main() {	
 
+	vec3 result = vec3(0.0, 0.0, 0.0);
 	vec3 norm = normalize(normal);
-	vec3 lightDir = normalize(sceneData.sunPosition.xyz - fragPos);
 
 
-	float diff = max(dot(norm, lightDir), 0.0);
-	vec3 diffuse = diff * sceneData.sunlightColor.xyz;
+	int numPointLights = pointLights.objects[0].size;
 
-	float specularStrength = 0.5;
-	vec3 viewDir = normalize(cameraPos - fragPos);
-	vec3 reflectDir = reflect(-lightDir, norm);
+    // Iterate through all objects
+    for (int i = 0; i < numPointLights; ++i) 
+	{
+		vec3 viewDir = normalize(cameraPos - fragPos);
+		result += CalcPointLight(pointLights.objects[i], norm, fragPos, viewDir, fragColor);    
+	}
 	
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = specularStrength * spec * sceneData.sunlightColor.xyz;  
-
-	vec3 result = (sceneData.ambientColor.xyz + diffuse) * fragColor;
-
+	int numFlashLights = flashLights.objects[0].size;
+	
+	    for (int i = 0; i < numFlashLights; ++i) 
+	{
+		vec3 viewDir = normalize(cameraPos - fragPos);
+		result += CalcFlashLight(flashLights.objects[i], norm, fragPos, viewDir, fragColor);    
+	}
     outColor = vec4(result, 1.0f);
 }

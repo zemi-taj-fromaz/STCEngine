@@ -759,16 +759,27 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
                 particle->generator = meshStruct->head->object;
                 m_Renderables.push_back(particle);
             }
+            else if(meshStruct->lightProperties)
+            {
+
+                auto light = std::shared_ptr<RenderLight>(new RenderLight(meshStruct.get()));
+                m_Renderables.push_back(light);
+
+                if (meshStruct->lightProperties->lightType == LightType::PointLight)
+                {
+                    m_PointLights.push_back(light);
+                }
+                else if (meshStruct->lightProperties->lightType == LightType::FlashLight)
+                {
+                    m_FlashLights.push_back(light);
+                }
+
+            }
             else
             {
                 auto renderObj = std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get()));
                 renderObj->get_mesh()->object = renderObj;
-                if (meshStruct->lightType != LightType::None)
-                {
-                    this->m_LightSource = renderObj;
-                }
                 m_Renderables.push_back(renderObj);
-
             }
         }
     }

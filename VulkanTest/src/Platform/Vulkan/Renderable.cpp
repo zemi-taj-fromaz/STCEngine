@@ -26,7 +26,7 @@ void Renderable::update_light_source(float deltaTime)
 
     float angle = rotationSpeed * deltaTime;
     this->Model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)) * this->Model;
-    this->Position = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(Position, 1.0f);;
+    this->Position = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(Position, 1.0f);
 }
 
 void Renderable::setTranslation(glm::mat4& translation)

@@ -139,6 +139,7 @@
     <ClCompile Include="src\Platform\Vulkan\Mesh.cpp" />
     <ClCompile Include="src\Platform\Vulkan\PipelineBuilderStateMachine.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Renderable.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\RenderLight.cpp" />
     <ClCompile Include="src\Platform\Vulkan\RenderObject.cpp" />
     <ClCompile Include="src\Platform\Vulkan\RenderParticle.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Texture.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="src\Platform\Vulkan\Mesh.h" />
     <ClInclude Include="src\Platform\Vulkan\PipelineBuilderStateMachine.h" />
     <ClInclude Include="src\Platform\Vulkan\Renderable.h" />
+    <ClInclude Include="src\Platform\Vulkan\RenderLight.h" />
     <ClInclude Include="src\Platform\Vulkan\RenderObject.h" />
     <ClInclude Include="src\Platform\Vulkan\RenderParticle.h" />
     <ClInclude Include="src\Platform\Vulkan\Texture.h" />

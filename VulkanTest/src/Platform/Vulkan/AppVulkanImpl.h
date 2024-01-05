@@ -8,6 +8,7 @@
 #include "Camera.h"
 #include "RenderObject.h"
 #include "RenderParticle.h"
+#include "RenderLight.h"
 #include "Texture.h"
 #include "Descriptor.h"
 
@@ -48,8 +49,6 @@ public:
 
 
     inline glm::vec2 get_mouse_position() { return this->m_MousePosition; }
-    inline glm::vec3 get_light_position() { return this->m_LightSource->get_position(); }
-    inline glm::vec3 get_light_color() { return this->m_LightSource->get_color(); }
     inline void set_mouse_position(glm::vec2 mousePosition) { this->m_MousePosition = mousePosition; }
 
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.process_mouse_movement(xoffset, yoffset); }
@@ -63,6 +62,8 @@ public:
     glm::vec2 get_resolution() { return glm::vec2(width,height); }
     size_t get_particles_size() { return particles.size(); }
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
+    std::vector<std::shared_ptr<RenderLight>>& get_point_lights() { return m_PointLights; }
+    std::vector<std::shared_ptr<RenderLight>>& get_flash_lights() { return m_FlashLights; }
 
 private:
     void create_instance();
@@ -174,7 +175,8 @@ private:
 
 private:
 
-    std::shared_ptr<RenderObject> m_LightSource;
+    std::vector<std::shared_ptr<RenderLight>> m_PointLights;
+    std::vector<std::shared_ptr<RenderLight>> m_FlashLights;
 
     std::vector<Particle> particles;
 
