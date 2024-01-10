@@ -10,6 +10,7 @@
 class AppVulkanImpl;
 
 class RenderObject;
+class Renderable;
 
 #include <string>
 #include <vector>
@@ -20,8 +21,11 @@ enum class LightType
 	None = 0,
 	GlobalLight = 1,
 	PointLight = 2,
-	FlashLight = 3
+	FlashLight = 3,
+	CameraLight = 4
 };
+
+
 
 struct BufferWrapper
 {
@@ -58,15 +62,7 @@ struct LightProperties
 		specularLight = glm::vec3(1.0f);
 	}
 
-	LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 direction) : LightProperties(type,diffColor)
-	{
-		this->direction = direction;
-	}
-
-	//LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 specColor) : lightType(type), diffuseLight(diffColor), specularLight(specColor)
-	//{
-	//	ambientLight = 0.2f * diffuseLight;
-	//}
+	LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 direction);
 
 	LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 specColor, glm::vec3 direction) : LightProperties(type, diffColor, specColor)
 	{
@@ -86,6 +82,10 @@ struct LightProperties
 	glm::vec3 direction;
 	float innerCutoff{ 0.91f }; //25 degrees
 	float outerCutoff{ 0.82f }; //35 degrees
+
+	std::function<void(float time, const glm::vec3& camera_position, Renderable* renderable)> update_light;
+
+//	std::function<void(float time, glm::vec3 camera_position, Renderable*)> func = 
 };
 
 
@@ -109,14 +109,14 @@ struct MeshWrapper
 {
 	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh) : pipeline(pipeline), mesh(mesh) {}
 	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh, bool illuminated) : pipeline(pipeline), mesh(mesh), illuminated(illuminated) {}
-	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh,  std::shared_ptr<Texture> texture) : pipeline(pipeline), mesh(mesh), texture(texture) {}
+//	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh,  std::shared_ptr<Texture> texture) : pipeline(pipeline), mesh(mesh), texture(texture) {}
 	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh, std::string animation) : pipeline(pipeline), mesh(mesh), animated(animation) {}
 
 	void update_position(glm::vec3 position, glm::vec3 Front);
 
 	std::shared_ptr<Pipeline> pipeline;
 	Mesh mesh;
-	std::shared_ptr<Texture> texture{ nullptr };
+	std::vector<std::shared_ptr<Texture>> textures;
 	std::optional<std::string> animated{ std::nullopt };
 	bool illuminated{ false };
 	bool isSkybox{ false };
@@ -128,9 +128,15 @@ struct MeshWrapper
 
 	std::shared_ptr<RenderObject> object;
 	std::shared_ptr<MeshWrapper> head;
+	std::shared_ptr<MeshWrapper> tail;
 	std::shared_ptr<LightProperties> lightProperties;
 
 	LightType lightType{ LightType::None  };
+
+	bool Swing{ false };
+	float SwingRadius;
+	glm::vec3 SwingCenter;
+	std::vector<float> SwingAngles;
 
 	glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };

@@ -13,7 +13,7 @@ public:
        // this->MeshHandle->object = std::shared_ptr<RenderObject>(this);
     }
 
-    RenderObject(const RenderObject& renderObject);
+  //  RenderObject(const RenderObject& renderObject);
 
     ~RenderObject(){}
 };

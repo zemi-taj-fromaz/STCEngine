@@ -65,6 +65,7 @@ public:
     std::vector<std::shared_ptr<RenderLight>>& get_point_lights() { return m_PointLights; }
     std::vector<std::shared_ptr<RenderLight>>& get_flash_lights() { return m_FlashLights; }
     std::shared_ptr<RenderLight>& get_global_light() { return m_GlobalLight; }
+    std::shared_ptr<RenderLight>& get_camera_light() { return m_CameraLight; }
 
 private:
     void create_instance();
@@ -159,6 +160,8 @@ private:
 
     VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
 
+    void create_mesh(MeshWrapper& mesh);
+
     void create_mesh_obj(Mesh& mesh, bool illuminated, std::shared_ptr<Texture> texture, std::optional<std::string> animation = std::nullopt);
     void create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation);
 
@@ -170,6 +173,7 @@ private:
     std::vector<std::shared_ptr<RenderLight>> m_PointLights;
     std::vector<std::shared_ptr<RenderLight>> m_FlashLights;
     std::shared_ptr<RenderLight> m_GlobalLight;
+    std::shared_ptr<RenderLight> m_CameraLight;
 
     std::vector<Particle> particles;
 

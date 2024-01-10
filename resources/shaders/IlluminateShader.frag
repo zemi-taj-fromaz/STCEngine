@@ -82,11 +82,13 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 	
 
     vec3 lightDir = normalize(light.position.xyz - fragPos);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+
 
     float diff = max(dot(normal, lightDir), 0.0);
 
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32);
 
     float distance    = length(light.position.xyz - fragPos);
     float attenuation = 1.0 / (light.clq.x + light.clq.y * distance + 
@@ -109,6 +111,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 fragColor)
 {
     vec3 lightDir = normalize(light.position.xyz - fragPos);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
 	
 	float theta     = dot(lightDir, normalize(-light.direction.xyz));
 	float epsilon   = light.innerCutoff - light.outerCutoff;
@@ -119,7 +122,7 @@ vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     float diff = max(dot(normal, lightDir), 0.0);
 
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32);
 
     float distance    = length(light.position.xyz - fragPos);
     float attenuation = 1.0 / (light.clq.x + light.clq.y * distance + 

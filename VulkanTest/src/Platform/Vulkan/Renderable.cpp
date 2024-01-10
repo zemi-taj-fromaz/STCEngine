@@ -1,4 +1,5 @@
 #include "Renderable.h"
+#include "RenderObject.h"
 
 void Renderable::compute_model_matrix()
 {
@@ -59,6 +60,42 @@ void Renderable::update_position(glm::vec3 position, glm::vec3 Front)
     setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
 }
 
+void Renderable::update_swing(float time)
+{
+    glm::vec3 center = this->MeshHandle->SwingCenter;
+    float radius = this->MeshHandle->SwingRadius;
+    size_t size = this->MeshHandle->SwingAngles.size();
+
+    int segment = static_cast<int>(std::floor(time));
+
+    acc = segment % 2 == 0 ? true : false;
+
+    float angle1 = this->MeshHandle->SwingAngles[segment % size];
+    float angle2 = this->MeshHandle->SwingAngles[(segment + 1) % size];
+
+    time -= std::floor(time);
+    float acceleration = 2 * (angle2 - angle1);
+    float angle;
+    if (acc)
+    {
+        angle = angle1 + acceleration / 2.f * time * time;
+    }
+    else
+    {
+        float vo = acceleration;
+        angle = angle1 + vo * time - acceleration / 2.f * time * time;
+    }
+
+   // if (acceleration == 0) return;
+   // float rotationAngle =  * 180.0f / static_cast<float>(M_PI);
+    this->Position = {center.x + radius*cos(glm::radians(angle)), center.y + radius*sin(glm::radians(angle)), 0.0f};
+
+    this->MeshHandle->tail->object->setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(angle + 90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+
+    setTranslation(glm::translate(glm::mat4(1.0f), Position));
+
+}
+
 void Renderable::compute_animation(float time)
 {
     int segment = static_cast<int>(std::floor(time));
@@ -110,8 +147,10 @@ void Renderable::bind_mesh(VkCommandBuffer& commandBuffer)
 
 void Renderable::bind_texture(VkCommandBuffer& commandBuffer, uint32_t imageIndex)
 {
-    if (this->MeshHandle->texture != nullptr)
+    int texturesSize = static_cast<int>(this->MeshHandle->textures.size());
+    for (int i = 0; i < texturesSize; ++i)
     {
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, static_cast<uint32_t>(this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size()) - 1, 1, &this->MeshHandle->texture->descriptorSets[imageIndex], 0, nullptr);
+        std::shared_ptr<Texture>& texture = this->MeshHandle->textures[i];
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, static_cast<uint32_t>(this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size()) - texturesSize + i, 1, &texture->descriptorSets[imageIndex], 0, nullptr);
     }
 }

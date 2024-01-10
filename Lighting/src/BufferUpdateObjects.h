@@ -48,3 +48,12 @@ struct FlashLight
 
     int size;
 };
+
+struct Material
+{
+    // material parameters
+    glm::vec3  albedo;
+    float metallic;
+    float roughness;
+    float ao;
+};

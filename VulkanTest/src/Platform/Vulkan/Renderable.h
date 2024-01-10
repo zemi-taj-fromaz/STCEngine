@@ -10,6 +10,7 @@
 class Renderable
 {
 public:
+    Renderable(){}
     Renderable(MeshWrapper* meshHandle ) : MeshHandle(meshHandle)
     {
         if (this->MeshHandle->scale.has_value()) 
@@ -35,11 +36,12 @@ public:
     void bind_mesh(VkCommandBuffer& commandBuffer);
     void bind_texture(VkCommandBuffer& commandBuffer, uint32_t imageIndex);
 
-    const glm::vec3& get_position() const { return Position; }
-    const glm::vec3& get_direction() const { return Direction; }
+    glm::vec3& get_position() { return Position; }
+    glm::vec3& get_direction() { return Direction; }
+    glm::mat4& get_model() { return Model; }
 
     bool is_animated() const { return MeshHandle->animated != std::nullopt; }
-    bool is_textured() const { return MeshHandle->texture != nullptr; }
+    bool is_textured() const { return MeshHandle->textures.size() != 0; }
 
     const std::shared_ptr<Pipeline>  get_pipeline() const { return MeshHandle->pipeline; }
     MeshWrapper* get_mesh() { return this->MeshHandle; }
@@ -51,7 +53,11 @@ public:
     bool is_billboard() const { return this->MeshHandle->Billboard; }
     void update_billboard(glm::vec3 CameraPosition);
 
-    bool is_light_source() const { return this->MeshHandle->lightType != LightType::None;  }
+
+    bool swing() const { return this->MeshHandle->Swing; }
+    void update_swing(float time);
+
+    virtual bool is_light_source() const { return this->MeshHandle->lightType != LightType::None;  }
     void update_light_source(float deltaTime);
 
 public:
@@ -75,4 +81,5 @@ protected:
     glm::mat4 Scale{ glm::mat4(1.0f) };
 
     glm::vec3 InitialRotation{ 0.0f, 0.0f, 1.0f };
+    bool acc{ true };
 };

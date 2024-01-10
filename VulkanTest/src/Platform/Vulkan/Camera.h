@@ -3,6 +3,7 @@
 #include "VulkanInit.h"
 
 struct MeshWrapper;
+struct LightProperties;
 
 struct Camera
 {
@@ -36,4 +37,5 @@ struct Camera
     void update_object(glm::vec3 position, glm::vec3 Front);
 
      std::shared_ptr<MeshWrapper> mesh;
+     std::shared_ptr<LightProperties> cameraLight;
 };

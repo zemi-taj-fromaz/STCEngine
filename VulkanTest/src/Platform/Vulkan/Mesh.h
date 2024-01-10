@@ -3,6 +3,15 @@
 #include "VulkanInit.h"
 #include "HelperObjects.h"
 
+enum class MeshType
+{
+    None = 0,
+    Sphere = 1,
+    Cube = 2,
+    Quad = 3,
+    Line = 4,
+};
+
 struct Mesh
 {
     Mesh()
@@ -10,6 +19,10 @@ struct Mesh
 
     Mesh(std::string filename) : Filename(filename)
     {}
+
+    Mesh(MeshType meshType) : meshType(meshType)
+    {}
+
 
     Mesh(const Mesh& mesh)
     {
@@ -23,6 +36,7 @@ struct Mesh
         TextureSets = mesh.TextureSets;
         Animated = mesh.Animated;
         Filename = mesh.Filename;
+        meshType = mesh.meshType;
     }
 
     Mesh operator=(const Mesh& mesh)
@@ -38,6 +52,7 @@ struct Mesh
     VkDeviceMemory IndexBufferMemory;
     bool Animated{ false };
     std::string Filename;
+    MeshType meshType{ MeshType::None };
 
     std::vector<VkDescriptorSet> TextureSets; //texture defaulted to null
 
@@ -61,5 +76,13 @@ struct Mesh
 
 
     bool load_from_obj(bool illuminated, bool texture = false);
+    bool load_sphere(bool illuminated, bool textured);
+
+    bool load_cube(bool illuminated, bool textured);
+    bool load_quad(bool illuminated, bool textured);
+    bool load_line(bool illuminated, bool textured);
+
+    bool load(bool illuminated, bool textured);
+
     bool load_animation(std::string filename);
 };

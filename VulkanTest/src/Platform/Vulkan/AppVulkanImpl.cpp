@@ -569,13 +569,25 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * texChannels;
+    VkDeviceSize imageSize = texWidth * texHeight * std::max(texChannels, 3);
 
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
-    VkFormat format = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
 
+    VkFormat format = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
+    //if (texChannels == 4)
+    //{
+    //    format = VK_FORMAT_R8G8B8A8_SRGB;
+    //}
+    //else if (texChannels == 3)
+    //{
+    //    format = VK_FORMAT_R8G8B8_SRGB;
+    //}
+    //else if (texChannels == 1)
+    //{
+    //    format = VK_FORMAT_R8_SRGB;
+    //}
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -708,9 +720,18 @@ void AppVulkanImpl::create_texture_sampler()
 
 }
 
+void AppVulkanImpl::create_mesh(MeshWrapper& mesh)
+{
+    mesh.mesh.load(mesh.illuminated, mesh.textures.size() != 0);
+    upload_mesh(mesh.mesh);
+    if (mesh.animated.has_value()) mesh.mesh.load_animation(mesh.animated.value());
+}
+
+//rename to create_mesh
 void AppVulkanImpl::create_mesh_obj(Mesh& mesh, bool illuminated, std::shared_ptr<Texture> texture, std::optional<std::string> animation)
 {
-    mesh.load_from_obj(illuminated, texture == nullptr);
+  //  mesh.load i dodaj 2 overload u mesh
+    mesh.load_from_obj(illuminated, texture != nullptr);
     upload_mesh(mesh);
     if (animation.has_value()) mesh.load_animation(animation.value());
 }
@@ -746,13 +767,13 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 
         if (meshStruct->isSkybox)
         {
-            create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, nullptr, meshStruct->animated);
+            create_mesh(*meshStruct);
             m_SkyboxObj = new RenderObject({ meshStruct.get()});
         }
         else
         {
 
-            create_mesh_obj(meshStruct->mesh, meshStruct->illuminated, meshStruct->texture, meshStruct->animated);
+            create_mesh(*meshStruct);
             if (meshStruct->head)
             {
                 auto particle = std::shared_ptr<RenderParticle>(new RenderParticle(meshStruct.get()));
@@ -789,6 +810,12 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
         }
     }
 
+    if (layer->m_Camera.cameraLight && layer->m_Camera.cameraLight->lightType == LightType::FlashLight)
+    {
+        auto light = std::shared_ptr<RenderLight>(new RenderLight(layer->m_Camera.cameraLight));
+        m_CameraLight = light;
+    }
+       
 }
 
 void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
@@ -903,13 +930,15 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
     auto& descriptors = layer->get_descriptors();
     auto& textures = layer->get_textures();
 
+    bool textureInitialized = false;
     for (auto& descriptor : descriptors)
     {
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts(MAX_FRAMES_IN_FLIGHT, descriptor->layout);
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
 
-        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && !textureInitialized)
         {
+            textureInitialized = true;
             for (auto& texture : textures)
             {
                 texture->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
@@ -2072,3 +2101,5 @@ VkDescriptorSetAllocateInfo AppVulkanImpl::create_descriptor_alloc_info(VkDescri
 
     return layoutAllocInfo;
 }
+
+

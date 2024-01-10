@@ -22,6 +22,7 @@ namespace Functions
 		auto& renderables = app->get_renderables();
 		const Camera& camera = app->get_camera();
 		auto deltaTime = app->get_delta_time();
+	//	camera.cameraLight->update_light(deltaTime, camera.Position, nullptr);
 		auto time = app->get_total_time();
 
 		for (size_t i = 0; i < renderables.size(); i++)
@@ -34,13 +35,17 @@ namespace Functions
 			{
 				renderables[i]->update_billboard(camera.Position);
 			}
+			if (renderables[i]->swing())
+			{
+				renderables[i]->update_swing(time);
+			}
 
-			//if (renderables[i]->is_light_source())
-			//{
-			//	renderables[i]->update_light_source(deltaTime);
-			//	error
+		/*	if (renderables[i]->is_light_source())
+			{
+				renderables[i]->update(deltaTime, camera.Position);
+			}*/
 
-			//}
+			
 			renderables[i]->update(deltaTime, camera.Position);
 
 			objectArray[i].Model = renderables[i]->get_model_matrix();
@@ -104,7 +109,7 @@ namespace Functions
 		for(int i = 0; i < pointLights.size(); i++)
 		{
 			//pointLights[i]->update(deltaTime, camera.Position);
-			auto& lightProperties = pointLights[i]->get_mesh()->lightProperties;
+			auto& lightProperties = pointLights[i]->get_light_properties();
 
 			pointLightsArray[i].position =		glm::vec4(pointLights[i]->get_position(), 1.0f);
 			pointLightsArray[i].ambientColor =	glm::vec4(lightProperties->ambientLight, 1.0f);
@@ -123,11 +128,13 @@ namespace Functions
 		
 		FlashLight* flashLightsArray = (FlashLight*)bufferMapped;
 		auto& flashLights = app->get_flash_lights();
+		const Camera& camera = app->get_camera();
+		//auto deltaTime = app->get_delta_time();
 
 		for (int i = 0; i < flashLights.size(); i++)
 		{
-			//pointLights[i]->update(deltaTime, camera.Position);
-			auto& lightProperties = flashLights[i]->get_mesh()->lightProperties;
+		//	flashLights[i]->update(deltaTime, camera.Position);
+			auto& lightProperties = flashLights[i]->get_light_properties();
 
 			flashLightsArray[i].position = glm::vec4(flashLights[i]->get_position(), 1.0f);
 			flashLightsArray[i].ambientColor = glm::vec4(lightProperties->ambientLight, 1.0f);
@@ -139,18 +146,39 @@ namespace Functions
 			flashLightsArray[i].innerCutoff = lightProperties->innerCutoff;
 			flashLightsArray[i].outerCutoff = lightProperties->outerCutoff;
 
-			flashLightsArray[i].size = static_cast<uint32_t>(flashLights.size());
+			flashLightsArray[i].size = static_cast<uint32_t>(flashLights.size() + 1);
 
+			//std::cout << "Position " << flashLightsArray[i].position.x << "," << flashLightsArray[i].position.y << "," << flashLightsArray[i].position.z << std::endl;
+
+		}
+		auto& cameraLight = app->get_camera_light();
+		int i = flashLights.size();
+		if(cameraLight)
+		{
+			auto& lightProperties = cameraLight->get_light_properties();
+
+			flashLightsArray[i].position = glm::vec4(camera.Position, 1.0f);
+			flashLightsArray[i].ambientColor = glm::vec4(lightProperties->ambientLight, 1.0f);
+			flashLightsArray[i].diffColor = glm::vec4(lightProperties->diffuseLight, 1.0f);
+			flashLightsArray[i].specColor = glm::vec4(lightProperties->specularLight, 1.0f);
+			flashLightsArray[i].clq = glm::vec4(lightProperties->CLQ, 1.0f);
+
+			flashLightsArray[i].direction = glm::vec4(camera.direction, 1.0f);
+			flashLightsArray[i].innerCutoff = lightProperties->innerCutoff;
+			flashLightsArray[i].outerCutoff = lightProperties->outerCutoff;
+
+			flashLightsArray[i].size = static_cast<uint32_t>(flashLights.size() + 1);
 		}
 	};
 
 	std::function<void(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
-
 		GlobalLight* globalLightObj = (GlobalLight*)bufferMapped;
 		auto& globalLight = app->get_global_light();
 
-		auto& lightProperties = globalLight->get_mesh()->lightProperties;
+		if (!globalLight) return;
+
+		auto& lightProperties = globalLight->get_light_properties();
 
 		globalLightObj->ambientColor = glm::vec4(lightProperties->ambientLight, 1.0f);
 		globalLightObj->diffColor = glm::vec4(lightProperties->diffuseLight, 1.0f);
