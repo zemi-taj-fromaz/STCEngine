@@ -28,6 +28,7 @@ public:
 		//auto roughness = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 		auto deltaTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), sizeof(float), Functions::deltaTimeUpdateFunc);
 		auto totalTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
+		auto reloadTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::reloadTimeUpdateFunc);
 
 		//auto ssboIn = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, static_cast<VkBufferUsageFlagBits>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT), 3, sizeof(Particle) * 10e6,
 		//	Functions::particlesUpdateFunc);
@@ -38,7 +39,7 @@ public:
 
 	//	ssboOut->particlesCreateFunction = Functions::mandelbulb;
 
-		create_descriptors({ camera,objects, resolution, sampler, totalTime, pointLights, flashLights, globalLight //}, albedo, normals, metallic, roughness
+		create_descriptors({ camera,objects, resolution, sampler, totalTime, reloadTime, pointLights, flashLights, globalLight //}, albedo, normals, metallic, roughness
 	});// , deltaTime, ssboIn, ssboOut
 
 
@@ -61,6 +62,7 @@ public:
 		TopoloG topologyComputeGraphics({ camera });
 
 		TopoloG topologyMT({ objects, resolution });
+		TopoloG topologyReload({ objects, resolution, reloadTime });
 		//Topoogy topologyEmpty({});
 
 		auto pipelineLayout1 = std::make_shared<PipelineLayout>(topology1);
@@ -78,8 +80,9 @@ public:
 		auto pipelineLayoutGraphics = std::make_shared<PipelineLayout>(topologyComputeGraphics);
 
 		auto layoutMT = std::make_shared<PipelineLayout>(topologyMT);
+		auto layoutReload = std::make_shared<PipelineLayout>(topologyReload);
 
-		create_layouts({layoutMT, pipelineLayout1, pipelineLayout2 , pipelineLayout3 , pipelineLayout4 , pipelineLayout5, pipelineLayout6, pipelineLayout7, pipelineLayout8,  pipelineLayoutPBR, pipelineLayoutGraphics });// , pipelineLayoutCompute, pipelineLayoutGraphics
+		create_layouts({layoutMT,layoutReload, pipelineLayout1, pipelineLayout2 , pipelineLayout3 , pipelineLayout4 , pipelineLayout5, pipelineLayout6, pipelineLayout7, pipelineLayout8,  pipelineLayoutPBR, pipelineLayoutGraphics });// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
@@ -93,6 +96,7 @@ public:
 		std::vector<std::string> computeShaderNames({ "ComputeShader.vert", "ComputeShader.frag" });
 		std::vector<std::string> mandelbulbShaderNames({ "MandelbulbShader.vert", "MandelbulbShader.frag" });
 		std::vector<std::string> aimShaderNames({ "AimShader.vert", "AimShader.frag" });
+		std::vector<std::string> reloadShaderNames({ "ReloadShader.vert", "ReloadShader.frag" });
 		//std::vector<std::string> PBRShaderNames({ "PBRShader.vert", "PBRShader.frag" });
 
 		//------------------------------- PIPELINES ----------------------------------------------------------
@@ -104,8 +108,12 @@ public:
 		auto particlesPipeline = std::make_shared<Pipeline>(pipelineLayout1, particleShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 		auto cubemapPipeline = std::make_shared<Pipeline>(pipelineLayout8, cubemapShaderNames);
 		auto mandelbulbPipeline = std::make_shared<Pipeline>(pipelineLayout6, mandelbulbShaderNames);
+
 		auto aimPipeline = std::make_shared<Pipeline>(layoutMT, aimShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 		aimPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+
+		auto reloadPipeline = std::make_shared<Pipeline>(layoutReload, reloadShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
+		//aimPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
 
 		auto linePipeline = std::make_shared<Pipeline>(pipelineLayout2, plainShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 		linePipeline->Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
@@ -116,7 +124,7 @@ public:
 		//	this->m_ComputeGraphicsPipeline = std::make_shared<Pipeline>(pipelineLayoutGraphics, computeShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 		//	this->m_ComputeGraphicsPipeline->PolygonMode = VK_POLYGON_MODE_POINT;
 		//	this->m_ComputeGraphicsPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-		create_pipelines({ aimPipeline, texturedPipeline, plainPipeline, illuminatePipeline, skyboxPipeline, particlesPipeline, cubemapPipeline, mandelbulbPipeline, linePipeline// , PBRPipeline
+		create_pipelines({ aimPipeline, texturedPipeline,  reloadPipeline, plainPipeline, illuminatePipeline, skyboxPipeline, particlesPipeline, cubemapPipeline, mandelbulbPipeline// , PBRPipeline
 	});//, m_ComputePipeline, m_ComputeGraphicsPipeline});
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
@@ -177,46 +185,9 @@ public:
 
 		//-------------------- MESH WRAPPERS ----------------------------------------------------------------
 
-
-		auto jet = std::make_shared<MeshWrapper>(texturedPipeline, jetMesh);
-		jet->textures.push_back(jetTex);
-		jet->animated = "spiral.txt";
-		jet->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
-
 		auto skybox = std::make_shared<MeshWrapper>(skyboxPipeline, box);
 		skybox->textures.push_back(skyboxTex);
 		skybox->isSkybox = true;
-
-		auto target = std::make_shared<MeshWrapper>(illuminatePipeline, box);
-		target->scale = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
-		target->color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-		target->illuminated = true;
-
-		auto woodbox = std::make_shared<MeshWrapper>(cubemapPipeline, cube);
-		woodbox->textures.push_back(woodboxTex);
-		woodbox->illuminated = true;
-	//	woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
-
-		auto smoke = std::make_shared<MeshWrapper>(particlesPipeline, particle);
-		smoke->textures.push_back(smokeTex);
-		//smoke->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 20.0f, 20.0f));
-		smoke->head = jet;
-
-		auto cat = std::make_shared<MeshWrapper>(illuminatePipeline, catMesh);
-		//	cat->color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f);
-		cat->illuminated = true;
-		cat->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
-		//	cat->textures.push_back(skyboxTex
-
-		//auto quad1 = std::make_shared<MeshWrapper>(texturedPipeline, square);
-		//quad1->textures.push_back(deerTex);
-		//quad1->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, 0.0f));
-
-		//quad1->Billboard = true;
-
-
-
-	//	quad2->Billboard = true;
 
 
 		auto aimX = std::make_shared<MeshWrapper>(aimPipeline, aim1);
@@ -229,19 +200,23 @@ public:
 		aimY->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 1.0f));
 		aimY->rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
+		auto line = std::make_shared<MeshWrapper>(aimPipeline, aim2);
+		line->rotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+
+		auto reload = std::make_shared<MeshWrapper>(reloadPipeline, quadMesh);
+		reload->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 1.0f));
+		reload->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-1.2f, 0.7f, 0.0f));
 
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
-		//meshWrappers.push_back(sun);
-	//	meshWrappers.push_back(moon);
-		//meshWrappers.push_back(globe);
 
-		//meshWrappers.push_back(jet);
 		meshWrappers.push_back(skybox);
-		//meshWrappers.push_back(quad1);
+
 		meshWrappers.push_back(aimX);
 		meshWrappers.push_back(aimY);
-		//meshWrappers.push_back(woodbox);
+		meshWrappers.push_back(reload);
+	
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
@@ -284,13 +259,17 @@ public:
 
 		static float recall{ 1.0f };
 
+		auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+
 		recall += deltaTime;
+		recall = std::clamp(recall, 0.0f, 1.0f);
+
+		app->set_reload_time(recall);
 
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 		{
 			std::cout << "Scoped in" << std::endl;
 
-			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
 			app->set_field_of_view(45.0f);
 		}
 
@@ -299,7 +278,6 @@ public:
 			std::cout << "Gun fired" << std::endl;
 			if (recall >= 1.0f)
 			{
-				auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
 				app->fire_gun();
 				recall = 0.0f;
 			}
@@ -309,7 +287,6 @@ public:
 
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
 		{
-			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
 			app->set_field_of_view(-45.0f);
 		}
 

@@ -95,6 +95,14 @@ namespace Functions
 		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
 	};
 
+	std::function<void(AppVulkanImpl* app, void* bufferMapped)> reloadTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+		auto reloadTime = app->get_reload_time();
+		ParameterUBO ubo{};
+		ubo.deltaTime = reloadTime;
+		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
+	};
+
 	std::function<void(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		Resolution ubo{};

@@ -59,6 +59,8 @@ public:
     Camera get_camera() { return this->m_LayerStack[m_ActiveLayer]->m_Camera; }
     VkExtent2D get_swapchain_extent() { return this->m_SwapChainExtent; }
 
+    void set_reload_time(float recall) { this->recall = recall; }
+    float get_reload_time() { return this->recall; }
     float get_total_time() { return totalTime; }
     float get_delta_time() { return deltaTime; }
     glm::vec2 get_resolution() { return glm::vec2(width,height); }
@@ -72,6 +74,7 @@ public:
     void create_mesh(MeshWrapper& mesh);
 
 private:
+
     void create_instance();
     void setup_debug_messenger();
     void create_surface();
@@ -111,6 +114,8 @@ private:
     std::vector<std::shared_ptr<Renderable>> m_Attackers;
 
     int m_ActiveLayer{ 0 };
+
+    float recall{ 1.0f };
 
    // void AppVulkanImpl::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
