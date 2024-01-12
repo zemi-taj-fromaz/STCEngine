@@ -7,7 +7,7 @@ void Renderable::compute_model_matrix()
     this->Position = glm::vec3(this->Translation * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 }
 
-void Renderable::update_billboard(glm::vec3 CameraPosition)
+void Renderable::update_billboard(const glm::vec3& CameraPosition)
 {
 
     glm::vec3 GoalRotation = glm::normalize(CameraPosition - this->Position);
@@ -18,6 +18,47 @@ void Renderable::update_billboard(glm::vec3 CameraPosition)
     float rotationAngle = std::acos(glm::dot(glm::normalize(InitialRotation), glm::normalize(GoalRotation))) * 180.0f / static_cast<float>(M_PI);
 
     setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
+    
+}
+
+void Renderable::update_attacker(const glm::vec3& CameraPosition, float deltaTime)
+{
+
+    glm::vec3 GoalRotation = glm::normalize(CameraPosition - this->Position);
+
+    glm::vec3 direction = glm::normalize(GoalRotation);
+
+    glm::vec3 rotationAxis = glm::normalize(glm::cross(this->InitialRotation, GoalRotation));
+    float rotationAngle = std::acos(glm::dot(glm::normalize(InitialRotation), glm::normalize(GoalRotation))) * 180.0f / static_cast<float>(M_PI);
+
+    setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
+
+    static const float attackerSpeed = 10.0f;
+    float distance = attackerSpeed * deltaTime;
+
+    setTranslation(glm::translate(glm::mat4(1.0f), glm::vec3(this->Position + distance * direction)));
+
+}
+
+bool Renderable::intersect(glm::vec3& GunPosition, glm::vec3& Direction)
+{
+
+        glm::vec3 TargetDir = glm::normalize(this->Position - GunPosition);
+        float dotProduct = glm::dot(TargetDir, Direction);
+        if (dotProduct < 0.0f) return false;
+
+        // t satisfies a quadratic
+        double a = glm::dot(Direction, Direction);
+        double b = 2 * glm::dot(Direction, GunPosition - this->Position);
+        double c = glm::dot(GunPosition - Position, GunPosition - Position) - this->Radius * this->Radius;
+        double discriminant = b * b - 4 * a * c;
+
+        if (discriminant < 0)
+        {
+            return false;
+        }
+
+        return true;
     
 }
 

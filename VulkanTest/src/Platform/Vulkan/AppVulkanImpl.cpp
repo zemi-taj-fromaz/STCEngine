@@ -103,9 +103,12 @@ void AppVulkanImpl::main_loop()
 {
     float time = (float)glfwGetTime();
     float initialTime = (float)glfwGetTime();
+    float actionTime = 0.0f;
     while (!glfwWindowShouldClose(m_Window)) {
 
         auto layer = m_LayerStack[m_ActiveLayer];
+        
+        float actionTimer = layer->get_action_timer();
 
         glfwPollEvents();
         
@@ -113,6 +116,14 @@ void AppVulkanImpl::main_loop()
         deltaTime = currTime - time;
         totalTime = currTime - initialTime;
         time = currTime;
+
+        actionTime += deltaTime;
+        
+        if (actionTime > actionTimer)
+        {
+            actionTime = 0;
+            layer->timed_action(m_Window);
+        }
 
         if (!layer->poll_inputs(m_Window, deltaTime))
         {
@@ -156,6 +167,31 @@ void AppVulkanImpl::cleanup()
 
     glfwDestroyWindow(m_Window);
     glfwTerminate();
+}
+
+void AppVulkanImpl::fire_gun()
+{
+    auto& layer = m_LayerStack[m_ActiveLayer];
+    glm::vec3 Position = layer->m_Camera.Position;
+    glm::vec3 Direction = layer->m_Camera.direction;
+ 
+
+    std::sort(m_Attackers.begin(), m_Attackers.end() , [&Position](const std::shared_ptr<Renderable>& a, const std::shared_ptr<Renderable>& b) {
+        return glm::length(a->get_position() - Position) < glm::length(b->get_position() - Position);
+     });
+
+
+    for (auto i = m_Attackers.begin(); i < m_Attackers.end(); ++i)
+    {
+        if ((*i)->intersect(Position, Direction))
+        {
+            auto it = std::remove(m_Renderables.begin(), m_Renderables.end(), *i);
+            m_Renderables.erase(it);
+            m_Attackers.erase(i);
+            break;
+        }
+    }
+    
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -569,13 +605,13 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * std::max(texChannels, 3);
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
 
-    VkFormat format = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
+    VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;// = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
     //if (texChannels == 4)
     //{
     //    format = VK_FORMAT_R8G8B8A8_SRGB;
@@ -806,6 +842,7 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
                 auto renderObj = std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get()));
                 renderObj->get_mesh()->object = renderObj;
                 m_Renderables.push_back(renderObj);
+                if(renderObj->get_mesh()->Attacker) m_Attackers.push_back(renderObj);
             }
         }
     }

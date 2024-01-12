@@ -4,6 +4,8 @@
 #include "Platform/Vulkan/Mesh.h"
 #include "Platform/Vulkan/Camera.h"
 #include "Platform/Vulkan/Descriptor.h"
+#include "Platform/Vulkan/LightProperties.h"
+#include "Platform/Vulkan/MeshWrapper.h"
 //#include "Platform/Vulkan/RenderObject.h"
 
 
@@ -15,16 +17,6 @@ class Renderable;
 #include <string>
 #include <vector>
 #include <functional>
-
-enum class LightType
-{
-	None = 0,
-	GlobalLight = 1,
-	PointLight = 2,
-	FlashLight = 3,
-	CameraLight = 4
-};
-
 
 
 struct BufferWrapper
@@ -53,41 +45,6 @@ struct PipelineLayout
 
 };
 
-struct LightProperties
-{
-
-	LightProperties(LightType type, glm::vec3 diffColor) : lightType(type) , diffuseLight(diffColor)
-	{
-		ambientLight = 0.2f * diffuseLight;
-		specularLight = glm::vec3(1.0f);
-	}
-
-	LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 direction);
-
-	LightProperties(LightType type, glm::vec3 diffColor, glm::vec3 specColor, glm::vec3 direction) : LightProperties(type, diffColor, specColor)
-	{
-		this->direction = direction;
-	}
-
-	glm::vec3 ambientLight;
-	glm::vec3 diffuseLight;
-	glm::vec3 specularLight;
-
-	LightType lightType{ LightType::None };
-
-	// https://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation 
-	// Distance = 325
-	glm::vec3 CLQ{ 1.0, 0.014, 0.0007 };
-
-	glm::vec3 direction;
-	float innerCutoff{ 0.91f }; //25 degrees
-	float outerCutoff{ 0.82f }; //35 degrees
-
-	std::function<void(float time, const glm::vec3& camera_position, Renderable* renderable)> update_light;
-
-//	std::function<void(float time, glm::vec3 camera_position, Renderable*)> func = 
-};
-
 
 struct Pipeline
 {
@@ -105,41 +62,7 @@ struct Pipeline
 	VkPipeline pipeline;
 };
 
-struct MeshWrapper
-{
-	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh) : pipeline(pipeline), mesh(mesh) {}
-	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh, bool illuminated) : pipeline(pipeline), mesh(mesh), illuminated(illuminated) {}
-//	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh,  std::shared_ptr<Texture> texture) : pipeline(pipeline), mesh(mesh), texture(texture) {}
-	MeshWrapper(std::shared_ptr<Pipeline> pipeline, Mesh mesh, std::string animation) : pipeline(pipeline), mesh(mesh), animated(animation) {}
 
-	void update_position(glm::vec3 position, glm::vec3 Front);
-
-	std::shared_ptr<Pipeline> pipeline;
-	Mesh mesh;
-	std::vector<std::shared_ptr<Texture>> textures;
-	std::optional<std::string> animated{ std::nullopt };
-	bool illuminated{ false };
-	bool isSkybox{ false };
-	bool Billboard{ false };
-	
-	std::optional<glm::mat4> translation;
-	std::optional<glm::mat4> rotation;
-	std::optional<glm::mat4> scale;
-
-	std::shared_ptr<RenderObject> object;
-	std::shared_ptr<MeshWrapper> head;
-	std::shared_ptr<MeshWrapper> tail;
-	std::shared_ptr<LightProperties> lightProperties;
-
-	LightType lightType{ LightType::None  };
-
-	bool Swing{ false };
-	float SwingRadius;
-	glm::vec3 SwingCenter;
-	std::vector<float> SwingAngles;
-
-	glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-};
 
 
 struct ParticleCreateStruct
@@ -208,6 +131,10 @@ public:
 		}
 	}
 
+	virtual float get_action_timer() { return 10.0f;  }
+	virtual void timed_action(GLFWwindow* window) {}
+
+
 
 protected:
 
@@ -224,11 +151,13 @@ protected:
 	void create_pipelines(std::vector<std::shared_ptr<Pipeline>> pipelines)
 	{
 		m_Pipelines = pipelines;
+		m_DeerPipeline = m_Pipelines[1];
 	}
 
 	void create_textures(std::vector<std::shared_ptr<Texture>> textures)
 	{
 		this->m_Textures = textures;
+		m_DeerTex = m_Textures[3];
 	}
 
 	void create_mesh(std::vector<std::shared_ptr<MeshWrapper>> mesh)
@@ -239,18 +168,15 @@ protected:
 
 	void create_particles(std::vector<ParticleCreateStruct> particles)
 	{
-		//m_Particles.resize(particles.size());
-		//for (int i = 0; i < particles.size(); i++)
-		//{
-		//	particles[i].meshWrapper.pipeline = &m_Pipelines[particles[i].meshWrapper.PipelineIndex];
-		//	m_Particles[i].particlesMesh.resize(particles[i].particleNumber, particles[i].meshWrapper);
-
-		//}
 	}
 
 
 	std::shared_ptr<Pipeline> m_ComputePipeline;
 	std::shared_ptr<Pipeline> m_ComputeGraphicsPipeline;
+
+	std::vector<std::shared_ptr<MeshWrapper>> m_Mesh;
+	std::shared_ptr<Pipeline> m_DeerPipeline;
+	std::shared_ptr<Texture> m_DeerTex;
 
 private:
 
@@ -263,7 +189,6 @@ private:
 	std::vector<std::shared_ptr<Pipeline>> m_Pipelines;
 
 
-	std::vector<std::shared_ptr<MeshWrapper>> m_Mesh;
 	std::vector<Particles> m_Particles;
 	std::vector<std::shared_ptr<Texture>> m_Textures;
 };

@@ -51,6 +51,8 @@ public:
     inline glm::vec2 get_mouse_position() { return this->m_MousePosition; }
     inline void set_mouse_position(glm::vec2 mousePosition) { this->m_MousePosition = mousePosition; }
 
+    void fire_gun();
+
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.process_mouse_movement(xoffset, yoffset); }
     inline void set_field_of_view(float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.set_field_of_view(yoffset); }
 
@@ -62,10 +64,12 @@ public:
     glm::vec2 get_resolution() { return glm::vec2(width,height); }
     size_t get_particles_size() { return particles.size(); }
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
+    std::vector<std::shared_ptr<Renderable>>& get_attackers() { return m_Attackers; }
     std::vector<std::shared_ptr<RenderLight>>& get_point_lights() { return m_PointLights; }
     std::vector<std::shared_ptr<RenderLight>>& get_flash_lights() { return m_FlashLights; }
     std::shared_ptr<RenderLight>& get_global_light() { return m_GlobalLight; }
     std::shared_ptr<RenderLight>& get_camera_light() { return m_CameraLight; }
+    void create_mesh(MeshWrapper& mesh);
 
 private:
     void create_instance();
@@ -103,6 +107,8 @@ private:
     void init_imgui();
 
 private:
+
+    std::vector<std::shared_ptr<Renderable>> m_Attackers;
 
     int m_ActiveLayer{ 0 };
 
@@ -160,7 +166,6 @@ private:
 
     VkDescriptorSetAllocateInfo create_descriptor_alloc_info(VkDescriptorSetLayout* layouts, size_t size);
 
-    void create_mesh(MeshWrapper& mesh);
 
     void create_mesh_obj(Mesh& mesh, bool illuminated, std::shared_ptr<Texture> texture, std::optional<std::string> animation = std::nullopt);
     void create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation);

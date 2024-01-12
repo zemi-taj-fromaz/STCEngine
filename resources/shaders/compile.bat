@@ -19,4 +19,6 @@ C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe Mand
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe MandelbulbShader.frag -o MandelbulbShaderfrag.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe PBRShader.vert -o PBRShadervert.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe PBRShader.frag -o PBRShaderfrag.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe AimShader.vert -o AimShadervert.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe AimShader.frag -o AimShaderfrag.spv
 pause

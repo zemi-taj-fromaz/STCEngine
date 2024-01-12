@@ -223,10 +223,11 @@ bool Mesh::load_quad(bool illuminated, bool textured)
         // Define texture coordinates for each face (assuming seamless texture)
         uv = {
             // Front face
-            glm::vec2(0.0f, 1.0f), // Top-left
-            glm::vec2(1.0f, 1.0f), // Top-right
+ 
             glm::vec2(1.0f, 0.0f), // Bottom-right
             glm::vec2(0.0f, 0.0f), // Bottom-left
+            glm::vec2(0.0f, 1.0f), // Top-left
+            glm::vec2(1.0f, 1.0f), // Top-right
         };
     }
 
@@ -266,8 +267,8 @@ bool Mesh::load_line(bool illuminated, bool textured)
     // Define cube vertices
     std::vector<glm::vec3> positions = {
         // Front face
-        glm::vec3(0.0f, 0.0f, 0.0f),  // Top-left
-        glm::vec3(0.0f, -1.0f, 0.0f),   // Top-right
+        glm::vec3(0.0f, 0.5f, 0.0f),  // Top-left
+        glm::vec3(0.0f, -0.5f, 0.0f),   // Top-right
     };
 
     // Create vertices

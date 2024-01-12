@@ -28,8 +28,8 @@ void Camera::process_mouse_movement(float xoffset, float yoffset)
 void Camera::set_field_of_view(float yoffset)
 {
     Fov -= yoffset;
-    if (Fov < 1.0f)
-        Fov = 1.0f;
+    if (Fov < 5.f)
+        Fov = 5.0f;
     if (Fov > 45.0f)
         Fov = 45.0f;
 }

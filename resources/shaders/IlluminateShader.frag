@@ -5,6 +5,8 @@ layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 fragPos;
 layout(location = 3) in vec3 cameraPos;
 layout(location = 4) in vec2 texCoord;
+layout(location = 5) in vec3 reflectedVector;
+layout(location = 6) in vec3 refractedVector;
 
 struct PointLight
 {
@@ -58,6 +60,8 @@ layout(set = 4, binding = 0) uniform GlobalLightUniform{
 
 	GlobalLight light;
 } global;
+
+layout(set = 5, binding = 0) uniform samplerCube cubeSampler;
 
 layout(location = 0) out vec4 outColor;
 
@@ -161,5 +165,9 @@ void main() {
 	{
 		result += CalcFlashLight(flashLights.objects[i], norm, fragPos, viewDir, fragColor);    
 	}
+	
+	vec4 reflectedColor = texture(cubeSampler, reflectedVector);
+	
     outColor = vec4(result, 1.0f);
+	outColor = mix(outColor, reflectedColor, 0.8);
 }

@@ -136,7 +136,9 @@
     <ClCompile Include="src\Platform\Vulkan\Camera.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Descriptor.cpp" />
     <ClCompile Include="src\Platform\Vulkan\HelperObjects.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\LightProperties.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Mesh.cpp" />
+    <ClCompile Include="src\Platform\Vulkan\MeshWrapper.cpp" />
     <ClCompile Include="src\Platform\Vulkan\PipelineBuilderStateMachine.cpp" />
     <ClCompile Include="src\Platform\Vulkan\Renderable.cpp" />
     <ClCompile Include="src\Platform\Vulkan\RenderLight.cpp" />
@@ -161,7 +163,9 @@
     <ClInclude Include="src\Platform\Vulkan\Camera.h" />
     <ClInclude Include="src\Platform\Vulkan\Descriptor.h" />
     <ClInclude Include="src\Platform\Vulkan\HelperObjects.h" />
+    <ClInclude Include="src\Platform\Vulkan\LightProperties.h" />
     <ClInclude Include="src\Platform\Vulkan\Mesh.h" />
+    <ClInclude Include="src\Platform\Vulkan\MeshWrapper.h" />
     <ClInclude Include="src\Platform\Vulkan\PipelineBuilderStateMachine.h" />
     <ClInclude Include="src\Platform\Vulkan\Renderable.h" />
     <ClInclude Include="src\Platform\Vulkan\RenderLight.h" />

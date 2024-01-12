@@ -10,6 +10,8 @@ layout(location = 1) out vec3 normal;
 layout(location = 2) out vec3 fragPos;
 layout(location = 3) out vec3 cameraPos;
 layout(location = 4) out vec2 texCoord;
+layout(location = 5) out vec3 reflectedVector;
+layout(location = 6) out vec3 refractedVector;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
@@ -45,4 +47,9 @@ void main() {
     texCoord = inTexCoord;
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
     cameraPos = camera.pos.xyz;
+	
+	vec3 unitNormal = normalize(normal);
+	vec3 viewVector = normalize(fragPos - cameraPos);
+	reflectedVector = reflect(viewVector, unitNormal);
+	refractedVector = refract(viewVector, unitNormal, 1.0 / 1.33);
 }
