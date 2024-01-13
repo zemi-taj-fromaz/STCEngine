@@ -12,7 +12,7 @@ struct Camera
         // std::cout << direction.x << " " << direction.y << direction.z << std::endl;
     }
 
-    glm::vec3 Position{ glm::vec3(0.0f, 00.0f, 100.0f) };
+    glm::vec3 Position{ glm::vec3(0.0f, 2.0f, 100.0f) };
 
     float Yaw = -90.0f;
     float Pitch = 0.0f;

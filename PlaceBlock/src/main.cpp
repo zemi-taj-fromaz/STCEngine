@@ -129,11 +129,13 @@ public:
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
 
-		std::shared_ptr<Texture> deerTex = std::make_shared<Texture>("deerAI.jpg");
+		std::shared_ptr<Texture> deerTex = std::make_shared<Texture>("deerHead.jpeg");
 		std::shared_ptr<Texture> skyboxTex = std::make_shared<Texture>("stormydays/");
 		std::shared_ptr<Texture> jetTex = std::make_shared<Texture>("BODYMAINCOLORCG.png");
 		std::shared_ptr<Texture> smokeTex = std::make_shared<Texture>("statue.jpg");
 		std::shared_ptr<Texture> woodboxTex = std::make_shared<Texture>("wood/");
+		std::shared_ptr<Texture> grassTex = std::make_shared<Texture>("grass.jpg");
+		std::shared_ptr<Texture> retardedTreeTex = std::make_shared<Texture>("retarded_tree.jpg");
 
 
 		std::shared_ptr<Texture> rustAlbedoTex = std::make_shared<Texture>("rustAlbedo.png");
@@ -141,7 +143,7 @@ public:
 		std::shared_ptr<Texture> rustMetallicTex = std::make_shared<Texture>("rustMetallic.png");
 		std::shared_ptr<Texture> rustRoughnessTex = std::make_shared<Texture>("rustRoughness.png");
 
-		create_textures({ skyboxTex, jetTex, smokeTex, deerTex, woodboxTex //}, rustAlbedoTex, rustNormalsTex, rustMetallicTex, rustRoughnessTex
+		create_textures({ skyboxTex, jetTex, smokeTex, deerTex, woodboxTex, grassTex, retardedTreeTex //}, rustAlbedoTex, rustNormalsTex, rustMetallicTex, rustRoughnessTex
 	});
 
 		//----------------------- MESH --------------------------------------------------------------------
@@ -152,6 +154,8 @@ public:
 		Mesh catMesh("cat.obj");
 		Mesh square("texture - Copy.obj");
 		Mesh sphere("sphere.OBJ");
+		Mesh treeMesh("low_poly_tree.obj");
+		Mesh deerMesh("deer.obj");
 
 		Mesh realSphere(MeshType::Sphere);
 		Mesh cube(MeshType::Cube);
@@ -160,6 +164,8 @@ public:
 
 		Mesh aim1(MeshType::Line);
 		Mesh aim2(MeshType::Line);
+
+		Mesh terrain(MeshType::Terrain);
 
 		//-------------------- LIGHTS -----------------------------------------------------------------------
 
@@ -208,6 +214,10 @@ public:
 		reload->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 1.0f));
 		reload->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-1.2f, 0.7f, 0.0f));
 
+		auto tree = std::make_shared<MeshWrapper>(texturedPipeline, treeMesh);
+		tree->textures.push_back(retardedTreeTex);
+		tree->translation = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -5.0f, 0.0f));
+
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
@@ -216,8 +226,9 @@ public:
 		meshWrappers.push_back(aimX);
 		meshWrappers.push_back(aimY);
 		meshWrappers.push_back(reload);
-	
 
+		//meshWrappers.push_back(plane);
+	
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		// Generate a random angle in radians
@@ -226,8 +237,39 @@ public:
 		// Generate a random distance within the specified range
 		std::uniform_real_distribution<> distanceDistribution(50.0f, 150.0f);
 
+		for (int i = -3; i < 3; i++)
+		{
+			for (int j = -3; j < 3; j++)
+			{
+				auto plane = std::make_shared<MeshWrapper>(texturedPipeline, terrain);
+				plane->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
+				plane->translation = glm::translate(glm::mat4(1.0f), glm::vec3(i * 800.0f, 0.0f, j*800.0f));
+				plane->textures.push_back(grassTex);
+				meshWrappers.push_back(plane);
 
+			}
+		}
+		std::uniform_real_distribution<> treeDistanceDistribution(0.0f, 500.0f);
 
+		for (int i = 0; i < 100; i++)
+		{
+			double angle = angleDistribution(gen);
+			double distance = treeDistanceDistribution(gen);
+
+			double xOffset = distance * cos(angle);
+			double zOffset = distance * sin(angle);
+
+			glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, -5.0f, zOffset);
+
+			auto tree = std::make_shared<MeshWrapper>(texturedPipeline, treeMesh);
+			tree->textures.push_back(retardedTreeTex);
+			tree->translation = glm::translate(glm::mat4(1.0f), offset);
+			tree->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
+			meshWrappers.push_back(tree);
+		}
+
+		m_DeerPipeline = texturedPipeline;
+		m_DeerTex = deerTex;
 		for (int i = 0; i < 10; i++)
 		{
 			double angle = angleDistribution(gen);
@@ -238,9 +280,12 @@ public:
 
 			glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, 0.0f, zOffset);
 
-			auto deer = std::make_shared<MeshWrapper>(texturedPipeline, quadMesh);
-			deer->textures.push_back(deerTex);
+			auto deer = std::make_shared<MeshWrapper>(m_DeerPipeline, quadMesh);
+			//deer->color = glm::vec4(0.4f, 0.06f, 0.0f, 1.0f);
+			deer->textures.push_back(m_DeerTex);
 			deer->translation = glm::translate(glm::mat4(1.0f), offset);
+			deer->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
+
 			deer->Attacker = true;
 
 			meshWrappers.push_back(deer);
@@ -291,20 +336,20 @@ public:
 		}
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Front);
+			m_Camera.update_position(cameraSpeed * deltaTime * glm::normalize(glm::vec3(m_Camera.Front.x, 0.0f, m_Camera.Front.z)));
 		}
 
 
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Right);
+			m_Camera.update_position(cameraSpeed * deltaTime * glm::normalize(glm::vec3(m_Camera.Right.x, 0.0f, m_Camera.Right.z)));
 		}
 
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Front);
+			m_Camera.update_position(-cameraSpeed * deltaTime * glm::normalize(glm::vec3(m_Camera.Front.x, 0.0f, m_Camera.Front.z)));
 		}
 
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Right);
+			m_Camera.update_position(-cameraSpeed * deltaTime * glm::normalize(glm::vec3(m_Camera.Right.x, 0.0f, m_Camera.Right.z)));
 		}
 
 
@@ -338,7 +383,10 @@ public:
 			glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, 0.0f, zOffset);
 
 			auto deer = std::make_shared<MeshWrapper>(m_DeerPipeline, quadMesh);
+//			deer->color = glm::vec4(0.4f, 0.06f, 0.0f, 1.0f);
 			deer->textures.push_back(m_DeerTex);
+			deer->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
+
 			deer->translation = glm::translate(glm::mat4(1.0f), offset);
 			deer->Attacker = true;
 
@@ -358,6 +406,9 @@ public:
 	}
 
 private:
+
+	std::shared_ptr<Pipeline> m_DeerPipeline;
+	std::shared_ptr<Texture> m_DeerTex;
 
 };
 

@@ -151,13 +151,13 @@ protected:
 	void create_pipelines(std::vector<std::shared_ptr<Pipeline>> pipelines)
 	{
 		m_Pipelines = pipelines;
-		m_DeerPipeline = m_Pipelines[1];
+	//	m_DeerPipeline = m_Pipelines[1];
 	}
 
 	void create_textures(std::vector<std::shared_ptr<Texture>> textures)
 	{
 		this->m_Textures = textures;
-		m_DeerTex = m_Textures[3];
+	//	m_DeerTex = m_Textures[3];
 	}
 
 	void create_mesh(std::vector<std::shared_ptr<MeshWrapper>> mesh)

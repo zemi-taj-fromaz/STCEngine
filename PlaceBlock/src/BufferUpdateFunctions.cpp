@@ -97,9 +97,10 @@ namespace Functions
 
 	std::function<void(AppVulkanImpl* app, void* bufferMapped)> reloadTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
-		auto reloadTime = app->get_reload_time();
+		float reloadTime = app->get_reload_time();
 		ParameterUBO ubo{};
 		ubo.deltaTime = reloadTime;
+		std::cout << "Updated reload time to " << reloadTime <<std::endl;
 		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
 	};
 

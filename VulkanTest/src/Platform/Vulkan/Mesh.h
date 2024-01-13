@@ -10,6 +10,7 @@ enum class MeshType
     Cube = 2,
     Quad = 3,
     Line = 4,
+    Terrain = 5
 };
 
 struct Mesh
@@ -81,6 +82,7 @@ struct Mesh
     bool load_cube(bool illuminated, bool textured);
     bool load_quad(bool illuminated, bool textured);
     bool load_line(bool illuminated, bool textured);
+    bool load_terrain(bool illuminated, bool textured);
 
     bool load(bool illuminated, bool textured);
 

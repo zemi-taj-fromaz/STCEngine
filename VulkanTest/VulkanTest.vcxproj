@@ -162,6 +162,7 @@
     <ClInclude Include="src\Platform\Vulkan\AppVulkanImpl.h" />
     <ClInclude Include="src\Platform\Vulkan\Camera.h" />
     <ClInclude Include="src\Platform\Vulkan\Descriptor.h" />
+    <ClInclude Include="src\Platform\Vulkan\GameObjects\Terrain.h" />
     <ClInclude Include="src\Platform\Vulkan\HelperObjects.h" />
     <ClInclude Include="src\Platform\Vulkan\LightProperties.h" />
     <ClInclude Include="src\Platform\Vulkan\Mesh.h" />

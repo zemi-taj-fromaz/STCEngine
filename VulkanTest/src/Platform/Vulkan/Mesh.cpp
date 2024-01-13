@@ -80,8 +80,8 @@ bool Mesh::load_sphere(bool illuminated, bool textured)
     {
         for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
         {
-            float xSegment = (float)x / (float)X_SEGMENTS;
-            float ySegment = (float)y / (float)Y_SEGMENTS;
+            float xSegment = static_cast<float>(x) / static_cast<float>(X_SEGMENTS);
+            float ySegment = static_cast<float>(y) / static_cast<float>(Y_SEGMENTS);
             float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
             float yPos = std::cos(ySegment * PI);
             float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
@@ -288,6 +288,43 @@ bool Mesh::load_line(bool illuminated, bool textured)
     return true;
 }
 
+bool Mesh::load_terrain(bool illuminated, bool textured)
+{
+
+    static int VERTEX_COUNT{ 128 };
+    static int SIZE{ 800 };
+
+    for (int i = 0; i < VERTEX_COUNT; i++) 
+    {
+        for (int j = 0; j < VERTEX_COUNT; j++) 
+        {
+            Vertex vertex{};
+            vertex.Position = glm::vec3(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1) * SIZE, -5.0f, static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1) * SIZE);
+            vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            vertex.TexCoord = glm::vec2(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1) * 40.0f, static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1) * 40.0f);
+            Vertices.push_back(vertex);
+        }
+    }
+
+    for (int gz = 0; gz < VERTEX_COUNT - 1; gz++) {
+        for (int gx = 0; gx < VERTEX_COUNT - 1; gx++) {
+            int topLeft = (gz * VERTEX_COUNT) + gx;
+            int topRight = topLeft + 1;
+            int bottomLeft = ((gz + 1) * VERTEX_COUNT) + gx;
+            int bottomRight = bottomLeft + 1;
+
+            Indices.push_back(topLeft);
+            Indices.push_back(bottomLeft);
+            Indices.push_back(topRight);
+            Indices.push_back(topRight);
+            Indices.push_back(bottomLeft);
+            Indices.push_back(bottomRight);
+        }
+    }
+
+    return true;
+}
+
 bool Mesh::load(bool illuminated, bool textured)
 {
     if (!this->Filename.empty())
@@ -315,6 +352,11 @@ bool Mesh::load(bool illuminated, bool textured)
         case MeshType::Line:
         {
             return load_line(illuminated, textured);
+            break;
+        }
+        case MeshType::Terrain:
+        {
+            return load_terrain(illuminated, textured);
             break;
         }
     }

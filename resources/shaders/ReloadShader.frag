@@ -12,7 +12,25 @@ layout (set = 2, binding = 0) uniform ParameterUBO {
 
 void main() {
 
-	if((position.x * position.x + position.y * position.y > 0.5 * 0.5) ||	(position.x * position.x + position.y * position.y < 0.3 * 0.3)) discard;
+	if((position.x * position.x + position.y * position.y > 0.5 * 0.5) ||	(position.x * position.x + position.y * position.y < 0.3 * 0.3)) discard; 
+	
+	float dotProduct = dot(normalize(position.xy), vec2(0, 1) );
+	
+	if(ubo.reloadTime <= 0.5)
+	{
+		
+		if(position.x < 0) discard;
+		
+
+		
+		if( (ubo.reloadTime - 0.5) * 4 + 1 < dotProduct ) discard;
+	
+	}
+	else if (ubo.reloadTime >= 0.5 && position.x < 0)
+	{
+		 if( (ubo.reloadTime - 1) * (-4) - 1 >= dotProduct) discard;
+	}
+	
 		
     outColor = fragColor;
 }

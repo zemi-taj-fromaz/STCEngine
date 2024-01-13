@@ -173,5 +173,8 @@
     <ClInclude Include="src\Platform\Vulkan\MeshWrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\Vulkan\GameObjects\Terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

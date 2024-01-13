@@ -27,7 +27,7 @@ void main() {
 	
 	float aspectRatio = resolution.res.x / resolution.res.y;
 	
-	pos.x *= aspectRatio;
+	pos.x /= aspectRatio;
 
     gl_Position = vec4(pos.xy, 0.0, 1.0);
     fragColor = inColor;
