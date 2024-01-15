@@ -82,6 +82,5 @@ void Layer::set_callbacks(GLFWwindow* window)
             app->process_mouse_movement(xoffset, yoffset);
             // app->process_mouse_movement(0.0f, 0.0f);
         });
-
 }
 

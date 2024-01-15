@@ -36,5 +36,5 @@ void main() {
     gl_Position = vec4(pos.xy, 0.0, 1.0);
 	
 	fragPos = vec4(pos.xy, 0.0, 1.0);
-    fragColor = inColor;
+    fragColor = objectBuffer.objects[gl_InstanceIndex].color;
 }

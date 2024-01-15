@@ -1,3 +1,4 @@
+#include "AppVulkanImpl.h"
 #include "Renderable.h"
 #include "RenderObject.h"
 
@@ -21,8 +22,14 @@ void Renderable::update_billboard(const glm::vec3& CameraPosition)
     
 }
 
-void Renderable::update_attacker(const glm::vec3& CameraPosition, float deltaTime)
+bool Renderable::update_attacker(AppVulkanImpl* app, const glm::vec3& CameraPosition, float deltaTime)
 {
+
+    if (glm::distance(CameraPosition, this->Position) < 0.1f)
+    {
+        app->end_game();
+        return false;
+    }
 
     glm::vec3 GoalRotation = glm::normalize(CameraPosition - this->Position);
 
@@ -37,6 +44,7 @@ void Renderable::update_attacker(const glm::vec3& CameraPosition, float deltaTim
     float distance = attackerSpeed * deltaTime;
 
     setTranslation(glm::translate(glm::mat4(1.0f), glm::vec3(this->Position + distance * direction)));
+    return true;
 
 }
 

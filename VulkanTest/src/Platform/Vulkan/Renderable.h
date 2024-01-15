@@ -55,7 +55,7 @@ public:
     bool is_billboard() const { return this->MeshHandle->Billboard; }
     bool is_attacker() const { return this->MeshHandle->Attacker; }
     void update_billboard(const glm::vec3& CameraPosition);
-    void update_attacker(const glm::vec3& CameraPosition, float deltaTime);
+    bool update_attacker(AppVulkanImpl* app,const glm::vec3& CameraPosition, float deltaTime);
 
     bool intersect(glm::vec3& GunPosition, glm::vec3& Direction);
 

@@ -16,7 +16,11 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_vulkan.h"
 
-bool AppVulkanImpl::s_ImGuiEnabled = false;
+//
+//#include <ft2build.h>
+//#include FT_FREETYPE_H  
+
+bool AppVulkanImpl::s_ImGuiEnabled = true;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -63,7 +67,10 @@ void AppVulkanImpl::initialize_app()
 {
     auto layer = m_LayerStack[m_ActiveLayer];
 
+    layer->clear_additional();
     layer->set_callbacks(m_Window);
+    s_ImGuiEnabled = layer->imguiEnabled;
+
    
     if (!isInitialized)
     {
@@ -75,6 +82,7 @@ void AppVulkanImpl::initialize_app()
         create_swapchain();
         create_render_pass();
     }
+
     create_descriptor_set_layout(layer); //LAYER;
     create_graphics_pipeline(layer); //LAYER
 
@@ -85,25 +93,39 @@ void AppVulkanImpl::initialize_app()
         create_framebuffers();
         create_texture_sampler();
     }
+
     load_model(layer); //LAYER
     create_buffers(layer); //LAYER
     create_descriptors(layer); //LAYER
 
-    if(!isInitialized) create_sync_objects();
-
-    if (AppVulkanImpl::s_ImGuiEnabled)
-    {
-        init_imgui();
+    if (!isInitialized) {
+        create_sync_objects();
+        if (AppVulkanImpl::s_ImGuiEnabled)
+        {
+            init_imgui();
+        }
     }
 
     isInitialized = true;
+    time = (float)glfwGetTime();
+    initialTime = (float)glfwGetTime();
+    
+
 }
 
 void AppVulkanImpl::main_loop()
 {
-    float time = (float)glfwGetTime();
-    float initialTime = (float)glfwGetTime();
+    time = (float)glfwGetTime();
+    initialTime = (float)glfwGetTime();
     float actionTime = 0.0f;
+
+    if (s_ImGuiEnabled)
+    {
+        ImGuiStyle* style = &ImGui::GetStyle();
+        style->Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
+    
+    }
+
     while (!glfwWindowShouldClose(m_Window)) {
 
         auto layer = m_LayerStack[m_ActiveLayer];
@@ -118,7 +140,7 @@ void AppVulkanImpl::main_loop()
         time = currTime;
 
         actionTime += deltaTime;
-        
+        //change action to periodical
         if (actionTime > actionTimer)
         {
             actionTime = 0;
@@ -132,13 +154,7 @@ void AppVulkanImpl::main_loop()
 
         if (s_ImGuiEnabled)
         {
-            ImGui_ImplVulkan_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-
-            ImGui::NewFrame();
-
-            //imgui commands
-            ImGui::ShowDemoWindow();
+            layer->draw_imgui(m_Window);
         }
         //imgui new frame
 
@@ -185,6 +201,10 @@ void AppVulkanImpl::fire_gun()
     {
         if ((*i)->intersect(Position, Direction))
         {
+
+            m_Score++;
+            m_EnemiesLeft -= 1;
+
             auto it = std::remove(m_Renderables.begin(), m_Renderables.end(), *i);
             m_Renderables.erase(it);
             m_Attackers.erase(i);
@@ -192,6 +212,29 @@ void AppVulkanImpl::fire_gun()
         }
     }
     
+}
+
+void AppVulkanImpl::button_click()
+{
+    auto& layer = m_LayerStack[m_ActiveLayer];
+    glm::vec3 Position = layer->m_Camera.Position;
+    glm::vec3 Direction = layer->m_Camera.direction;
+
+    for (auto i = m_Renderables.begin(); i < m_Renderables.end(); ++i)
+    {
+ /*       if ((*i)->intersect(Position, Direction))
+        {
+
+            m_Score++;
+            m_EnemiesLeft -= 1;
+
+            auto it = std::remove(m_Renderables.begin(), m_Renderables.end(), *i);
+            m_Renderables.erase(it);
+            m_Attackers.erase(i);
+            break;
+        }*/
+    }
+
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -494,6 +537,42 @@ void AppVulkanImpl::create_render_pass()
     }
     m_DeletionQueue.push_function([=]() { vkDestroyRenderPass(m_Device, m_RenderPass, nullptr); }, "RenderPass");
 }
+//
+//EXHIBIT 1: USING THE EXAMPLE BACKENDS(= imgui_impl_XXX.cpp files from the backends / folder).
+//The sub - folders in examples / contain examples applications following this structure.
+//
+//// Application init: create a dear imgui context, setup some options, load fonts
+//ImGui::CreateContext();
+//ImGuiIO& io = ImGui::GetIO();
+//// TODO: Set optional io.ConfigFlags values, e.g. 'io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard' to enable keyboard controls.
+//// TODO: Fill optional fields of the io structure later.
+//// TODO: Load TTF/OTF fonts if you don't want to use the default font.
+//
+//// Initialize helper Platform and Renderer backends (here we are using imgui_impl_win32.cpp and imgui_impl_dx11.cpp)
+//ImGui_ImplWin32_Init(hwnd);
+//ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+//
+//// Application main loop
+//while (true)
+//{
+//    // Feed inputs to dear imgui, start new frame
+//    ImGui_ImplDX11_NewFrame();
+//    ImGui_ImplWin32_NewFrame();
+//    ImGui::NewFrame();
+//
+//    // Any application code here
+//    ImGui::Text("Hello, world!");
+//
+//    // Render dear imgui into screen
+//    ImGui::Render();
+//    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+//    g_pSwapChain->Present(1, 0);
+//}
+//
+//// Shutdown
+//ImGui_ImplDX11_Shutdown();
+//ImGui_ImplWin32_Shutdown();
+//ImGui::DestroyContext()
 
 
 
@@ -782,6 +861,17 @@ void AppVulkanImpl::create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool i
 
 void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 {
+
+    m_SkyboxObj = nullptr;
+    m_Renderables.clear(); 
+    m_Attackers.clear();
+    m_PointLights.clear();
+    m_FlashLights.clear();
+    m_GlobalLight.reset();
+
+    m_Score = 0;
+    m_EnemiesLeft = 0;
+
     //INITIALIZE TEXTURES
     auto& textures = layer->get_textures();
     for (auto& texture : textures)
@@ -804,7 +894,7 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
         if (meshStruct->isSkybox)
         {
             create_mesh(*meshStruct);
-            m_SkyboxObj = new RenderObject({ meshStruct.get()});
+            m_SkyboxObj = new RenderObject(meshStruct.get());
         }
         else
         {
@@ -842,7 +932,11 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
                 auto renderObj = std::shared_ptr<RenderObject>(new RenderObject(meshStruct.get()));
                 renderObj->get_mesh()->object = renderObj;
                 m_Renderables.push_back(renderObj);
-                if(renderObj->get_mesh()->Attacker) m_Attackers.push_back(renderObj);
+                if (renderObj->get_mesh()->Attacker)
+                {
+                    m_Attackers.push_back(renderObj);
+                    m_EnemiesLeft++;
+                }
             }
         }
     }
@@ -1172,8 +1266,10 @@ VkSubmitInfo submit_info(VkCommandBuffer* cmd)
 
 void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
 {
-    if(s_ImGuiEnabled) ImGui::Render();
-
+    if (s_ImGuiEnabled) 
+    {
+        ImGui::Render();
+    }
     static int frameNumber{ 0 };
 
     vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].ComputeInFlightFence, VK_TRUE, UINT64_MAX);
@@ -1285,7 +1381,8 @@ void AppVulkanImpl::init_imgui()
     //this initializes the core structures of imgui
     ImGui::CreateContext();
 
-    //ImGui_ImplVulkan_Init(m_Window);
+
+//ImGui_ImplVulkan_Init(m_Window);
     ImGui_ImplGlfw_InitForVulkan(m_Window, false);
 
     //this initializes imgui for Vulkan
@@ -1301,6 +1398,11 @@ void AppVulkanImpl::init_imgui()
 
     ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
 
+    {
+        VkCommandBuffer commandBuffer = begin_single_time_commands();
+        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+        end_single_time_commands(commandBuffer);
+    }
     //clear font textures from cpu data
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
@@ -1923,6 +2025,8 @@ void AppVulkanImpl::upload_mesh(Mesh& mesh)
 
 void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Renderable>> renderables, uint32_t imageIndex)
 {
+
+
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0; // Optional
@@ -2026,7 +2130,13 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         vkCmdDraw(commandBuffer, static_cast<uint32_t>(particles.size()), 1, 0, 0);
     }
 
-    if(s_ImGuiEnabled) ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+    if (s_ImGuiEnabled)
+    {
+        ImGui::EndFrame();
+        ImGui::Render();
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer); 
+    }
+
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {

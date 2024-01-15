@@ -23,4 +23,8 @@ C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe AimS
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe AimShader.frag -o AimShaderfrag.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ReloadShader.vert -o ReloadShadervert.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ReloadShader.frag -o ReloadShaderfrag.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe TextShader.vert -o TextShadervert.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe TextShader.frag -o TextShaderfrag.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ButtonShader.vert -o ButtonShadervert.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ButtonShader.frag -o ButtonShaderfrag.spv
 pause

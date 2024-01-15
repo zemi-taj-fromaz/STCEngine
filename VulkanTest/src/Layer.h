@@ -102,7 +102,7 @@ public:
 
 	Camera m_Camera;
 
-	void update_buffers(AppVulkanImpl* app, int imageIndex)
+	bool update_buffers(AppVulkanImpl* app, int imageIndex)
 	{
 		for (std::shared_ptr<Descriptor>& descriptor : m_Descriptors)
 		{
@@ -112,8 +112,9 @@ public:
 			{
 				continue;
 			}
-			descriptor->bufferUpdateFunc(app, descriptor->bufferWrappers[imageIndex % descriptor->bufferWrappers.size()].bufferMapped);
+			if(!descriptor->bufferUpdateFunc(app, descriptor->bufferWrappers[imageIndex % descriptor->bufferWrappers.size()].bufferMapped)) return false;
 		}
+		return true;
 	}
 
 	void update_compute_buffers(AppVulkanImpl* app, int imageIndex)
@@ -131,8 +132,13 @@ public:
 		}
 	}
 
+	bool imguiEnabled;
+
 	virtual float get_action_timer() { return 10.0f;  }
 	virtual void timed_action(GLFWwindow* window) {}
+
+	void clear_additional() { m_AdditionalMesh.clear(); }
+	virtual void draw_imgui(GLFWwindow* window) {};
 
 
 
@@ -171,10 +177,12 @@ protected:
 	}
 
 
+
 	std::shared_ptr<Pipeline> m_ComputePipeline;
 	std::shared_ptr<Pipeline> m_ComputeGraphicsPipeline;
 
 	std::vector<std::shared_ptr<MeshWrapper>> m_Mesh;
+	std::vector<std::shared_ptr<MeshWrapper>> m_AdditionalMesh;
 	std::shared_ptr<Pipeline> m_DeerPipeline;
 	std::shared_ptr<Texture> m_DeerTex;
 

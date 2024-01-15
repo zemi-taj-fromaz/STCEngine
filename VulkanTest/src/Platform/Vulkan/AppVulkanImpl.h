@@ -52,6 +52,16 @@ public:
     inline void set_mouse_position(glm::vec2 mousePosition) { this->m_MousePosition = mousePosition; }
 
     void fire_gun();
+    void button_click();
+
+    int m_Score{ 0 };
+    int m_EnemiesLeft{ 0 };
+
+    int get_score() { return m_Score; }
+    int get_enemies_left() { return m_EnemiesLeft; }
+    void set_enemies_left(int enemies) { m_EnemiesLeft = enemies; }
+    void end_game() { m_ActiveLayer++; initialize_app(); }
+    void restart_game() { m_ActiveLayer--; initialize_app();}
 
     inline void process_mouse_movement(float xoffset, float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.process_mouse_movement(xoffset, yoffset); }
     inline void set_field_of_view(float yoffset) { this->m_LayerStack[m_ActiveLayer]->m_Camera.set_field_of_view(yoffset); }
@@ -83,6 +93,7 @@ private:
     void create_swapchain();
  //   void create_image_views();
     void create_render_pass();
+ //   void initialize_fonts(std::shared_ptr<Layer>& layer); //LAYER
     void create_descriptor_set_layout(std::shared_ptr<Layer>& layer); //LAYER
     void create_graphics_pipeline(std::shared_ptr<Layer>& layer); //LAYER
     void create_framebuffers(); 
@@ -260,6 +271,8 @@ private:
 
     float totalTime;
     float deltaTime;
+    float time;
+    float initialTime;
 };
 
 
