@@ -24,7 +24,6 @@ struct Mesh
     Mesh(MeshType meshType) : meshType(meshType)
     {}
 
-
     Mesh(const Mesh& mesh)
     {
         Vertices = mesh.Vertices;
@@ -87,4 +86,9 @@ struct Mesh
     bool load(bool illuminated, bool textured);
 
     bool load_animation(std::string filename);
+
+
+    const int ARENA_SIZE{ 800 };
+
+    static std::vector<std::vector<float>> heightMap;
 };

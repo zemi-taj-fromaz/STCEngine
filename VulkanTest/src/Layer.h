@@ -139,6 +139,9 @@ public:
 
 	void clear_additional() { m_AdditionalMesh.clear(); }
 	virtual void draw_imgui(GLFWwindow* window) {};
+	virtual int get_mandelbulb_factor() { return 8; }
+
+	virtual bool generate_perlin_noise() { return false;  }
 
 
 

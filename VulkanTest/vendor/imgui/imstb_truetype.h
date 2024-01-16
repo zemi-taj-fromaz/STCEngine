@@ -1330,7 +1330,7 @@ static int stbtt_GetFontOffsetForIndex_internal(unsigned char *font_collection, 
    // check if it's a TTC
    if (stbtt_tag(font_collection, "ttcf")) {
       // version 1?
-      if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x00020000) {
+      if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x0008000) {
          stbtt_int32 n = ttLONG(font_collection+8);
          if (index >= n)
             return -1;
@@ -1349,7 +1349,7 @@ static int stbtt_GetNumberOfFonts_internal(unsigned char *font_collection)
    // check if it's a TTC
    if (stbtt_tag(font_collection, "ttcf")) {
       // version 1?
-      if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x00020000) {
+      if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x0008000) {
          return ttLONG(font_collection+8);
       }
    }
@@ -2780,7 +2780,7 @@ static void *stbtt__hheap_alloc(stbtt__hheap *hh, size_t size, void *userdata)
       return p;
    } else {
       if (hh->num_remaining_in_head_chunk == 0) {
-         int count = (size < 32 ? 2000 : size < 128 ? 800 : 100);
+         int count = (size < 32 ? 800 : size < 128 ? 800 : 100);
          stbtt__hheap_chunk *c = (stbtt__hheap_chunk *) STBTT_malloc(sizeof(stbtt__hheap_chunk) + size * count, userdata);
          if (c == NULL)
             return NULL;

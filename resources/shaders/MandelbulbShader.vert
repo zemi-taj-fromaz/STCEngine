@@ -39,16 +39,16 @@ layout(std140, set = 1, binding = 0) buffer ObjectBuffer{
 void main() {
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
-  //  mat4 MVP = model;
+    //mat4 MVP = model;
     gl_Position =  MVP * vec4(inPosition, 1.0);
-    fragColor = inColor;
+    fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
    // normal = inPosition - camera.pos.xyz;
 	position = inPosition;
 	cameraPos = camera.pos;
 
 	
     float aspectRatio = resolution.res.x / resolution.res.y;
-	texCoord = inTexCoord;
-	texCoord.y -= 1.0;
+	texCoord = inPosition.xy;
+	//texCoord.y -= 1.0;
 	//texCoord.x *= aspectRatio;
 }

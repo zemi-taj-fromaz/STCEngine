@@ -5,13 +5,13 @@
 
 namespace Functions
 {
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> cameraUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> objectsUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> particlesUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> deltaTimeUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> totalTimeUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> pointLightsUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> flashLightsUpdateFunc;
-	extern std::function<void(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> cameraUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> objectsUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> particlesUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> deltaTimeUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> totalTimeUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> pointLightsUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> flashLightsUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc;
 }

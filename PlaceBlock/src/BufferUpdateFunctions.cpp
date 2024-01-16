@@ -12,6 +12,8 @@ namespace Functions
 		cbo.view = glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
 		cbo.proj = glm::perspective(glm::radians(camera.Fov), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 500.0f);
 		cbo.proj[1][1] *= -1;
+		//camera.Position.y = Mesh::heightMap[static_cast<int>(camera.Position.x) % 800][static_cast<int>(camera.Position.y) % 800] + 5.0f;
+		std::cout << "Camera Position" << camera.Position.x << " " << camera.Position.y << " " << camera.Position.z << std::endl;
 		cbo.pos = glm::vec4(camera.Position, 1.0f);
 		memcpy(bufferMapped, &cbo, sizeof(cbo));
 		return true;
@@ -46,7 +48,23 @@ namespace Functions
 				{
 					return false;
 				}
+			//	glm::vec3 position = renderables[i]->get_position();
+
+			//	float xPos = position.x;
+			//	float zPos = position.z;
+
+			//	int xArg = (static_cast<int>(xPos) % 800 + 800) % 800;
+			//	int zArg = (static_cast<int>(zPos) % 800 + 800) % 800;
+
+			//	float height = Mesh::heightMap[xArg][zArg];
+
+			////	glm::vec3 offset = glm::vec3(xPos, height, zPos);
+			//	
+			//	glm::mat4 translation = glm::translate(glm::mat4(1.0f), position + glm::vec3(0.0f, height, 0.0f));
+			//	renderables[i]->setTranslation(translation);
 			}
+
+
 
 		/*	if (renderables[i]->is_light_source())
 			{
@@ -111,7 +129,7 @@ namespace Functions
 		float reloadTime = app->get_reload_time();
 		ParameterUBO ubo{};
 		ubo.deltaTime = reloadTime;
-		std::cout << "Updated reload time to " << reloadTime <<std::endl;
+	//	std::cout << "Updated reload time to " << reloadTime <<std::endl;
 		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
 		return true;
 

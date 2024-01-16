@@ -7,6 +7,9 @@ class GameLayer : public Layer
 public:
 	GameLayer() : Layer("Example")
 	{
+
+		generate_perlin_noise();
+
 		imguiEnabled = true;
 
 		//------------------------------ DESCRIPTORS ---------------------------------------------------
@@ -89,6 +92,7 @@ public:
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
 		std::vector<std::string> textureShaderNames({ "TextureShader.vert", "TextureShader.frag" });
+		std::vector<std::string> deerShaderNames({ "DeerShader.vert", "DeerShader.frag" });
 		std::vector<std::string> plainShaderNames({ "PlainShader.vert", "PlainShader.frag" });
 		std::vector<std::string> illuminateShaderNames({ "IlluminateShader.vert", "IlluminateShader.frag" });
 		std::vector<std::string> skyboxShaderNames({ "SkyboxShader.vert", "SkyboxShader.frag" });
@@ -96,25 +100,25 @@ public:
 		std::vector<std::string> cubemapShaderNames({ "CubemapShader.vert", "CubemapShader.frag" });
 		std::vector<std::string> computeShaderName({ "ComputeShader.comp" });
 		std::vector<std::string> computeShaderNames({ "ComputeShader.vert", "ComputeShader.frag" });
-		std::vector<std::string> mandelbulbShaderNames({ "MandelbulbShader.vert", "MandelbulbShader.frag" });
+		//std::vector<std::string> mandelbulbShaderNames({ "MandelbulbShader.vert", "MandelbulbShader.frag" });
 		std::vector<std::string> aimShaderNames({ "AimShader.vert", "AimShader.frag" });
 		std::vector<std::string> reloadShaderNames({ "ReloadShader.vert", "ReloadShader.frag" });
 		std::vector<std::string> buttonShaderNames({ "ButtonShader.vert", "ButtonShader.frag" });
 
 		auto buttonPipeline = std::make_shared<Pipeline>(buttonLayout, buttonShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 
-
 		//std::vector<std::string> PBRShaderNames({ "PBRShader.vert", "PBRShader.frag" });
 
 		//------------------------------- PIPELINES ----------------------------------------------------------
 
 		auto texturedPipeline = std::make_shared<Pipeline>(pipelineLayout1, textureShaderNames);
+		auto deerPipeline = std::make_shared<Pipeline>(pipelineLayout1, deerShaderNames);
 		auto plainPipeline = std::make_shared<Pipeline>(pipelineLayout2, plainShaderNames);
 		auto illuminatePipeline = std::make_shared<Pipeline>(pipelineLayout8, illuminateShaderNames);
 		auto skyboxPipeline = std::make_shared<Pipeline>(pipelineLayout5, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
 		auto particlesPipeline = std::make_shared<Pipeline>(pipelineLayout1, particleShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 		auto cubemapPipeline = std::make_shared<Pipeline>(pipelineLayout8, cubemapShaderNames);
-		auto mandelbulbPipeline = std::make_shared<Pipeline>(pipelineLayout6, mandelbulbShaderNames);
+	//	auto mandelbulbPipeline = std::make_shared<Pipeline>(pipelineLayout6, mandelbulbShaderNames);
 
 		auto aimPipeline = std::make_shared<Pipeline>(layoutMT, aimShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 		aimPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
@@ -131,20 +135,19 @@ public:
 			//	this->m_ComputeGraphicsPipeline = std::make_shared<Pipeline>(pipelineLayoutGraphics, computeShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 			//	this->m_ComputeGraphicsPipeline->PolygonMode = VK_POLYGON_MODE_POINT;
 			//	this->m_ComputeGraphicsPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-		create_pipelines({ buttonPipeline, aimPipeline, texturedPipeline,  reloadPipeline, plainPipeline, illuminatePipeline, skyboxPipeline, particlesPipeline, cubemapPipeline, mandelbulbPipeline// , PBRPipeline
+		create_pipelines({ buttonPipeline, aimPipeline, texturedPipeline, deerPipeline,  reloadPipeline, plainPipeline, illuminatePipeline, skyboxPipeline, particlesPipeline, cubemapPipeline// , PBRPipeline
 			});//, m_ComputePipeline, m_ComputeGraphicsPipeline});
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
 
 		std::shared_ptr<Texture> deerTex = std::make_shared<Texture>("deerHead.jpeg");
-		std::shared_ptr<Texture> skyboxTex = std::make_shared<Texture>("stormydays/");
+		std::shared_ptr<Texture> skyboxTex = std::make_shared<Texture>("nightbox/");
 		std::shared_ptr<Texture> jetTex = std::make_shared<Texture>("BODYMAINCOLORCG.png");
 		std::shared_ptr<Texture> smokeTex = std::make_shared<Texture>("statue.jpg");
 		std::shared_ptr<Texture> woodboxTex = std::make_shared<Texture>("wood/");
 		std::shared_ptr<Texture> grassTex = std::make_shared<Texture>("grass.jpg");
 		std::shared_ptr<Texture> retardedTreeTex = std::make_shared<Texture>("retarded_tree.jpg");
 		std::shared_ptr<Texture> gameOverTex = std::make_shared<Texture>("gameOver.jpg");
-
 
 		std::shared_ptr<Texture> rustAlbedoTex = std::make_shared<Texture>("rustAlbedo.png");
 		std::shared_ptr<Texture> rustNormalsTex = std::make_shared<Texture>("rustNormals.png");
@@ -177,8 +180,8 @@ public:
 
 		//-------------------- LIGHTS -----------------------------------------------------------------------
 
-		auto pointLight = std::make_shared<LightProperties>(LightType::PointLight, glm::vec3(0.0f, 1.0f, 0.0f));
-		auto flashLight = std::make_shared<LightProperties>(LightType::FlashLight, glm::vec3(1.0f, 0.0f, 0.0f));
+	//	auto pointLight = std::make_shared<LightProperties>(LightType::PointLight, glm::vec3(0.0f, 1.0f, 0.0f));
+	//	auto flashLight = std::make_shared<LightProperties>(LightType::FlashLight, glm::vec3(1.0f, 0.0f, 0.0f));
 
 		auto cameraFlash = std::make_shared<LightProperties>(LightType::FlashLight, glm::vec3(0.8f, 0.8f, 0.2f));
 		cameraFlash->update_light = [this](float time, const glm::vec3& camera_position, Renderable* renderable)
@@ -193,9 +196,10 @@ public:
 
 		this->m_Camera = Camera();
 		m_Camera.cameraLight = cameraFlash;
-		m_Camera.Position = glm::vec3(0.0f, 0.0f, 50.0f);
+		float height = Mesh::heightMap[400][400] + 5.0f;
+		m_Camera.Position = glm::vec3(400.0f, 5.0f, 400.0f);
 
-		auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, -1.0f));
+		//auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, -1.0f));
 
 		//-------------------- MESH WRAPPERS ----------------------------------------------------------------
 
@@ -208,11 +212,14 @@ public:
 		//	aimX->translation = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f));
 		aimX->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 1.0f));
 		aimX->rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		aimX->color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		auto aimY = std::make_shared<MeshWrapper>(aimPipeline, aim2);
 		//aimY->translation = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		aimY->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 1.0f));
 		aimY->rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		aimY->color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
 
 		auto line = std::make_shared<MeshWrapper>(aimPipeline, aim2);
 		line->rotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -221,10 +228,6 @@ public:
 		auto reload = std::make_shared<MeshWrapper>(reloadPipeline, quadMesh);
 		reload->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 1.0f));
 		reload->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-1.2f, 0.7f, 0.0f));
-
-		auto tree = std::make_shared<MeshWrapper>(texturedPipeline, treeMesh);
-		tree->textures.push_back(retardedTreeTex);
-		tree->translation = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -5.0f, 0.0f));
 
 		auto gameOver = std::make_shared<MeshWrapper>(buttonPipeline, quadMesh);
 		//gameOver->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 1.0f));
@@ -253,19 +256,16 @@ public:
 		// Generate a random distance within the specified range
 		std::uniform_real_distribution<> distanceDistribution(50.0f, 150.0f);
 
-		for (int i = -3; i < 3; i++)
-		{
-			for (int j = -3; j < 3; j++)
-			{
+
 				auto plane = std::make_shared<MeshWrapper>(texturedPipeline, terrain);
 				plane->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
-				plane->translation = glm::translate(glm::mat4(1.0f), glm::vec3(i * 800.0f, 0.0f, j * 800.0f));
+				//plane->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-1000.0f, 0.0f, -1000.0f));
 				plane->textures.push_back(grassTex);
+				plane->illuminated = true;
 				meshWrappers.push_back(plane);
 
-			}
-		}
-		std::uniform_real_distribution<> treeDistanceDistribution(0.0f, 500.0f);
+	
+		std::uniform_real_distribution<> treeDistanceDistribution(20.0f, 400.0f);
 
 		for (int i = 0; i < 100; i++)
 		{
@@ -275,16 +275,30 @@ public:
 			double xOffset = distance * cos(angle);
 			double zOffset = distance * sin(angle);
 
-			glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, -5.0f, zOffset);
+			float xPos = m_Camera.Position.x + xOffset;
+			float zPos = m_Camera.Position.z + zOffset;
+
+			int xArg = static_cast<int>(xPos);// % 800 + 800) % 800;
+			int zArg = static_cast<int>(zPos);// % 800 + 800) % 800;
+
+			int xArg2 = xArg + 1;
+			int zArg2 = zArg + 1;
+
+			float height = Mesh::heightMap[xArg][zArg];
+
+			glm::vec3 offset = glm::vec3(xPos, height, zPos);
+
+		//	glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, height, zOffset);
 
 			auto tree = std::make_shared<MeshWrapper>(texturedPipeline, treeMesh);
 			tree->textures.push_back(retardedTreeTex);
 			tree->translation = glm::translate(glm::mat4(1.0f), offset);
-			tree->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
+			//tree->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
+			tree->illuminated = true;
 			meshWrappers.push_back(tree);
 		}
 
-		m_DeerPipeline = texturedPipeline;
+		m_DeerPipeline = deerPipeline;
 		m_DeerTex = deerTex;
 		for (int i = 0; i < 10; i++)
 		{
@@ -294,14 +308,22 @@ public:
 			double xOffset = distance * cos(angle);
 			double zOffset = distance * sin(angle);
 
-			glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, 0.0f, zOffset);
+			float xPos = m_Camera.Position.x + xOffset;
+			float zPos = m_Camera.Position.z + zOffset;
+
+			int xArg = (static_cast<int>(xPos) % 800 + 800) % 800;
+			int zArg = (static_cast<int>(zPos) % 800 + 800) % 800;
+
+			float height = Mesh::heightMap[xArg][zArg];
+
+			glm::vec3 offset = glm::vec3(xPos, height, zPos);
 
 			auto deer = std::make_shared<MeshWrapper>(m_DeerPipeline, quadMesh);
 			//deer->color = glm::vec4(0.4f, 0.06f, 0.0f, 1.0f);
 			deer->textures.push_back(m_DeerTex);
 			deer->translation = glm::translate(glm::mat4(1.0f), offset);
 			deer->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
-
+			deer->illuminated = true;
 			deer->Attacker = true;
 
 			meshWrappers.push_back(deer);
@@ -404,7 +426,16 @@ public:
 			double xOffset = distance * cos(angle);
 			double zOffset = distance * sin(angle);
 
-			glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, 0.0f, zOffset);
+
+			float xPos = m_Camera.Position.x + xOffset;
+			float zPos = m_Camera.Position.z + zOffset;
+
+			int xArg = (static_cast<int>(xPos) % 800 + 800) % 800;
+			int zArg = (static_cast<int>(zPos) % 800 + 800) % 800;
+
+			float height = Mesh::heightMap[xArg][zArg];
+
+			glm::vec3 offset = glm::vec3(xPos, height, zPos);
 
 			auto deer = std::make_shared<MeshWrapper>(m_DeerPipeline, quadMesh);
 			//			deer->color = glm::vec4(0.4f, 0.06f, 0.0f, 1.0f);
@@ -468,10 +499,17 @@ public:
 		ImGui::End();
 	}
 
+	//virtual bool generate_perlin_noise() { return false; }
+
+
+
+
 private:
 
 	std::shared_ptr<Pipeline> m_DeerPipeline;
 	std::shared_ptr<Texture> m_DeerTex;
+
+	float heightMap[128][128];
 
 };
 

@@ -98,7 +98,7 @@ public:
 			auto skyboxPipeline = std::make_shared<Pipeline>(pipelineLayout5, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
 			auto particlesPipeline = std::make_shared<Pipeline>(pipelineLayout1, particleShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 			auto cubemapPipeline = std::make_shared<Pipeline>(pipelineLayout8, cubemapShaderNames);
-			auto mandelbulbPipeline = std::make_shared<Pipeline>(pipelineLayout6, mandelbulbShaderNames);
+			auto mandelbulbPipeline = std::make_shared<Pipeline>(pipelineLayout6, mandelbulbShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 
 			auto linePipeline = std::make_shared<Pipeline>(pipelineLayout2, plainShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 			linePipeline->Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
@@ -181,8 +181,16 @@ public:
 
 		auto smoke = std::make_shared<MeshWrapper>(particlesPipeline, particle);
 		smoke->textures.push_back(smokeTex);
-		//smoke->scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 20.0f, 20.0f));
+	//	smoke->scale = glm::scale(glm::mat4(1.0f), glm::vec3(20.0f, 20.0f, 1.0f));
 		smoke->head = jet;
+
+
+
+		auto mandelbulb = std::make_shared<MeshWrapper>(mandelbulbPipeline, square);
+		mandelbulb->scale = glm::scale(glm::mat4(1.0f), glm::vec3(20.0f, 20.0f, 1.0f));
+		mandelbulb->Billboard = true;
+		mandelbulb->color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
 
 
 		//auto quad = std::make_shared<MeshWrapper>(texturedPipeline, quadMesh);
@@ -200,8 +208,10 @@ public:
 
 		meshWrappers.push_back(jet);
 		meshWrappers.push_back(skybox);
+		//meshWrappers.push_back(smoke);
+
 	//	meshWrappers.push_back(target);
-		meshWrappers.push_back(woodbox);
+	//	meshWrappers.push_back(woodbox);
 
 		//meshWrappers.push_back(cat);
 		//meshWrappers.push_back(cubeWrapper);
@@ -212,7 +222,7 @@ public:
 		//meshWrappers.push_back(line4);
 		//meshWrappers.push_back(line5);
 		//meshWrappers.push_back(line6);
-	//	meshWrappers.push_back(mandelbulb);
+		meshWrappers.push_back(mandelbulb);
 		for (int i = 0; i < 40; i++)
 		{
 		}
@@ -228,7 +238,7 @@ public:
 	}
 
 private:
-	
+	int mandelbulb_factor;
 };
 
 

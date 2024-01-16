@@ -57,6 +57,8 @@ public:
     int m_Score{ 0 };
     int m_EnemiesLeft{ 0 };
 
+    std::shared_ptr<Layer>& get_layer() { return m_LayerStack[m_ActiveLayer]; }
+
     int get_score() { return m_Score; }
     int get_enemies_left() { return m_EnemiesLeft; }
     void set_enemies_left(int enemies) { m_EnemiesLeft = enemies; }
@@ -120,7 +122,11 @@ private:
 
     void init_imgui();
 
+ //   void generate_perlin_noise();
+
 private:
+
+    float heightMap[800][800];
 
     std::vector<std::shared_ptr<Renderable>> m_Attackers;
 

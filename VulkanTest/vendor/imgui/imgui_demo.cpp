@@ -5665,7 +5665,7 @@ static void ShowDemoWindowColumns()
         ImGui::Columns(10);
 
         // Also demonstrate using clipper for large vertical lists
-        int ITEMS_COUNT = 2000;
+        int ITEMS_COUNT = 800;
         ImGuiListClipper clipper;
         clipper.Begin(ITEMS_COUNT);
         while (clipper.Step())

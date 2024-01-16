@@ -27,4 +27,6 @@ C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe Text
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe TextShader.frag -o TextShaderfrag.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ButtonShader.vert -o ButtonShadervert.spv
 C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ButtonShader.frag -o ButtonShaderfrag.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe DeerShader.vert -o DeerShadervert.spv
+C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe DeerShader.frag -o DeerShaderfrag.spv
 pause

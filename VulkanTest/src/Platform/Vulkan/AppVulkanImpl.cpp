@@ -74,6 +74,10 @@ void AppVulkanImpl::initialize_app()
    
     if (!isInitialized)
     {
+        if (layer->generate_perlin_noise())
+        {
+           // generate_perlin_noise();
+        }
         create_instance();
         setup_debug_messenger();
         create_surface();
@@ -1414,6 +1418,7 @@ void AppVulkanImpl::init_imgui()
         }, "ImGui");
 
 }
+
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 //--------------------------------HELPER METHODS--------------------------------------------------

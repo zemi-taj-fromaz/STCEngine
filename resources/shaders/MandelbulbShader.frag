@@ -10,6 +10,10 @@ layout (set = 3, binding = 0) uniform ParameterUBO {
     float totalTime;
 } ubo;
 
+layout (set = 4, binding = 0) uniform Parameter {
+    float factor;
+} mbulb;
+
 
 #define BOUNDING_RADIUS 1.1
 
@@ -19,7 +23,7 @@ layout (set = 3, binding = 0) uniform ParameterUBO {
 
 #define ir3 0.57735
 
-float mandelbulb(vec3 pos){
+float mandelbulb(vec3 pos, float factor){
     vec3 w = pos;
     float dr = 1.0,r;
     vec3 p,p2,p4;
@@ -28,7 +32,7 @@ float mandelbulb(vec3 pos){
     for (int i = 0; i < 10; i++){
         r = dot(w, w);
         if (r > 4.0) break;
-        dr =  pow(r, 3.5)*8.0*dr + 1.0;
+        dr =  pow(r, factor-1)*factor*dr + 1.0;
 
         p = w;
         p2 = w * w;
@@ -48,8 +52,8 @@ float mandelbulb(vec3 pos){
     return log(r)*sqrt(r)/dr;
 }
 
-float dist(vec3 p) {
-    return 0.385*mandelbulb(p);
+float dist(vec3 p, float factor) {
+    return 0.385*mandelbulb(p, factor);
 }
 
 bool bounding(in vec3 ro, in vec3 rd){
@@ -57,11 +61,11 @@ bool bounding(in vec3 ro, in vec3 rd){
     return dot(ro,ro) - b*b < BOUNDING_RADIUS * BOUNDING_RADIUS;
 }
 
-vec2 march(vec3 ro, vec3 rd){
+vec2 march(vec3 ro, vec3 rd, float factor){
     if (bounding(ro, rd)){
         float t = 0.72, d;
         for (int i = 0; i < 96; i++){
-            d = dist(ro + rd * t);
+            d = dist(ro + rd * t, factor);
             t += d;
 
             if (d < 0.002) return vec2(t, d);
@@ -72,11 +76,11 @@ vec2 march(vec3 ro, vec3 rd){
     return vec2(-1.0);
 }
 
-vec3 normall(vec3 p){
+vec3 normall(vec3 p, float factor){
     const float eps = 0.005;
-    return normalize(vec3(dist(p+vec3(eps,0,0))-dist(p-vec3(eps,0,0)),
-                          dist(p+vec3(0,eps,0))-dist(p-vec3(0,eps,0)),
-                          dist(p+vec3(0,0,eps))-dist(p-vec3(0,0,eps))));
+    return normalize(vec3(dist(p+vec3(eps,0,0), factor)-dist(p-vec3(eps,0,0), factor),
+                          dist(p+vec3(0,eps,0), factor)-dist(p-vec3(0,eps,0), factor),
+                          dist(p+vec3(0,0,eps), factor)-dist(p-vec3(0,0,eps), factor)));
 }
 
 
@@ -85,6 +89,7 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
 
+	float factor = mbulb.factor;
 	float theta = ubo.totalTime * 0.2;
     mat2 rot = mat2(+cos(theta), -sin(theta),
                     +sin(theta), +cos(theta));
@@ -98,7 +103,7 @@ void main() {
     vec3 ray_direction =  normalize(vec3(uv, 1.1));
 	ray_direction.xz *=rot;
 	
-	vec2 res = march(origin, ray_direction);
+	vec2 res = march(origin, ray_direction, factor);
 
 	
 	//vec3 color = normalize(vec3(sin(theta) + 1.0 / AO_MAGIC, cos(phi) + 1.0 / AO_MAGIC, sin(phi + theta) + 1.0 / AO_MAGIC));
@@ -109,22 +114,22 @@ void main() {
 	if (res.x > 0.0){
         vec3 end = origin + ray_direction * res.x;
 
-        vec3 norm = normall(end-ray_direction*0.001);
+        vec3 norm = normall(end-ray_direction*0.001, factor);
 
-        float ao = clamp((dist(end + norm * 0.02) - res.y) / 0.02, 0.0, 1.0);
+        float ao = clamp((dist(end + norm * 0.02, factor) - res.y) / 0.02, 0.0, 1.0);
        // norm.xz *= rrot;
 
         float m = clamp(dot(end, end), 0.0, BOUNDING_RADIUS) / BOUNDING_RADIUS;
         vec3 col = mix(COLOR1, COLOR2, m*m*m);
 		
         float d = max(dot(norm, vec3(-ir3)), 0.0);
-        vec3 light = col * ao + 0.2 * d + 0.4 * d*d*d*d*d*d*d*d;
+        vec3 light = col * ao + 0.2 * d + 0.4 * pow(d, 8);
 
         outColor = vec4(light, 1.0);
     } else {
         outColor = vec4(BACKGROUND - length(uv) / 4.0, 1.0);
-	discard;
+		discard;
     }
 
-    //outColor = vec4(color + sceneData.ambientColor.xyz, 1.0f);
+   // outColor = vec4(fragColor, 1.0);
 }

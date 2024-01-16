@@ -37,6 +37,7 @@ void Camera::set_field_of_view(float yoffset)
 void Camera::update_position(glm::vec3 position)
 {
     Position += position;
+    Position.y = Mesh::heightMap[Position.x][Position.z] + 5.0f;
     update_object(Position, this->Front);
 }
 

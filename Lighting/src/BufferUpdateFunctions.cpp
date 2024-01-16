@@ -4,7 +4,7 @@
 
 namespace Functions
 {
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> cameraUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> cameraUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		CameraBufferObject cbo{};
 		Camera camera = app->get_camera();
@@ -14,9 +14,11 @@ namespace Functions
 		cbo.proj[1][1] *= -1;
 		cbo.pos = glm::vec4(camera.Position, 1.0f);
 		memcpy(bufferMapped, &cbo, sizeof(cbo));
+		return true;
+
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> objectsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> objectsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		ObjectData* objectArray = (ObjectData*)bufferMapped;
 		auto& renderables = app->get_renderables();
@@ -51,9 +53,11 @@ namespace Functions
 			objectArray[i].Model = renderables[i]->get_model_matrix();
 			objectArray[i].Color = renderables[i]->get_color();
 		}
+		return true;
+
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> particlesUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> particlesUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 
 		auto deltaTime = app->get_delta_time();
@@ -72,34 +76,41 @@ namespace Functions
 				continue;
 			}
 		}
+		return true;
 
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> deltaTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> deltaTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		auto deltaTime = app->get_delta_time();
 		ParameterUBO ubo{};
 		ubo.deltaTime = deltaTime;
 		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
+		return true;
+
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> totalTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> totalTimeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		auto totalTime = app->get_total_time();
 		ParameterUBO ubo{};
 		ubo.deltaTime = totalTime;
 		memcpy(bufferMapped, &ubo, sizeof(ParameterUBO));
+		return true;
+
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		Resolution ubo{};
 		ubo.resolution = app->get_resolution();
 
 		memcpy(bufferMapped, &ubo, sizeof(Resolution));
+		return true;
+
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> pointLightsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> pointLightsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 
 		PointLight* pointLightsArray = (PointLight*)bufferMapped;
@@ -118,12 +129,14 @@ namespace Functions
 			pointLightsArray[i].clq =			glm::vec4(lightProperties->CLQ, 1.0f);
 
 			pointLightsArray[i].size = static_cast<uint32_t>(pointLights.size());
+		
 
 		}
+		return true;
 	};
 
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> flashLightsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> flashLightsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		
 		FlashLight* flashLightsArray = (FlashLight*)bufferMapped;
@@ -147,6 +160,7 @@ namespace Functions
 			flashLightsArray[i].outerCutoff = lightProperties->outerCutoff;
 
 			flashLightsArray[i].size = static_cast<uint32_t>(flashLights.size() + 1);
+		
 
 			//std::cout << "Position " << flashLightsArray[i].position.x << "," << flashLightsArray[i].position.y << "," << flashLightsArray[i].position.z << std::endl;
 
@@ -168,15 +182,18 @@ namespace Functions
 			flashLightsArray[i].outerCutoff = lightProperties->outerCutoff;
 
 			flashLightsArray[i].size = static_cast<uint32_t>(flashLights.size() + 1);
+		
+
 		}
+		return true;
 	};
 
-	std::function<void(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		GlobalLight* globalLightObj = (GlobalLight*)bufferMapped;
 		auto& globalLight = app->get_global_light();
 
-		if (!globalLight) return;
+		if (!globalLight) return true;
 
 		auto& lightProperties = globalLight->get_light_properties();
 
@@ -185,6 +202,7 @@ namespace Functions
 		globalLightObj->specColor = glm::vec4(lightProperties->specularLight, 1.0f);
 		globalLightObj->direction = glm::vec4(lightProperties->direction, 1.0f);
 
+		return true;
 	};
 
 
