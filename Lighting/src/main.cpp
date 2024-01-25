@@ -109,7 +109,7 @@ public:
 			this->m_ComputeGraphicsPipeline = std::make_shared<Pipeline>(pipelineLayoutGraphics, computeShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 			this->m_ComputeGraphicsPipeline->PolygonMode = VK_POLYGON_MODE_POINT;
 			this->m_ComputeGraphicsPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-			create_pipelines({ texturedPipeline, plainPipeline, illuminatePipeline, skyboxPipeline, particlesPipeline, cubemapPipeline, mandelbulbPipeline, linePipeline // , PBRPipeline
+			create_pipelines({ texturedPipeline, skyboxPipeline, particlesPipeline // , PBRPipeline
 	});//, m_ComputePipeline, m_ComputeGraphicsPipeline});
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
@@ -131,7 +131,7 @@ public:
 
 			Mesh jetMesh("fighter_jet.obj");
 			Mesh box("skybox.obj");
-			Mesh particle("texture - Copy.obj");
+			Mesh particle("square.obj");
 			Mesh catMesh("cat.obj");
 			Mesh square("texture - Copy.obj");
 			Mesh sphere("sphere.OBJ");
@@ -222,7 +222,7 @@ public:
 		//meshWrappers.push_back(line4);
 		//meshWrappers.push_back(line5);
 		//meshWrappers.push_back(line6);
-		meshWrappers.push_back(mandelbulb);
+	//	meshWrappers.push_back(mandelbulb);
 		for (int i = 0; i < 40; i++)
 		{
 		}
