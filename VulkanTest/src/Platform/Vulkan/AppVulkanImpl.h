@@ -234,7 +234,7 @@ private:
     VkDevice m_Device;
     VkSurfaceKHR m_Surface;
     
-    const std::vector<const char*> m_ValidationLayers = {};
+    const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation"};
     const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     VkQueue m_GraphicsQueue;
     VkQueue m_ComputeQueue;
