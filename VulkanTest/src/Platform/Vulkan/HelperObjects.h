@@ -169,6 +169,31 @@ struct UploadContext {
     VkCommandBuffer CommandBuffer;
 };
 
+struct WaveData
+{
+    WaveData(float wavelength, float amplitude, float speed, float direction, float steepness, glm::vec2 origin) 
+    {
+        this->frequency = 2.0f / wavelength;
+        this->amplitude = amplitude;
+        this->phase = speed * glm::sqrt(9.8f * 2.0f * glm::pi<float>() / wavelength);;
+
+        this->steepness = steepness;
+        
+        this->origin = origin;
+        float directionInRadians = glm::radians(direction);
+        this->direction = glm::normalize( glm::vec2( glm::cos(directionInRadians), glm::sin(directionInRadians)) );
+    }
+
+
+    glm::vec2 direction;
+    glm::vec2 origin;
+    float frequency;
+    float amplitude;
+    float phase;
+    float steepness;
+};
+
+
 
 
 

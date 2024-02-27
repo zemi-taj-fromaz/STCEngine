@@ -81,6 +81,7 @@ public:
     std::vector<std::shared_ptr<Renderable>>& get_attackers() { return m_Attackers; }
     std::vector<std::shared_ptr<RenderLight>>& get_point_lights() { return m_PointLights; }
     std::vector<std::shared_ptr<RenderLight>>& get_flash_lights() { return m_FlashLights; }
+    std::vector<std::shared_ptr<WaveData>>& get_waves() { return m_Waves; }
     std::shared_ptr<RenderLight>& get_global_light() { return m_GlobalLight; }
     std::shared_ptr<RenderLight>& get_camera_light() { return m_CameraLight; }
     void create_mesh(MeshWrapper& mesh);
@@ -199,6 +200,7 @@ private:
 
     std::vector<std::shared_ptr<RenderLight>> m_PointLights;
     std::vector<std::shared_ptr<RenderLight>> m_FlashLights;
+    std::vector<std::shared_ptr<WaveData>> m_Waves;
     std::shared_ptr<RenderLight> m_GlobalLight;
     std::shared_ptr<RenderLight> m_CameraLight;
 

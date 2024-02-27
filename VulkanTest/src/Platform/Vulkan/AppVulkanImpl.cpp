@@ -892,6 +892,8 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
 
     std::vector<std::shared_ptr<MeshWrapper>>& meshStructs = layer->get_mesh();
 
+    m_Waves = layer->get_waves();
+
     for (auto& meshStruct : meshStructs)
     {
 

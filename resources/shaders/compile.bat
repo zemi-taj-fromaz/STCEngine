@@ -1,32 +1,46 @@
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe IlluminateShader.vert -o IlluminateShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe IlluminateShader.frag -o IlluminateShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe PlainShader.vert -o PlainShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe PlainShader.frag -o PlainShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ParticleShader.vert -o ParticleShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ParticleShader.frag -o ParticleShaderfrag.spv
-c:/devs/gameengine/vulkan/vulkantest/libs/vulkansdk/1.3.261.0/bin/glslc.exe skyboxshader.vert -o skyboxshadervert.spv
-c:/devs/gameengine/vulkan/vulkantest/libs/vulkansdk/1.3.261.0/bin/glslc.exe skyboxshader.frag -o skyboxshaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe TextureShader.vert -o TextureShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe TextureShader.frag -o TextureShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe GridShader.vert -o GridShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe GridShader.frag -o GridShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe CubemapShader.vert -o CubemapShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe CubemapShader.frag -o CubemapShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ComputeShader.comp -o ComputeShadercomp.spv 
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ComputeShader.vert -o ComputeShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ComputeShader.frag -o ComputeShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe MandelbulbShader.vert -o MandelbulbShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe MandelbulbShader.frag -o MandelbulbShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe PBRShader.vert -o PBRShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe PBRShader.frag -o PBRShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe AimShader.vert -o AimShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe AimShader.frag -o AimShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ReloadShader.vert -o ReloadShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ReloadShader.frag -o ReloadShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe TextShader.vert -o TextShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe TextShader.frag -o TextShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ButtonShader.vert -o ButtonShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe ButtonShader.frag -o ButtonShaderfrag.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe DeerShader.vert -o DeerShadervert.spv
-C:/devs/gameengine/vulkan/VulkanTest/libs/VulkanSDK/1.3.261.0/Bin/glslc.exe DeerShader.frag -o DeerShaderfrag.spv
+@echo off
+setlocal
+
+rem Relative path to the Vulkan SDK glslc executable
+set "glslcPath=..\..\libs\VulkanSDK\1.3.261.0\Bin\glslc.exe"
+
+echo "...compiling shaders"
+
+rem Compile each shader with relative paths
+"%glslcPath%" IlluminateShader.vert -o IlluminateShadervert.spv
+"%glslcPath%" IlluminateShader.frag -o IlluminateShaderfrag.spv
+"%glslcPath%" PlainShader.vert -o PlainShadervert.spv
+"%glslcPath%" PlainShader.frag -o PlainShaderfrag.spv
+"%glslcPath%" ParticleShader.vert -o ParticleShadervert.spv
+"%glslcPath%" ParticleShader.frag -o ParticleShaderfrag.spv
+"%glslcPath%" skyboxshader.vert -o skyboxshadervert.spv
+"%glslcPath%" skyboxshader.frag -o skyboxshaderfrag.spv
+"%glslcPath%" TextureShader.vert -o TextureShadervert.spv
+"%glslcPath%" TextureShader.frag -o TextureShaderfrag.spv
+"%glslcPath%" GridShader.vert -o GridShadervert.spv
+"%glslcPath%" GridShader.frag -o GridShaderfrag.spv
+"%glslcPath%" CubemapShader.vert -o CubemapShadervert.spv
+"%glslcPath%" CubemapShader.frag -o CubemapShaderfrag.spv
+"%glslcPath%" ComputeShader.comp -o ComputeShadercomp.spv 
+"%glslcPath%" ComputeShader.vert -o ComputeShadervert.spv
+"%glslcPath%" ComputeShader.frag -o ComputeShaderfrag.spv
+"%glslcPath%" MandelbulbShader.vert -o MandelbulbShadervert.spv
+"%glslcPath%" MandelbulbShader.frag -o MandelbulbShaderfrag.spv
+"%glslcPath%" PBRShader.vert -o PBRShadervert.spv
+"%glslcPath%" PBRShader.frag -o PBRShaderfrag.spv
+"%glslcPath%" AimShader.vert -o AimShadervert.spv
+"%glslcPath%" AimShader.frag -o AimShaderfrag.spv
+"%glslcPath%" ReloadShader.vert -o ReloadShadervert.spv
+"%glslcPath%" ReloadShader.frag -o ReloadShaderfrag.spv
+"%glslcPath%" TextShader.vert -o TextShadervert.spv
+"%glslcPath%" TextShader.frag -o TextShaderfrag.spv
+"%glslcPath%" ButtonShader.vert -o ButtonShadervert.spv
+"%glslcPath%" ButtonShader.frag -o ButtonShaderfrag.spv
+"%glslcPath%" DeerShader.vert -o DeerShadervert.spv
+"%glslcPath%" DeerShader.frag -o DeerShaderfrag.spv
+"%glslcPath%" OceanShader.vert -o OceanShadervert.spv
+"%glslcPath%" OceanShader.frag -o OceanShaderfrag.spv
+
+echo "Compilation Done"
+
 pause

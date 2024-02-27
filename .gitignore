@@ -1,4 +1,6 @@
 # Binaries
+Bin/
+../x64/
 **/bin/
 bin-int/
 Intermediates/

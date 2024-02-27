@@ -96,6 +96,7 @@ public:
 	std::vector<std::shared_ptr<Pipeline>>& get_pipelines() { return m_Pipelines; }
 	std::vector<std::shared_ptr<Texture>>& get_textures() { return m_Textures; }
 	std::vector<std::shared_ptr<MeshWrapper>>& get_mesh() { return m_Mesh; }
+	std::vector<std::shared_ptr<WaveData>>& get_waves() { return m_Waves; }
 	std::vector<Particles>& get_particles() { return m_Particles; }
 	std::shared_ptr<Pipeline>& get_compute_pipeline() { return m_ComputePipeline; }
 	std::shared_ptr<Pipeline>& get_compute_graphics_pipeline() { return m_ComputeGraphicsPipeline; }
@@ -169,6 +170,12 @@ protected:
 	//	m_DeerTex = m_Textures[3];
 	}
 
+	void create_waves(std::vector<std::shared_ptr<WaveData>> waves)
+	{
+		this->m_Waves = waves;
+		//	m_DeerTex = m_Textures[3];
+	}
+
 	void create_mesh(std::vector<std::shared_ptr<MeshWrapper>> mesh)
 	{
 		m_Mesh = mesh;
@@ -202,5 +209,6 @@ private:
 
 	std::vector<Particles> m_Particles;
 	std::vector<std::shared_ptr<Texture>> m_Textures;
+	std::vector<std::shared_ptr<WaveData>> m_Waves;
 };
 
