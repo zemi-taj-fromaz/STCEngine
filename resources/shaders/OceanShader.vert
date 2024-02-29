@@ -72,6 +72,8 @@ void main() {
    float dx = 0.0f;
    float dz = 0.0f;
    
+   float prevDev = 0.0f;
+   
    for (int i = 0; i < waveBuffer.waves.length(); ++i) {
    
         WaveData currentWave = waveBuffer.waves[i];
@@ -80,18 +82,29 @@ void main() {
 		
 		float xz = inPosition.x * direction.x + inPosition.z * direction.y;
 		
-		height += sin( currentWave.frequency * xz + ubo.totalTime * currentWave.phase ) * currentWave.amplitude ;
+		float sinWave = sin( currentWave.frequency * (xz + prevDev) + ubo.totalTime * currentWave.phase );
+		float cosWave = cos( currentWave.frequency * (xz + prevDev) + ubo.totalTime * currentWave.phase );
 		
-		dx += currentWave.frequency * currentWave.amplitude * direction.x * cos( currentWave.frequency * xz + ubo.totalTime * currentWave.phase);
-		dz += currentWave.frequency * currentWave.amplitude * direction.y * cos( currentWave.frequency * xz + ubo.totalTime * currentWave.phase); 
+		//float wave = currentWave.amplitude * exp(sinWave - 1);
+		float wave = currentWave.amplitude * sinWave;
+		
+		height +=  wave;
+		
+		//float d = currentWave.frequency * cosWave * wave;
+		float d = currentWave.frequency * currentWave.amplitude * cosWave;
+		 
+		dx += d * direction.x;
+		dz += d * direction.y; 
+		
+		prevDev = d * direction.x;
 	
         
         // Do something with the current object
         // For example, you can access its properties like currentObject.position, currentObject.rotation, etc.
    }
    
-   vec3 Tangent = vec3(1.0, 0.0, dx);
-   vec3 Bitangent = vec3(0.0, 1.0, dz);
+   vec3 Tangent = normalize(vec3(1.0, 0.0, dx));
+   vec3 Bitangent = normalize(vec3(0.0, 1.0, dz));
    
    normal = normalize( cross(Tangent, Bitangent) );
 	

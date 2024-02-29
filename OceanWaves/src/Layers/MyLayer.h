@@ -81,13 +81,13 @@ public:
 
 
 			// Procedural Settings
-		int waveCount = 8;
-		float medianWavelength = 1.0f;
+		int waveCount = 32;
+		float medianWavelength = 2.0f;
 		float wavelengthRange = 1.0f;
 		float medianDirection = 0.0f;
-		float directionalRange = 30.0f;
-		float medianAmplitude = 0.5f;
-		float medianSpeed = 1.0f;
+		float directionalRange = 90.0f;
+		float medianAmplitude = 1.0f;
+		float medianSpeed = 0.5f;
 		float speedRange = 0.1f;
 		float steepness = 0.0f;
 
@@ -113,15 +113,22 @@ public:
 
 		std::vector<std::shared_ptr<WaveData>> waveData;
 		
+		float wavelength = 6.0f;
+		float amplitude = 0.6f;
+
+		float factor = 0.2;
 		
 		for (int wi = 0; wi < waveCount; ++wi) {
-			float wavelength = wavelengthDis(gen);
+			//float wavelength = wavelengthDis(gen);
 			float direction = directionDis(gen);
-			float amplitude = wavelength * ampOverLen;
+			//float amplitude = wavelength * ampOverLen;
 			float speed = speedDis(gen);
 			glm::vec2 origin = glm::vec2( originDis(gen), originDis(gen));
 
 			waveData.push_back(std::make_shared<WaveData>(wavelength, amplitude, speed, direction, steepness, origin));
+
+			wavelength *=  1/(1.0f + factor);
+			amplitude *= (1.0f - factor);
 		}
 
 		create_waves(waveData);
@@ -143,7 +150,7 @@ public:
 
 		auto ocean = std::make_shared<MeshWrapper>(oceanPipeline, plain);
 		ocean->illuminated = true;
-		ocean->color = glm::vec4(0.1f, 0.0f, 1.0f, 1.0f);
+		ocean->color = glm::vec4(0.0f, 0.1569f, 0.3922f, 1.0f);
 
 
 		auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-1.0f, -1.0f, -1.0f));
