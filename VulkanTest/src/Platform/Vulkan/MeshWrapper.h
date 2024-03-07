@@ -19,6 +19,7 @@ struct MeshWrapper
 	std::shared_ptr<Pipeline> pipeline;
 	Mesh mesh;
 	std::vector<std::shared_ptr<Texture>> textures;
+	std::vector<std::shared_ptr<Texture>> image_fields;
 	std::optional<std::string> animated{ std::nullopt };
 	bool illuminated{ false };
 	bool isSkybox{ false };

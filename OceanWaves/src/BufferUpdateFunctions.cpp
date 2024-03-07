@@ -13,7 +13,7 @@ namespace Functions
 		Camera camera = app->get_camera();
 		auto swapChainExtent = app->get_swapchain_extent();
 		cbo.view = glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
-		cbo.proj = glm::perspective(glm::radians(camera.Fov), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 500.0f);
+		cbo.proj = glm::perspective(glm::radians(camera.Fov), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
 		cbo.proj[1][1] *= -1;
 		cbo.pos = glm::vec4(camera.Position, 1.0f);
 		memcpy(bufferMapped, &cbo, sizeof(cbo));
@@ -144,5 +144,15 @@ namespace Functions
 			return true;
 		};
 
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> heightMapDataUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+		HeightMapData* globalLightObj = (HeightMapData*)bufferMapped;
+		float time = app->get_delta_time();
 
+		globalLightObj->delta_time = time;
+		globalLightObj->ocean_size = 512.0f;
+		globalLightObj->resolution = 256.0f;
+
+		return true;
+	};
 }

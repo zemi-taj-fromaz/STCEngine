@@ -85,6 +85,11 @@ public:
     std::shared_ptr<RenderLight>& get_global_light() { return m_GlobalLight; }
     std::shared_ptr<RenderLight>& get_camera_light() { return m_CameraLight; }
     void create_mesh(MeshWrapper& mesh);
+    float jonswap(int N, double omega, float fetch);
+
+    glm::vec2 fourier_amplitude(glm::vec2 k);
+
+    glm::vec2 wave_field_realization(glm::vec2 k, float time);
 
 private:
 
@@ -103,6 +108,7 @@ private:
     void create_depth_resources();
 
     void create_texture_image(Texture& texture);
+    void create_image_field(Texture& texture);
     void create_cubemap(Texture& texture);
    // void create_texture_image_view();
     void create_texture_sampler();
@@ -193,7 +199,7 @@ private:
     void create_mesh_obj(Mesh& mesh, bool illuminated, std::shared_ptr<Texture> texture, std::optional<std::string> animation = std::nullopt);
     void create_mesh(std::vector<Vertex> vertices, Mesh& mesh, bool illuminated, std::optional<int> textureIndex, std::optional<std::string> animation);
 
-    VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView);
+    VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler, VkImageView imageView, VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer buffer, VkDeviceSize size,VkDeviceSize offset = 0);
 
 private:

@@ -1,0 +1,82 @@
+#version 460
+
+const float PI = 3.14159265359;
+const float g = 9.81;
+
+#define OWGE_FFT_SIZE 216 // Define OWGE_FFT_SIZE here
+#define OWGE_FFT_LOG_SIZE 8 // Define OWGE_FFT_LOG_SIZE here
+
+const uint OWGE_FFT_SIZE_BITS = 32u;
+const uint OWGE_FFT_LOG_SIZE_BITS = 5u;
+
+
+layout(set = 0, binding = 0) uniform BufferObject {
+	float deltaTime;
+} bo;
+
+layout(r32f,set = 1, binding = 0) uniform image2D imageIn;
+layout(r32f,set = 2, binding = 0) uniform image2D imageOut;
+
+shared vec2 ping_pong_buffer[2][OWGE_FFT_SIZE];
+
+void butterfly(uint thread_idx, uint iteration, out uvec2 twiddle_indices, out vec2 twiddle_factor) {
+    uint butterfly_size = 1u << iteration;
+    uint butterfly_half_size = butterfly_size >> 1u;
+    uint butterfly_size_relative_idx = thread_idx % butterfly_size;
+    uint butterfly_start_idx = butterfly_size * (thread_idx / butterfly_size);
+
+    uint base_idx = butterfly_start_idx + (butterfly_size_relative_idx % butterfly_half_size);
+    uint lower_idx = base_idx;
+    uint upper_idx = base_idx + butterfly_half_size;
+    twiddle_indices = uvec2(lower_idx, upper_idx);
+
+    float arg = -2.0 * PI * float(butterfly_size_relative_idx) / float(butterfly_size);
+    twiddle_factor = vec2(cos(arg), sin(arg));
+}
+
+vec2 complex_mul(vec2 a, vec2 b) {
+    return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+uint reverseBits(uint n) {
+    uint result = 0;
+    for (int i = 0; i < 32; ++i) {
+        result <<= 1;
+        result |= n & 1;
+        n >>= 1;
+    }
+    return result;
+}
+
+vec2 reduceTo8Bits(vec2 a) {
+    // Extract the most significant 8 bits of each component
+    float reducedX = float((uintBitsToFloat(floatBitsToUint(a.x) & 0xFF)) / 255.0);
+    float reducedY = float((uintBitsToFloat(floatBitsToUint(a.y) & 0xFF)) / 255.0);
+    return vec2(reducedX, reducedY);
+}
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+void main() {
+    int ping_pong = 0;
+    ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+	
+    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE_BITS)] = imageLoad(imageIn, texpos).xy;
+
+    memoryBarrierShared();
+    
+    for (uint i = 0u; i < OWGE_FFT_LOG_SIZE; ++i) {
+        uvec2 twiddle_indices;
+        vec2 twiddle_factor;
+        butterfly(gl_GlobalInvocationID.x, i, twiddle_indices, twiddle_factor);
+        ping_pong_buffer[(ping_pong + 1) % 2][gl_GlobalInvocationID.x] =
+            ping_pong_buffer[ping_pong][twiddle_indices.x] +
+            complex_mul(ping_pong_buffer[ping_pong][twiddle_indices.y], twiddle_factor);
+        
+        memoryBarrierShared();
+        ping_pong = (ping_pong + 1) % 2;
+    }
+	vec2 val = ping_pong_buffer[ping_pong][gl_GlobalInvocationID.x].xy;
+	vec4 encodedValue = vec4(val.x, val.y, 0.0, 1.0);
+    imageStore(imageOut, texpos, encodedValue);
+}

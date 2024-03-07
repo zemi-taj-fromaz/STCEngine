@@ -197,9 +197,21 @@ void Renderable::bind_mesh(VkCommandBuffer& commandBuffer)
 void Renderable::bind_texture(VkCommandBuffer& commandBuffer, uint32_t imageIndex)
 {
     int texturesSize = static_cast<int>(this->MeshHandle->textures.size());
+    int imageFieldsSize = static_cast<int>(this->MeshHandle->image_fields.size());
     for (int i = 0; i < texturesSize; ++i)
     {
         std::shared_ptr<Texture>& texture = this->MeshHandle->textures[i];
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, static_cast<uint32_t>(this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size()) - texturesSize + i, 1, &texture->descriptorSets[imageIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, static_cast<uint32_t>(this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size()) - texturesSize - imageFieldsSize + i, 1, &texture->descriptorSets[imageIndex], 0, nullptr);
+    }
+}
+
+void Renderable::bind_image_fields(VkCommandBuffer& commandBuffer, uint32_t imageIndex)
+{
+    int descriptorSize = static_cast<uint32_t>(this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size());
+    int imageFieldsSize = static_cast<int>(this->MeshHandle->image_fields.size());
+    for (int i = 0; i < imageFieldsSize; ++i)
+    {
+        std::shared_ptr<Texture>& image_field = this->MeshHandle->image_fields[i];
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, descriptorSize - imageFieldsSize + i, 1, &image_field->descriptorSets[imageIndex], 0, nullptr);
     }
 }

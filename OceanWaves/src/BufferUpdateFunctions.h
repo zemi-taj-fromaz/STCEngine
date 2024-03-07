@@ -13,5 +13,6 @@ namespace Functions
 	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc;
 	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> mandelbulbFactorUpdateFunc;
 	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> heightMapDataUpdateFunc;
 
 }						 

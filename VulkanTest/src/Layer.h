@@ -60,6 +60,7 @@ struct Pipeline
 	VkPolygonMode PolygonMode{ VK_POLYGON_MODE_FILL };
 	VkPrimitiveTopology Topology{ VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST };
 	VkPipeline pipeline;
+	std::vector<std::shared_ptr<Texture>> ImageFields;
 };
 
 
@@ -95,6 +96,7 @@ public:
 	std::vector<std::shared_ptr<PipelineLayout>>& get_pipeline_layouts() { return m_PipelineLayouts; }
 	std::vector<std::shared_ptr<Pipeline>>& get_pipelines() { return m_Pipelines; }
 	std::vector<std::shared_ptr<Texture>>& get_textures() { return m_Textures; }
+	std::vector<std::shared_ptr<Texture>>& get_image_fields() { return m_ImageFields; }
 	std::vector<std::shared_ptr<MeshWrapper>>& get_mesh() { return m_Mesh; }
 	std::vector<std::shared_ptr<WaveData>>& get_waves() { return m_Waves; }
 	std::vector<Particles>& get_particles() { return m_Particles; }
@@ -122,7 +124,7 @@ public:
 	{
 		for (std::shared_ptr<Descriptor>& descriptor : m_Descriptors)
 		{
-			if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+			if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
 				descriptor->shaderFlags != VK_SHADER_STAGE_COMPUTE_BIT
 				)
 			{
@@ -170,6 +172,17 @@ protected:
 	//	m_DeerTex = m_Textures[3];
 	}
 
+	void create_image_fields(std::vector<std::shared_ptr<Texture>> textures)
+	{
+		this->m_ImageFields = textures;
+		for(auto field : m_ImageFields)
+		{
+			field->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		}
+		
+		//	m_DeerTex = m_Textures[3];
+	}
+
 	void create_waves(std::vector<std::shared_ptr<WaveData>> waves)
 	{
 		this->m_Waves = waves;
@@ -209,6 +222,7 @@ private:
 
 	std::vector<Particles> m_Particles;
 	std::vector<std::shared_ptr<Texture>> m_Textures;
+	std::vector<std::shared_ptr<Texture>> m_ImageFields;
 	std::vector<std::shared_ptr<WaveData>> m_Waves;
 };
 

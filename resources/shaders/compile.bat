@@ -40,6 +40,9 @@ rem Compile each shader with relative paths
 "%glslcPath%" DeerShader.frag -o DeerShaderfrag.spv
 "%glslcPath%" OceanShader.vert -o OceanShadervert.spv
 "%glslcPath%" OceanShader.frag -o OceanShaderfrag.spv
+"%glslcPath%" FFTOceanShader.vert -o FFTOceanShadervert.spv
+"%glslcPath%" FFTOceanShader.frag -o FFTOceanShaderfrag.spv
+"%glslcPath%" FFTShader.comp -o FFTShadercomp.spv
 
 echo "Compilation Done"
 

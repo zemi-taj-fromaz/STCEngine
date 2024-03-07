@@ -15,6 +15,13 @@ struct GlobalLight
     glm::vec4 direction;
 };
 
+struct HeightMapData
+{
+     float delta_time;
+     int ocean_size;
+     int resolution;
+};
+
 struct WindowDims
 {
     uint32_t W;

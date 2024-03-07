@@ -41,6 +41,8 @@ public:
     void bind_mesh(VkCommandBuffer& commandBuffer);
     void bind_texture(VkCommandBuffer& commandBuffer, uint32_t imageIndex);
 
+    void bind_image_fields(VkCommandBuffer& commandBuffer, uint32_t imageIndex);
+
     glm::vec3& get_position() { return Position; }
     glm::vec3& get_direction() { return Direction; }
     glm::mat4& get_model() { return Model; }

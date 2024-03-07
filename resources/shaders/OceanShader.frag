@@ -51,8 +51,8 @@ void main() {
 	
 	//vec4 reflectedColor = texture(cubeSampler, reflectedVector);
 	
-    outColor = vec4(result, 1.0f);
+    //outColor = vec4(result, 1.0f);
 	//outColor = mix(outColor, reflectedColor, 0.8);
 
-    //outColor = vec4(fragColor,1.0f);
+    outColor = vec4(fragColor,1.0f);
 }

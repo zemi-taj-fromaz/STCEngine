@@ -70,7 +70,6 @@ void AppVulkanImpl::initialize_app()
     layer->clear_additional();
     layer->set_callbacks(m_Window);
     s_ImGuiEnabled = layer->imguiEnabled;
-
    
     if (!isInitialized)
     {
@@ -113,8 +112,6 @@ void AppVulkanImpl::initialize_app()
     isInitialized = true;
     time = (float)glfwGetTime();
     initialTime = (float)glfwGetTime();
-    
-
 }
 
 void AppVulkanImpl::main_loop()
@@ -127,11 +124,10 @@ void AppVulkanImpl::main_loop()
     {
         ImGuiStyle* style = &ImGui::GetStyle();
         style->Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
-    
     }
 
-    while (!glfwWindowShouldClose(m_Window)) {
-
+    while (!glfwWindowShouldClose(m_Window)) 
+    {
         auto layer = m_LayerStack[m_ActiveLayer];
         
         float actionTimer = layer->get_action_timer();
@@ -687,7 +683,19 @@ void AppVulkanImpl::create_depth_resources()
 void AppVulkanImpl::create_texture_image(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels;
+    if (texture.Filename.empty()) 
+    {
+        texWidth = texture.Width;
+        texHeight = texture.Width;
+        texChannels = 4;
+
+        pixels = texture.GenerateTexture(texWidth, texHeight, texChannels);
+    }
+    else
+    {
+        pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    }
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if (!pixels) {
@@ -695,18 +703,6 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
     }
 
     VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;// = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
-    //if (texChannels == 4)
-    //{
-    //    format = VK_FORMAT_R8G8B8A8_SRGB;
-    //}
-    //else if (texChannels == 3)
-    //{
-    //    format = VK_FORMAT_R8G8B8_SRGB;
-    //}
-    //else if (texChannels == 1)
-    //{
-    //    format = VK_FORMAT_R8_SRGB;
-    //}
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -740,6 +736,57 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 
 }
 
+void AppVulkanImpl::create_image_field(Texture& texture)
+{
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels;
+
+    texWidth = texture.Width;
+    texHeight = texture.Width;
+    texChannels = 4;
+
+    pixels = texture.GenerateTexture(texWidth, texHeight, texChannels);
+
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+    if (!pixels) {
+        throw std::runtime_error("failed to load texture image!");
+    }
+
+    VkFormat format = VK_FORMAT_R8G8B8A8_UINT;// = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    create_buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(m_Device, stagingBufferMemory, 0, imageSize, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(m_Device, stagingBufferMemory);
+
+    stbi_image_free(pixels);
+
+    create_image(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, texture.Image, texture.Memory);
+
+    transition_image_layout(texture.Image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    copy_buffer_to_image(stagingBuffer, texture.Image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    //transition_image_layout(texture.Image, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_MAX_ENUM);
+
+    vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
+    vkFreeMemory(m_Device, stagingBufferMemory, nullptr); 
+
+    texture.ImageView = create_image_view(texture.Image, format, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    m_DeletionQueue.push_function([=]() {
+        vkDestroyImage(m_Device, texture.Image, nullptr);
+        vkFreeMemory(m_Device, texture.Memory, nullptr);
+        vkDestroyImageView(m_Device, texture.ImageView, nullptr);
+        }, "Texture");
+
+}
+ 
 void AppVulkanImpl::create_cubemap(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
@@ -820,6 +867,7 @@ void AppVulkanImpl::create_texture_sampler()
     samplerInfo.anisotropyEnable = VK_FALSE;
 
     VkPhysicalDeviceProperties properties{};
+
     vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
 
     samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
@@ -845,6 +893,69 @@ void AppVulkanImpl::create_mesh(MeshWrapper& mesh)
     upload_mesh(mesh.mesh);
     if (mesh.animated.has_value()) mesh.mesh.load_animation(mesh.animated.value());
 }
+
+//float AppVulkanImpl::jonswap(int N, double  omega, float fetch)
+//{
+//
+//
+//    float g = 9.81f;
+//
+//    float U_10 = 10; //wind speed in meters per second at a heigh of ten meters above the sea surface
+//    float fetch;
+//
+//    float alpha = 0.076f * pow( pow(U_10, 2) / (fetch * g) , 0.22f); // equilibrium range parameter
+//
+//    float omega_p = 22 * (g * g / pow((U_10 * fetch), 0.333f)); //angular frequency of the spectral peak
+//
+//    float gamma = 3.3f;
+//
+//    // Calculate the significant wave height
+//    double sigma = omega < omega_p ? 0.07 : 0.09; // Standard deviation for JONSWAP spectrum
+//  //  double omega_p = 2 * M_PI / Tp; // Peak angular frequency
+//
+//
+//    float beta = 1.25f;
+//
+//    double S = alpha * pow(g,2) / pow(omega, 5) * exp(- beta * pow(omega_p / omega, 4));
+//
+//    float r = exp(-pow(omega - omega_p, 2) / (2 * pow(sigma * omega_p, 2)));
+//
+//    float peakEnhancementFactor = pow(gamma, r);
+//
+//    float energy = S * peakEnhancementFactor;
+//
+//    return energy;
+//}
+//
+//glm::vec2 AppVulkanImpl::fourier_amplitude(glm::vec2 k)
+//{
+//    // Generate a random number from a normal distribution
+//    std::random_device rd;
+//    std::mt19937 gen(rd());
+//    std::normal_distribution<double> distribution(0.0, 1.0);
+//    double randNum = distribution(gen);
+//
+//    float omega = pow(9.81f * k.length(), 0.5f);
+//     
+//    float derivatives = 1.0f;
+//
+//    float directionalSpread = 1.0f;
+//
+//    float factor = 1 / pow(2, 0.5f) * pow(jonswap(256, omega, 200) * directionalSpread * derivatives, 0.5f);
+//    return glm::vec2(factor * distribution(gen), factor*distribution(gen) );
+//}
+//
+//glm::vec2 AppVulkanImpl::wave_field_realization(glm::vec2 k, float time)
+//{   
+//    glm::vec2 amplitude1 = fourier_amplitude(k);
+//    glm::vec2 amplitude2 = fourier_amplitude(-k);
+//
+//    float omega = pow(9.81f * k.length(), 0.5f);
+//
+//    float height = amplitude1.x * cos(omega * time) - amplitude1.y * sin(omega * time) + amplitude2.x * cos(omega * time) + amplitude2.y * sin(omega * time);
+//
+//    return glm::vec2(factor * distribution(gen), factor * distribution(gen));
+//}
 
 //rename to create_mesh
 void AppVulkanImpl::create_mesh_obj(Mesh& mesh, bool illuminated, std::shared_ptr<Texture> texture, std::optional<std::string> animation)
@@ -888,6 +999,13 @@ void AppVulkanImpl::load_model(std::shared_ptr<Layer>& layer)
         {
             create_texture_image(*texture);
         }
+    }
+
+    //INITIALIZE IMAGE FIELDS
+    auto& image_fields = layer->get_image_fields();
+    for (auto& image_field : image_fields)
+    {
+        create_image_field(*image_field);
     }
 
     std::vector<std::shared_ptr<MeshWrapper>>& meshStructs = layer->get_mesh();
@@ -963,7 +1081,7 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
     for (auto& descriptor : descriptors)
     {
 
-        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER || descriptor->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
         {
             continue;
         }
@@ -1022,11 +1140,11 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
 
 }
 
-VkDescriptorImageInfo AppVulkanImpl::create_descriptor_image_info(VkSampler sampler, VkImageView imageView) {
+VkDescriptorImageInfo AppVulkanImpl::create_descriptor_image_info(VkSampler sampler, VkImageView imageView, VkImageLayout layout) {
     VkDescriptorImageInfo imageInfo;
     imageInfo.sampler = sampler;
     imageInfo.imageView = imageView;
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageLayout = layout;
 
     return imageInfo;
 };
@@ -1048,7 +1166,8 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 50 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 50 },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 50 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 50 }
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 50 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 50 }
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {};
@@ -1066,16 +1185,31 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
 
     auto& descriptors = layer->get_descriptors();
     auto& textures = layer->get_textures();
+    auto& imageFields = layer->get_image_fields();
 
-    bool textureInitialized = false;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////// POPRAVII SAMPLER
+
     for (auto& descriptor : descriptors)
     {
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts(MAX_FRAMES_IN_FLIGHT, descriptor->layout);
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = create_descriptor_alloc_info(descriptorSetLayouts.data(), descriptorSetLayouts.size());
 
-        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && !textureInitialized)
+        if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
         {
-            textureInitialized = true;
             for (auto& texture : textures)
             {
                 texture->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1084,8 +1218,17 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
                     throw std::runtime_error("failed to allocate descriptor sets!");
                 }
             }
-        }
-        else
+        } else if(descriptor->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+        {
+            for (auto& imageField : imageFields)
+            {
+                imageField->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+                if (vkAllocateDescriptorSets(m_Device, &descriptorSetAllocInfo, imageField->descriptorSets.data()) != VK_SUCCESS) {
+                    throw std::runtime_error("failed to allocate descriptor sets!");
+                }
+            }
+        } else
         {
             descriptor->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -1102,7 +1245,7 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
         for(auto& descriptor : descriptors)
         {
             //SAMPLER TYPE CONTINUE
-            if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+            if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER || descriptor->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
             {
                 continue;
             }
@@ -1129,15 +1272,25 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
         for(auto& texture : textures)
         {
             VkDescriptorImageInfo descriptorImageInfo = create_descriptor_image_info(m_TextureSampler, texture->ImageView);
-            VkWriteDescriptorSet descriptorWrite = write_descriptor_image(texture->descriptorSets[i], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptorImageInfo);
+            //descriptorImageInof.imageLayout==
+            VkWriteDescriptorSet descriptorWrite = write_descriptor_image(texture->descriptorSets[i], 0, texture->DescriptorType, descriptorImageInfo);
+            descriptorWrites.push_back(descriptorWrite);
+            vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
+
+        }
+
+        for (auto& imageField : imageFields)
+        {
+            imageField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            VkDescriptorImageInfo descriptorImageInfo = create_descriptor_image_info(m_TextureSampler, imageField->ImageView, VK_IMAGE_LAYOUT_GENERAL);
+
+            //descriptorImageInof.imageLayout==
+            VkWriteDescriptorSet descriptorWrite = write_descriptor_image(imageField->descriptorSets[i], 0, imageField->DescriptorType, descriptorImageInfo);
             descriptorWrites.push_back(descriptorWrite);
             vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(1), &descriptorWrite, 0, nullptr);
 
         }
     }
-
-    
-
 }
 
 void AppVulkanImpl::create_commands()
@@ -1945,6 +2098,29 @@ VkImageView AppVulkanImpl::create_image_view(VkImage image, VkFormat format, VkI
 
 VkFormat AppVulkanImpl::find_supported_format(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
+    for (VkFormat format = static_cast < VkFormat>(0); format <= 100; format = static_cast<VkFormat>(format + 1))
+    {
+        VkImageType imageType = VK_IMAGE_TYPE_2D;
+        VkImageTiling tilingg = VK_IMAGE_TILING_LINEAR;
+        VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+
+
+
+
+        VkImageFormatProperties formatProperties;
+        VkResult result = vkGetPhysicalDeviceImageFormatProperties(m_PhysicalDevice, format, imageType, tilingg, usage, 0, &formatProperties);
+
+        if (result == VK_SUCCESS) {
+            // The format is supported with the specified usage
+            // Check other properties if needed
+           // std::cout << format << std::endl;
+            VkFormatProperties props;
+            vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
+        }
+        else {
+            // The format is not supported with the specified usage
+        }
+    }
     for (VkFormat format : candidates) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
@@ -2124,18 +2300,18 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_SkyboxObj->get_indices_size()), 1, 0, 0, j++);
     }
 
-    if (std::shared_ptr<Pipeline> computePipeline = layer->get_compute_pipeline(); computePipeline)
-    {
-        std::shared_ptr<Pipeline> computeGraphicsPipeline = layer->get_compute_graphics_pipeline();
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computeGraphicsPipeline->pipelineLayout->layout, 0, 1, &computeGraphicsPipeline->pipelineLayout->descriptorSetLayout[0]->descriptorSets[imageIndex], 0, nullptr);
-      
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computeGraphicsPipeline->pipeline);
-        VkBuffer vertexBuffers[] = { computePipeline->pipelineLayout->descriptorSetLayout[2]->bufferWrappers[imageIndex].buffer};
-        VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    //if (std::shared_ptr<Pipeline> computePipeline = layer->get_compute_pipeline(); computePipeline)
+    //{
+    //    std::shared_ptr<Pipeline> computeGraphicsPipeline = layer->get_compute_graphics_pipeline();
+    //    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computeGraphicsPipeline->pipelineLayout->layout, 0, 1, &computeGraphicsPipeline->pipelineLayout->descriptorSetLayout[0]->descriptorSets[imageIndex], 0, nullptr);
+    //  
+    //    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computeGraphicsPipeline->pipeline);
+    //    VkBuffer vertexBuffers[] = { computePipeline->pipelineLayout->descriptorSetLayout[2]->bufferWrappers[imageIndex].buffer};
+    //    VkDeviceSize offsets[] = { 0 };
+    //    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-        vkCmdDraw(commandBuffer, static_cast<uint32_t>(particles.size()), 1, 0, 0);
-    }
+    //    vkCmdDraw(commandBuffer, static_cast<uint32_t>(particles.size()), 1, 0, 0);
+    //}
 
     if (s_ImGuiEnabled)
     {
@@ -2174,13 +2350,20 @@ void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIn
             std::shared_ptr<Pipeline> computePipeline = layer->get_compute_pipeline();
             for (int i = 0; i < computePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
             {
-                if (computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) continue;
+                if (computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        || computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+                    ) continue;
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipelineLayout->layout, i, 1, &computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+            }
+
+            for (int i = 0; i < computePipeline->ImageFields.size(); ++i)
+            {
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipelineLayout->layout, computePipeline->pipelineLayout->descriptorSetLayout.size() - computePipeline->ImageFields.size() + i, 1, &computePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
             }
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
 
-            vkCmdDispatch(commandBuffer, static_cast<uint32_t>(particles.size()) / 256, 1, 1);
+            vkCmdDispatch(commandBuffer, 16, 16, 1);
             break;
 
         }

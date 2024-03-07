@@ -54,7 +54,6 @@ layout(std140, set = 3, binding = 0) buffer ObjectBuffer{
 	ObjectData objects[];
 } objectBuffer;
 
-
 void main() {
 	mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
@@ -66,6 +65,7 @@ void main() {
    
    
     //normal = normalize(normalMatrix * inNormal);
+
    
    float height = 0.0f;
    
@@ -74,13 +74,17 @@ void main() {
    
    float prevDev = 0.0f;
    
+   float d = 0.0f;
+   
    for (int i = 0; i < waveBuffer.waves.length(); ++i) {
    
         WaveData currentWave = waveBuffer.waves[i];
 		
 		vec2 direction = currentWave.direction;
 		
-		float xz = inPosition.x * direction.x + inPosition.z * direction.y;
+		vec2 position = inPosition.xz + d * direction.xy;
+		
+		float xz = position.x * direction.x + position.y * direction.y;
 		
 		float sinWave = sin( currentWave.frequency * (xz + prevDev) + ubo.totalTime * currentWave.phase );
 		float cosWave = cos( currentWave.frequency * (xz + prevDev) + ubo.totalTime * currentWave.phase );
@@ -91,7 +95,7 @@ void main() {
 		height +=  wave;
 		
 		//float d = currentWave.frequency * cosWave * wave;
-		float d = currentWave.frequency * currentWave.amplitude * cosWave;
+		d = currentWave.frequency * currentWave.amplitude * cosWave;
 		 
 		dx += d * direction.x;
 		dz += d * direction.y; 
