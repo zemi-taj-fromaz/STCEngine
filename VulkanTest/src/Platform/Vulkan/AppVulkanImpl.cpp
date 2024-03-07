@@ -772,7 +772,7 @@ void AppVulkanImpl::create_image_field(Texture& texture)
 
     transition_image_layout(texture.Image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copy_buffer_to_image(stagingBuffer, texture.Image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    //transition_image_layout(texture.Image, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_MAX_ENUM);
+    transition_image_layout(texture.Image, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 
     vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
     vkFreeMemory(m_Device, stagingBufferMemory, nullptr); 
@@ -2012,7 +2012,14 @@ void AppVulkanImpl::transition_image_layout(VkImage image, VkFormat format, VkIm
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     }
     else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
         barrier.srcAccessMask = 0;
@@ -2098,29 +2105,7 @@ VkImageView AppVulkanImpl::create_image_view(VkImage image, VkFormat format, VkI
 
 VkFormat AppVulkanImpl::find_supported_format(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
-    for (VkFormat format = static_cast < VkFormat>(0); format <= 100; format = static_cast<VkFormat>(format + 1))
-    {
-        VkImageType imageType = VK_IMAGE_TYPE_2D;
-        VkImageTiling tilingg = VK_IMAGE_TILING_LINEAR;
-        VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
-
-
-
-
-        VkImageFormatProperties formatProperties;
-        VkResult result = vkGetPhysicalDeviceImageFormatProperties(m_PhysicalDevice, format, imageType, tilingg, usage, 0, &formatProperties);
-
-        if (result == VK_SUCCESS) {
-            // The format is supported with the specified usage
-            // Check other properties if needed
-           // std::cout << format << std::endl;
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
-        }
-        else {
-            // The format is not supported with the specified usage
-        }
-    }
+  
     for (VkFormat format : candidates) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
