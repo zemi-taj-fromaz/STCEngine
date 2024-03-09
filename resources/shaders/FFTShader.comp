@@ -14,8 +14,8 @@ layout(set = 0, binding = 0) uniform BufferObject {
 	float deltaTime;
 } bo;
 
-layout(rgba8,set = 1, binding = 0) uniform image2D imageIn;
-layout(rgba8,set = 2, binding = 0) uniform image2D imageOut;
+layout(rgba8ui,set = 1, binding = 0) uniform uimage2D imageIn;
+layout(rgba8ui,set = 2, binding = 0) uniform uimage2D imageOut;
 
 shared vec2 ping_pong_buffer[2][OWGE_FFT_SIZE];
 
@@ -78,5 +78,5 @@ void main() {
     }
 	vec2 val = ping_pong_buffer[ping_pong][gl_GlobalInvocationID.x].xy;
 	vec4 encodedValue = vec4(val.x, val.y, 0.0, 1.0);
-    imageStore(imageOut, texpos, encodedValue);
+    imageStore(imageOut, texpos, ivec4(encodedValue));
 }

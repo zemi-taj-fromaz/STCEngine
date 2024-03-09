@@ -49,6 +49,7 @@ public:
 
     bool is_animated() const { return MeshHandle->animated != std::nullopt; }
     bool is_textured() const { return MeshHandle->textures.size() != 0; }
+    bool has_fields() const { return MeshHandle->image_fields.size() != 0; }
 
     const std::shared_ptr<Pipeline>  get_pipeline() const { return MeshHandle->pipeline; }
     MeshWrapper* get_mesh() { return this->MeshHandle; }

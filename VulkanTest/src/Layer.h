@@ -110,7 +110,7 @@ public:
 		for (std::shared_ptr<Descriptor>& descriptor : m_Descriptors)
 		{
 			if (descriptor->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-				descriptor->shaderFlags == VK_SHADER_STAGE_COMPUTE_BIT
+				descriptor->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
 				)
 			{
 				continue;

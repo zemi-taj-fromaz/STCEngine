@@ -179,8 +179,11 @@ void Renderable::bind_materials(VkCommandBuffer& commandBuffer, uint32_t imageIn
 {
     for (int i = 0; i < this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
     {
-        if (this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) continue;
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, i, 1, &this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+        if (!(this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+            || this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE))
+        {
+           vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipelineLayout->layout, i, 1, &this->MeshHandle->pipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+        }
     }
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->MeshHandle->pipeline->pipeline);
