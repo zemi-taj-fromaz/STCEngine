@@ -11,6 +11,6 @@ layout(location = 0) out vec4 outColor;
 void main() {
 	vec4 color = imageLoad(heightmap, ivec2(texCoord));
 	//if(color == vec3(0.0, 0.0, 0.0)) discard;
-	outColor = vec4(color.x, 0.0f, 1.0f,1.0f);
+	outColor = vec4(color.x, color.y, 0.0f,1.0f);
     //outColor = vec4(fragColor, 1.0f);
 }

@@ -129,6 +129,7 @@ public:
 					if (k_len > std::sqrt(2) * 2 * M_PI / Lx || glm::length(K) < M_PI)
 					{
 						h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution);
+					//	std::cout << h_0.x << std::endl;
 					}
 
 					pixels[index + 0] = h_0.x;   // Red component

@@ -2281,12 +2281,12 @@ void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIn
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
 
-            vkCmdDispatch(commandBuffer, 16, 16, 1);
+            vkCmdDispatch(commandBuffer, 512, 1, 1);
             break;
 
         }
     }
-    vkCmdEndRenderPass(commandBuffer);
+   // vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");

@@ -55,13 +55,13 @@ vec2 reduceTo8Bits(vec2 a) {
     return vec2(reducedX, reducedY);
 }
 
-layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout (local_size_x = OWGE_FFT_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
     int ping_pong = 0;
     ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
 	
-    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE_BITS)] = imageLoad(imageIn, texpos).xy;
+    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = imageLoad(imageIn, texpos).xy;
 
     memoryBarrierShared();
     
@@ -78,5 +78,5 @@ void main() {
     }
 	vec2 val = ping_pong_buffer[ping_pong][gl_GlobalInvocationID.x].xy;
 	vec4 encodedValue = vec4(val.x, val.y, 0.0, 1.0);
-    imageStore(imageOut, texpos, ivec4(encodedValue));
+    imageStore(imageOut, texpos, vec4(encodedValue));
 }
