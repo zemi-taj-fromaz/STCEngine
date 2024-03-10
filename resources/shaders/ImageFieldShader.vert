@@ -9,6 +9,8 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec3 normal;
 layout(location = 2) out vec2 texCoord;
 
+layout(set = 2, binding = 0, rgba32f) uniform readonly image2D heightmap;
+
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
@@ -34,8 +36,10 @@ layout(std140, set = 1, binding = 0) buffer ObjectBuffer{
 void main() {
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
-    gl_Position =  MVP * vec4(inPosition, 1.0);
+	vec3 Position = vec3(inPosition.x, inPosition.y + imageLoad(heightmap, ivec2(inTexCoord)).x, inPosition.z);
+   // gl_Position =  MVP * vec4(inPosition, 1.0);
+    gl_Position =  MVP * vec4(Position, 1.0);
     texCoord = inTexCoord;
-    fragColor = inColor;
+    fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
     normal = inNormal;
 }

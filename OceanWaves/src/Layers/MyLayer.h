@@ -249,15 +249,16 @@ public:
 
 		auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-1.0f, -1.0f, -1.0f));
 
-		auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, quad);
-		woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 50.0f));
-		woodbox->Billboard = true;
+		auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
+	//	woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
+		woodbox->Billboard = false;
 		woodbox->image_fields.push_back(hx);
+		woodbox->color = glm::vec4(1.0f, 0.1569f, 0.3922f, 1.0f);
 		//woodbox->lightType = LightType::GlobalLight;
 		//woodbox->lightProperties = globalLighter;
 
 
-		meshWrappers.push_back(ocean);
+	//	meshWrappers.push_back(ocean);
 		meshWrappers.push_back(woodbox);
 	//	meshWrappers.push_back(heightmap);
 
