@@ -259,7 +259,7 @@ public:
 		woodbox->Billboard = false;
 		woodbox->image_fields.push_back(hx);
 		woodbox->image_fields.push_back(dh);
-		woodbox->color = glm::vec4(1.0f, 0.1569f, 0.3922f, 1.0f);
+		woodbox->color = glm::vec4(0.0f, 0.1569f, 0.3922f, 1.0f);
 		//woodbox->lightType = LightType::GlobalLight;
 		//woodbox->lightProperties = globalLighter;
 
@@ -284,7 +284,7 @@ public:
 		float derivatives = 1.0f;
 
 		float directionalSpread = 1.0f;
-		float PHI = jonswap(omega, 200000, 15);
+		float PHI = jonswap(omega, 50000, 10);
 
 		//if (PHI > 0.001)
 		//{

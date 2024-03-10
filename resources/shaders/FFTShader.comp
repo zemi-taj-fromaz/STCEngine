@@ -64,6 +64,8 @@ void main() {
     ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
 	
 	vec3 pixelValue = imageLoad(imageIn, texpos).xyz;
+	pixelValue.x *= cos( sqrt(g * pixelValue.z ) * bo.deltaTime );
+	pixelValue.y *= sin( sqrt(g * pixelValue.z ) * bo.deltaTime );
     ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = pixelValue.xy;
     ping_pong_buffer_normals[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = pixelValue.xy * pixelValue.z;
 
