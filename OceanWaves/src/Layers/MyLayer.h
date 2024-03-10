@@ -18,11 +18,12 @@ public:
 		auto resolution = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Resolution), Functions::resolutionUpdateFunc);
 
 		auto samplerVertex = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT);
-		auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL);
 
-		auto image2dIn = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
-		auto image2dOut = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
-		auto image2dOut2 = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
+		auto image2dIn = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
+		auto image2dOut = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
+		auto image2dOut2 = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
+		auto image2DFragment = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
 
 		auto totalTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
 		auto totalTimeCompute = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
@@ -33,7 +34,7 @@ public:
 		//auto heightImageOut = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
 		//auto heightMapData = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(HeightMapData), Functions::heightMapDataUpdateFunc);
 
-		create_descriptors({ camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves, samplerVertex, image2dIn, image2dOut, image2dOut2, totalTimeCompute });
+		create_descriptors({ camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dOut, image2dOut2, totalTimeCompute, image2DFragment });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
@@ -43,8 +44,11 @@ public:
 		//TopoloG mandelbulbTopology({ camera, objects, resolution, totalTime, mandelbulbFactor });
 		TopoloG oceanTopology({ camera, waves, totalTime, objects, globalLight });
 		TopoloG plainTopology({ camera, objects });
+
 		TopoloG topologyTex({ camera, objects, sampler });
-		TopoloG pleaseTop({ camera, totalTime, objects, samplerVertex });
+		TopoloG imagefieldTopology({ camera, objects, image2DFragment });
+
+		TopoloG pleaseTop({ camera, totalTime, objects, sampler });
 
 		TopoloG computeShaderTopology({ totalTimeCompute, image2dIn, image2dOut });
 
@@ -52,12 +56,13 @@ public:
 		auto oceanLayout = std::make_shared<PipelineLayout>(oceanTopology);
 		auto plainLayout = std::make_shared<PipelineLayout>(plainTopology);
 		auto pipelineLayoutTex = std::make_shared<PipelineLayout>(topologyTex);
+		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
 		auto pleaseLayout = std::make_shared<PipelineLayout>(pleaseTop);
 
 		auto computeLayout = std::make_shared<PipelineLayout>(computeShaderTopology);
 		//auto mandelbulbLayout = std::make_shared<PipelineLayout>(mandelbulbTopology);
 
-		create_layouts({ oceanLayout, plainLayout , pleaseLayout, computeLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
+		create_layouts({ oceanLayout, plainLayout , pleaseLayout, computeLayout , pipelineLayoutTex, imageFieldPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
@@ -68,6 +73,7 @@ public:
 		std::vector<std::string> plainShaderNames({ "PlainShader.vert", "PlainShader.frag" });
 		std::vector<std::string> computerShaderNames({ "FFTShader.comp" });
 		std::vector<std::string> textureShaderNames({ "TextureShader.vert", "TextureShader.frag" });
+		std::vector<std::string> imageFieldShaderNames({ "ImageFieldShader.vert", "ImageFieldShader.frag" });
 
 
 
@@ -77,13 +83,14 @@ public:
 		auto oceanPipeline = std::make_shared<Pipeline>(oceanLayout, oceanShaderNames);
 		auto plainPipeline = std::make_shared<Pipeline>(plainLayout, plainShaderNames);
 		auto texturedPipeline = std::make_shared<Pipeline>(pipelineLayoutTex, textureShaderNames);
+		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames);
 		auto fftPipeline = std::make_shared<Pipeline>(pleaseLayout, fftShaderNames);
 
 		auto computePipeline = std::make_shared<Pipeline>(computeLayout, computerShaderNames);
 		m_ComputePipeline = computePipeline;
 
 
-		create_pipelines({oceanPipeline, plainPipeline, fftPipeline, computePipeline });
+		create_pipelines({oceanPipeline, plainPipeline, fftPipeline, computePipeline , texturedPipeline, imagefieldPipeline });
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
 
@@ -95,13 +102,15 @@ public:
 		int Lx = 512;
 		int Lz = 512;
 
-		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(256, [Lx, Lz, this](int width, int height, int channels) {
-			unsigned char* pixels;
-			pixels = (unsigned char*)malloc(width * height * channels * sizeof(unsigned char));
+		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(512, [Lx, Lz, this](int width, int height, int channels) {
+			float* pixels;
+			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
 			// Generate pixel data with unique colors
+			float avg_x = 0.0f;
+			float avg_y = 0.0f;
 			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x) {
+				for (int x = 0; x <  width; ++x) {
 					int index = (y * width + x) * channels;
 
 					int n = x - width / 2;
@@ -114,21 +123,22 @@ public:
 
 					glm::vec2 K = glm::vec2(kx, kz);
 
-					glm::vec3 h_cap = this->fourier_amplitude(K, this->gen, this->distribution);
+					float k_len = glm::length(K);
 
-					//pixels[index + 0] = (uint8_t)(h_cap.x * 255);   // Red component
-					//pixels[index + 1] = (uint8_t)(h_cap.y * 255);  // Green component
-					//pixels[index + 2] = 0;  // Blue component (set to 0 for simplicity)
-					//pixels[index + 3] = 255;  // Alpha component (set to full alpha)
+					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
+					if (k_len > std::sqrt(2) * 2 * M_PI / Lx || glm::length(K) < M_PI)
+					{
+						h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution);
+					}
 
-					//std::cout << h_cap.x << " " << h_cap.y << " " << 255 << std::endl;
-
-					pixels[index + 0] = h_cap.x;   // Red component
-					pixels[index + 1] = h_cap.y;  // Green component
-					pixels[index + 2] = h_cap.z;  // Blue component (set to 0 for simplicity)
-					pixels[index + 3] = 255;  // Alpha component (set to full alpha)
+					pixels[index + 0] = h_0.x;   // Red component
+					pixels[index + 1] = h_0.y;  // Green component
+					pixels[index + 2] = 0;  // Blue component (set to 0 for simplicity)
+					pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
 				}
 			}
+
+			std::cout << "VAL" << avg_x << " " << avg_y << std::endl;
 
 			return pixels;
 			});
@@ -143,7 +153,7 @@ public:
 		create_image_fields({ h0, hk, hx, dh });
 
 		m_ComputePipeline->ImageFields.push_back(h0);
-		m_ComputePipeline->ImageFields.push_back(hk);
+		m_ComputePipeline->ImageFields.push_back(hx);
 
 		//----------------------- MESH --------------------------------------------------------------------
 		Mesh box("skybox.obj");
@@ -238,15 +248,13 @@ public:
 
 		auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-1.0f, -1.0f, -1.0f));
 
-		auto woodbox = std::make_shared<MeshWrapper>(plainPipeline, cube);
-		woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 100.0f));
+		auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, quad);
+		woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 50.0f));
+		woodbox->Billboard = true;
+		woodbox->image_fields.push_back(hx);
 		//woodbox->lightType = LightType::GlobalLight;
 		//woodbox->lightProperties = globalLighter;
 
-		auto heightmap = std::make_shared<MeshWrapper>(texturedPipeline, quad);
-		heightmap->scale = glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 1.0f));
-		heightmap->Billboard = true;
-		heightmap->textures.push_back(h0);
 
 		meshWrappers.push_back(ocean);
 		meshWrappers.push_back(woodbox);
@@ -259,9 +267,8 @@ public:
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
 
-	glm::vec3 fourier_amplitude(glm::vec2 k, std::mt19937& gen, std::normal_distribution<float>& distribution)
+	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::normal_distribution<float>& distribution)
 	{
-		float k_len = glm::length(k);
 		float omega = pow(9.81f * k_len, 0.5f);
 
 	//	std::cout << omega << std::endl;
@@ -269,19 +276,22 @@ public:
 		float derivatives = 1.0f;
 
 		float directionalSpread = 1.0f;
+		float PHI = jonswap(omega, 200000, 15);
 
-		float factor = 1 / pow(2, 0.5f) * pow(jonswap(256, omega, 200) * directionalSpread * derivatives, 0.5f);
+		//if (PHI > 0.001)
+		//{
+		//	std::cout << k_len << " -> " << PHI << std::endl;
+		//}
+		float factor = 1 / pow(2, 0.5f) * pow(PHI * directionalSpread * derivatives, 0.5f);
 
 		return glm::vec3(factor * distribution(gen), factor * distribution(gen), omega);
 	}
 
-	float jonswap(int N, double  omega, float fetch)
+	float jonswap(double  omega, float fetch, float U_10)
 	{
 		float g = 9.81f;
 
-		float U_10 = 10; //wind speed in meters per second at a heigh of ten meters above the sea surface
-
-		float alpha = 0.076f * pow(pow(U_10, 2) / (fetch * g), 0.22f); // equilibrium range parameter
+		float alpha = 0.076f * pow(pow(U_10, 2) / (fetch * g), 0.22f) * 1.3; // equilibrium range parameter
 
 		float omega_p = 22 * pow(g * g / (U_10 * fetch), 0.333f); //angular frequency of the spectral peak
 
@@ -293,7 +303,7 @@ public:
 
 		if(omega > omega_p)
 		{
-			std::cout << "OO" << std::endl;
+			//std::cout << "OO" << std::endl;
 		}
 
 

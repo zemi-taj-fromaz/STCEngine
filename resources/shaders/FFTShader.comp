@@ -3,8 +3,8 @@
 const float PI = 3.14159265359;
 const float g = 9.81;
 
-#define OWGE_FFT_SIZE 216 // Define OWGE_FFT_SIZE here
-#define OWGE_FFT_LOG_SIZE 8 // Define OWGE_FFT_LOG_SIZE here
+#define OWGE_FFT_SIZE 512 // Define OWGE_FFT_SIZE here
+#define OWGE_FFT_LOG_SIZE 9 // Define OWGE_FFT_LOG_SIZE here
 
 const uint OWGE_FFT_SIZE_BITS = 32u;
 const uint OWGE_FFT_LOG_SIZE_BITS = 5u;
@@ -14,8 +14,8 @@ layout(set = 0, binding = 0) uniform BufferObject {
 	float deltaTime;
 } bo;
 
-layout(rgba8ui,set = 1, binding = 0) uniform uimage2D imageIn;
-layout(rgba8ui,set = 2, binding = 0) uniform uimage2D imageOut;
+layout(rgba32f,set = 1, binding = 0) uniform image2D imageIn;
+layout(rgba32f,set = 2, binding = 0) uniform image2D imageOut;
 
 shared vec2 ping_pong_buffer[2][OWGE_FFT_SIZE];
 

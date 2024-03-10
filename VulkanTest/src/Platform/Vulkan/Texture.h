@@ -4,25 +4,25 @@
 
 struct Texture
 {
-    Texture(int N, std::function<unsigned char* (int width, int height, int channels)> generateTexture) : Width(N), GenerateTexture(generateTexture)
+    Texture(int N, std::function<float* (int width, int height, int channels)> generateTexture) : Width(N), GenerateTexture(generateTexture)
     {}
 
     Texture(int N) : Width(N)
     {
         GenerateTexture = [](int width, int height, int channels) 
         {
-            unsigned char* pixels;
-            pixels = (unsigned char*)malloc(width * height * channels * sizeof(unsigned char));
+            float* pixels;
+            pixels = (float*)malloc(width * height * channels * sizeof(float));
 
             // Generate pixel data with unique colors
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
                     int index = (y * width + x) * channels;
 
-                    pixels[index + 0] = 0;   // Red component
-                    pixels[index + 1] = 0;  // Green component
-                    pixels[index + 2] = 0;  // Blue component (set to 0 for simplicity)
-                    pixels[index + 3] = 255;  // Alpha component (set to full alpha)
+                    pixels[index + 0] = 0.0f;   // Red component
+                    pixels[index + 1] = 0.0f;  // Green component
+                    pixels[index + 2] = 0.0f;  // Blue component (set to 0 for simplicity)
+                    pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
                 }
             }
 
@@ -55,7 +55,7 @@ struct Texture
 
     int Width;
 
-    std::function<unsigned char* (int width, int height, int channels)> GenerateTexture;
+    std::function<float* (int width, int height, int channels)> GenerateTexture;
     std::vector<VkDescriptorSet> descriptorSets;
 
 };
