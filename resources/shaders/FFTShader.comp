@@ -16,8 +16,10 @@ layout(set = 0, binding = 0) uniform BufferObject {
 
 layout(rgba32f,set = 1, binding = 0) uniform image2D imageIn;
 layout(rgba32f,set = 2, binding = 0) uniform image2D imageOut;
+layout(rgba32f,set = 3, binding = 0) uniform image2D imageOutNormals;
 
 shared vec2 ping_pong_buffer[2][OWGE_FFT_SIZE];
+shared vec2 ping_pong_buffer_normals[2][OWGE_FFT_SIZE];
 
 void butterfly(uint thread_idx, uint iteration, out uvec2 twiddle_indices, out vec2 twiddle_factor) {
     uint butterfly_size = 1u << iteration;
@@ -61,7 +63,9 @@ void main() {
     int ping_pong = 0;
     ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
 	
-    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = imageLoad(imageIn, texpos).xy;
+	vec3 pixelValue = imageLoad(imageIn, texpos).xyz;
+    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = pixelValue.xy;
+    ping_pong_buffer_normals[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = pixelValue.xy * pixelValue.z;
 
     memoryBarrierShared();
     
@@ -70,13 +74,18 @@ void main() {
         vec2 twiddle_factor;
         butterfly(gl_GlobalInvocationID.x, i, twiddle_indices, twiddle_factor);
         ping_pong_buffer[(ping_pong + 1) % 2][gl_GlobalInvocationID.x] =
-            ping_pong_buffer[ping_pong][twiddle_indices.x] +
-            complex_mul(ping_pong_buffer[ping_pong][twiddle_indices.y], twiddle_factor);
+            ping_pong_buffer[ping_pong][twiddle_indices.x] + complex_mul(ping_pong_buffer[ping_pong][twiddle_indices.y], twiddle_factor);
+		
+		ping_pong_buffer_normals[(ping_pong + 1) % 2][gl_GlobalInvocationID.x] =
+            ping_pong_buffer_normals[ping_pong][twiddle_indices.x] + complex_mul(ping_pong_buffer_normals[ping_pong][twiddle_indices.y], twiddle_factor);
         
         memoryBarrierShared();
         ping_pong = (ping_pong + 1) % 2;
     }
 	vec2 val = ping_pong_buffer[ping_pong][gl_GlobalInvocationID.x].xy;
+	vec2 valNormals = ping_pong_buffer_normals[ping_pong][gl_GlobalInvocationID.x].xy;
 	vec4 encodedValue = vec4(val.x, val.y, 0.0, 1.0);
+	vec4 encodedValueNormals = vec4(valNormals.x, valNormals.y, 0.0, 1.0);
     imageStore(imageOut, texpos, vec4(encodedValue));
+    imageStore(imageOutNormals, texpos, vec4(encodedValueNormals));
 }

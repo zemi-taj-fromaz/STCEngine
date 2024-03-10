@@ -46,11 +46,11 @@ public:
 		TopoloG plainTopology({ camera, objects });
 
 		TopoloG topologyTex({ camera, objects, sampler });
-		TopoloG imagefieldTopology({ camera, objects, image2DFragment });
+		TopoloG imagefieldTopology({ camera, objects, globalLight, image2DFragment, image2dOut2 });
 
 		TopoloG pleaseTop({ camera, totalTime, objects, sampler });
 
-		TopoloG computeShaderTopology({ totalTimeCompute, image2dIn, image2dOut });
+		TopoloG computeShaderTopology({ totalTimeCompute, image2dIn, image2dOut, image2dOut2 });
 
 		auto skyboxLayout = std::make_shared<PipelineLayout>(skyboxTopology);
 		auto oceanLayout = std::make_shared<PipelineLayout>(oceanTopology);
@@ -134,7 +134,7 @@ public:
 
 					pixels[index + 0] = h_0.x;   // Red component
 					pixels[index + 1] = h_0.y;  // Green component
-					pixels[index + 2] = 0;  // Blue component (set to 0 for simplicity)
+					pixels[index + 2] = k_len;  // Blue component (set to 0 for simplicity)
 					pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
 				}
 			}
@@ -155,6 +155,7 @@ public:
 
 		m_ComputePipeline->ImageFields.push_back(h0);
 		m_ComputePipeline->ImageFields.push_back(hx);
+		m_ComputePipeline->ImageFields.push_back(dh);
 
 		//----------------------- MESH --------------------------------------------------------------------
 		Mesh box("skybox.obj");
@@ -240,25 +241,30 @@ public:
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
+		auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-1.0f, -1.0f, -1.0f));
+
+
 		auto ocean = std::make_shared<MeshWrapper>(oceanPipeline, plain);
 		//ocean->textures.push_back(waveHeightField);
 		ocean->color = glm::vec4(0.0f, 0.1569f, 0.3922f, 1.0f);
+		ocean->lightProperties = globalLighter;
+		ocean->lightType = LightType::GlobalLight;
 	//	ocean->Billboard = true;
 		//ocean->scale = glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 1.0f));
 
 
-		auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-1.0f, -1.0f, -1.0f));
 
 		auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
 	//	woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
 		woodbox->Billboard = false;
 		woodbox->image_fields.push_back(hx);
+		woodbox->image_fields.push_back(dh);
 		woodbox->color = glm::vec4(1.0f, 0.1569f, 0.3922f, 1.0f);
 		//woodbox->lightType = LightType::GlobalLight;
 		//woodbox->lightProperties = globalLighter;
 
 
-	//	meshWrappers.push_back(ocean);
+		meshWrappers.push_back(ocean);
 		meshWrappers.push_back(woodbox);
 	//	meshWrappers.push_back(heightmap);
 
