@@ -11,9 +11,6 @@ layout(location = 2) out vec2 texCoord;
 layout(location = 3) out vec3 cameraPos;
 layout(location = 4) out vec3 fragPos;
 
-
-
-
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
     mat4 proj;
@@ -40,7 +37,7 @@ layout(set = 4, binding = 0, rgba32f) uniform readonly image2D normalmap;
 void main() {
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
-	vec4 normalFromMap = normalize(imageLoad(normalmap, ivec2(inTexCoord)));
+	vec3 normalFromMap = normalize(imageLoad(normalmap, ivec2(inTexCoord)).xyz);
 	vec3 Position = vec3(inPosition.x, inPosition.y + imageLoad(heightmap, ivec2(inTexCoord)).x, inPosition.z);
    // gl_Position =  MVP * vec4(inPosition, 1.0);
     gl_Position =  MVP * vec4(Position, 1.0);
@@ -48,7 +45,8 @@ void main() {
 	
 	vec4 worldCoord = model * vec4(Position,1.0);
     fragPos = worldCoord.xyz / worldCoord.w;
+	
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
-    normal = normalFromMap.xyz;
+    normal = normalFromMap;
 	cameraPos = camera.pos.xyz;
 }

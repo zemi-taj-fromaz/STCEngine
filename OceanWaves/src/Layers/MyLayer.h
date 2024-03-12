@@ -1,6 +1,10 @@
 #pragma once
 
 #include "LayerInit.h"
+#include <algorithm>
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
+
 
 class MyLayer : public Layer
 {
@@ -30,11 +34,8 @@ public:
 
 		auto mandelbulbFactor = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::mandelbulbFactorUpdateFunc);
 		auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight), Functions::globalLightUpdateFunc);
-		//auto heightImageIn = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
-		//auto heightImageOut = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
-		//auto heightMapData = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(HeightMapData), Functions::heightMapDataUpdateFunc);
 
-		create_descriptors({ camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dOut, image2dOut2, totalTimeCompute, image2DFragment });
+		create_descriptors({ camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
@@ -99,16 +100,17 @@ public:
 
 		//-------------------------------------- IMAGE FIELDS --------------------------------------------
 
-		int Lx = 512;
-		int Lz = 512;
+		int Lx = 1024;
+		int Lz = 1024;
 
-		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(512, [Lx, Lz, this](int width, int height, int channels) {
+		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(1024, [Lx, Lz, this](int width, int height, int channels) {
 			float* pixels;
 			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
 			// Generate pixel data with unique colors
 			float avg_x = 0.0f;
 			float avg_y = 0.0f;
+			float delta_k = 2 * M_PI / Lx;
 			for (int y = 0; y < height; ++y) {
 				for (int x = 0; x <  width; ++x) {
 					int index = (y * width + x) * channels;
@@ -126,16 +128,17 @@ public:
 					float k_len = glm::length(K);
 
 					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
-					if (k_len > std::sqrt(2) * 2 * M_PI / Lx || glm::length(K) < M_PI)
+					if (k_len > std::sqrt(2) * 2 * M_PI / Lx && k_len < M_PI)
 					{
-						h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution);
+						float phi = std::atan(K.y / K.x);
+						h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k);
 					//	std::cout << h_0.x << std::endl;
 					}
 
 					pixels[index + 0] = h_0.x;   // Red component
 					pixels[index + 1] = h_0.y;  // Green component
-					pixels[index + 2] = k_len;  // Blue component (set to 0 for simplicity)
-					pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
+					pixels[index + 2] = kx;  // Blue component (set to 0 for simplicity)
+					pixels[index + 3] = kz;  // Alpha component (set to full alpha)
 				}
 			}
 
@@ -144,14 +147,13 @@ public:
 			return pixels;
 			});
 
-		std::shared_ptr<Texture> hk = std::make_shared<Texture>(256);
 
-		std::shared_ptr<Texture> hx = std::make_shared<Texture>(512);
-		std::shared_ptr<Texture> dh = std::make_shared<Texture>(512);
+		std::shared_ptr<Texture> hx = std::make_shared<Texture>(1024);
+		std::shared_ptr<Texture> dh = std::make_shared<Texture>(1024);
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
-		create_image_fields({ h0, hk, hx, dh });
+		create_image_fields({ h0, hx, dh });
 
 		m_ComputePipeline->ImageFields.push_back(h0);
 		m_ComputePipeline->ImageFields.push_back(hx);
@@ -275,24 +277,63 @@ public:
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
 
-	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::normal_distribution<float>& distribution)
+	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::normal_distribution<float>& distribution, float phi, float delta_k)
 	{
-		float omega = pow(9.81f * k_len, 0.5f);
+		float g = 9.81f;
+		float omega = pow(g * k_len, 0.5f);
 
 	//	std::cout << omega << std::endl;
 
-		float derivatives = 1.0f;
+		float theta = std::atan(k_len);
 
-		float directionalSpread = 1.0f;
-		float PHI = jonswap(omega, 50000, 10);
+		float fetch = 50000.0f;
+		float u_10 = 10.0f;
+		float energy = jonswap(omega, 200000, 20);
 
-		//if (PHI > 0.001)
-		//{
-		//	std::cout << k_len << " -> " << PHI << std::endl;
-		//}
-		float factor = 1 / pow(2, 0.5f) * pow(PHI * directionalSpread * derivatives, 0.5f);
+		float omega_p = 22 * pow(g * g / (u_10 * fetch), 0.333f); //angular frequency of the spectral peak
+
+
+		energy *= oceanography_donelan_banner_directional_spreading(omega, omega_p, theta);
+
+		float factor = 1 / pow(2, 0.5f) * pow(2 * energy, 0.5f) * delta_k;
 
 		return glm::vec3(factor * distribution(gen), factor * distribution(gen), omega);
+	}
+
+	float directional_spread(float omega, float omega_p, float theta, float wind_direction)
+	{
+		float sp = (omega >= omega_p ? 9.77f : 6.97f);
+		float s = sp * (omega >= omega_p ? pow(omega / omega_p, -2.5f) : pow(omega / omega_p, 5.0f));
+
+		float factor1 = pow(2, 2 * s - 1) / glm::pi<float>();
+		float factor2 = pow(std::tgamma(s+1), 2.0f) / std::tgamma(2*s + 1);
+		float factor3 = pow( std::abs( cos( (theta-wind_direction) / 2) ), 2*s);
+		return factor1 * factor2 * factor3;
+	}
+
+	float __oceanography_donelan_banner_beta_s(float omega, float omega_peak)
+	{
+		float om_over_omp = omega / omega_peak;
+		float epsilon = -0.4f + 0.8393 * exp(-0.567f * pow(log(om_over_omp), 2.0f));
+		float beta_s_0 = 2.61f * pow(om_over_omp, 1.3f);
+		float beta_s_1 = 2.28f * pow(om_over_omp, -1.3f);
+		float beta_s_2 = pow(10.0f, epsilon);
+		return om_over_omp < 0.95f
+			? beta_s_0
+			: om_over_omp < 1.6f
+			? beta_s_1
+			: beta_s_2;
+	}
+
+	float math_sech(float x)
+	{
+		return 1.0f / cosh(x);
+	}
+
+	float oceanography_donelan_banner_directional_spreading(float omega, float omega_peak, float theta)
+	{
+		float beta_s = __oceanography_donelan_banner_beta_s(omega, omega_peak);
+		return (beta_s / (2.0f * tanh(beta_s * M_PI))) * pow(math_sech(std::clamp(beta_s * theta, -9.0f, 9.0f)), 2.0f);
 	}
 
 	float jonswap(double  omega, float fetch, float U_10)
@@ -309,10 +350,6 @@ public:
 		double sigma = omega < omega_p ? 0.07 : 0.09; // Standard deviation for JONSWAP spectrum
 		//  double omega_p = 2 * M_PI / Tp; // Peak angular frequency
 
-		if(omega > omega_p)
-		{
-			//std::cout << "OO" << std::endl;
-		}
 
 
 		float beta = 1.25f;
@@ -328,6 +365,8 @@ public:
 
 		return energy;
 	}
+
+
 
 	std::random_device rd;
 	std::mt19937 gen{ rd() };

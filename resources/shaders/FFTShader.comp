@@ -3,11 +3,11 @@
 const float PI = 3.14159265359;
 const float g = 9.81;
 
-#define OWGE_FFT_SIZE 512 // Define OWGE_FFT_SIZE here
-#define OWGE_FFT_LOG_SIZE 9 // Define OWGE_FFT_LOG_SIZE here
+#define OWGE_FFT_SIZE 1024 // Define OWGE_FFT_SIZE here
+#define OWGE_FFT_LOG_SIZE 10 // Define OWGE_FFT_LOG_SIZE here
 
-const uint OWGE_FFT_SIZE_BITS = 32u;
-const uint OWGE_FFT_LOG_SIZE_BITS = 5u;
+const uint OWGE_FFT_SIZE_BITS = 64u;
+const uint OWGE_FFT_LOG_SIZE_BITS = 6u;
 
 
 layout(set = 0, binding = 0) uniform BufferObject {
@@ -57,17 +57,30 @@ vec2 reduceTo8Bits(vec2 a) {
     return vec2(reducedX, reducedY);
 }
 
+float dot_vec2(vec2 v1, vec2 v2) {
+	return v1.x * v2.x + v1.y * v2.y;
+}
+
+
 layout (local_size_x = OWGE_FFT_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
     int ping_pong = 0;
     ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+	vec4 pixelValue = imageLoad(imageIn, texpos);
+	vec2 k = pixelValue.zw;
+	vec2 h0 = pixelValue.xy;
+	float w = length(k);
 	
-	vec3 pixelValue = imageLoad(imageIn, texpos).xyz;
-	pixelValue.x *= cos( sqrt(g * pixelValue.z ) * bo.deltaTime );
-	pixelValue.y *= sin( sqrt(g * pixelValue.z ) * bo.deltaTime );
-    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = pixelValue.xy;
-    ping_pong_buffer_normals[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = pixelValue.xy * pixelValue.z;
+	vec2 euler = vec2( cos( dot_vec2(k, vec2(texpos)) - sqrt(g * w ) * bo.deltaTime ), sin( dot_vec2(k, vec2(texpos)) - sqrt(g * w ) * bo.deltaTime ) );
+	
+	vec2 h_kapica = complex_mul(h0, euler);
+	
+	vec2 ki = vec2(-k.y, k.x);
+	vec2 hd_kapica = complex_mul(ki, euler);
+	
+    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = h_kapica;
+    ping_pong_buffer_normals[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = hd_kapica;
 
     memoryBarrierShared();
     
