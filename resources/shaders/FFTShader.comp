@@ -6,8 +6,7 @@ const float g = 9.81;
 #define OWGE_FFT_SIZE 1024 // Define OWGE_FFT_SIZE here
 #define OWGE_FFT_LOG_SIZE 10 // Define OWGE_FFT_LOG_SIZE here
 
-const uint OWGE_FFT_SIZE_BITS = 64u;
-const uint OWGE_FFT_LOG_SIZE_BITS = 6u;
+const uint OWGE_FFT_SIZE_BITS = 32u;
 
 
 layout(set = 0, binding = 0) uniform BufferObject {
@@ -70,9 +69,9 @@ void main() {
 	vec4 pixelValue = imageLoad(imageIn, texpos);
 	vec2 k = pixelValue.zw;
 	vec2 h0 = pixelValue.xy;
-	float w = length(k);
+	float omega = sqrt(g * length(k));
 	
-	vec2 euler = vec2( cos( dot_vec2(k, vec2(texpos)) - sqrt(g * w ) * bo.deltaTime ), sin( dot_vec2(k, vec2(texpos)) - sqrt(g * w ) * bo.deltaTime ) );
+	vec2 euler = vec2( cos( dot_vec2(k, vec2(texpos)) - omega * bo.deltaTime ), sin( dot_vec2(k, vec2(texpos)) - omega * bo.deltaTime ) );
 	
 	vec2 h_kapica = complex_mul(h0, euler);
 	

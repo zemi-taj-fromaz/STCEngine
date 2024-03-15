@@ -277,25 +277,19 @@ public:
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
 
-	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::normal_distribution<float>& distribution, float phi, float delta_k)
+	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::uniform_real_distribution<float>& distribution, float theta, float delta_k)
 	{
 		float g = 9.81f;
-		float omega = pow(g * k_len, 0.5f);
+		float omega = pow(g * k_len, 0.5f); // dispertion relation
 
-	//	std::cout << omega << std::endl;
-
-		float theta = std::atan(k_len);
-
-		float fetch = 50000.0f;
-		float u_10 = 10.0f;
-		float energy = jonswap(omega, 200000, 20);
+		float fetch = 200000.0f;
+		float u_10 = 30.0f;
 
 		float omega_p = 22 * pow(g * g / (u_10 * fetch), 0.333f); //angular frequency of the spectral peak
 
+		float phi = jonswap(omega, omega_p, fetch, u_10) * directional_spread(omega, omega_p, theta, 0.0f) * sqrt(g / k_len) / (2 * k_len);
 
-		energy *= oceanography_donelan_banner_directional_spreading(omega, omega_p, theta);
-
-		float factor = 1 / pow(2, 0.5f) * pow(2 * energy, 0.5f) * delta_k;
+		float factor = 1 / pow(2, 0.5f) * pow(2 * phi, 0.5f) * delta_k;
 
 		return glm::vec3(factor * distribution(gen), factor * distribution(gen), omega);
 	}
@@ -336,20 +330,15 @@ public:
 		return (beta_s / (2.0f * tanh(beta_s * M_PI))) * pow(math_sech(std::clamp(beta_s * theta, -9.0f, 9.0f)), 2.0f);
 	}
 
-	float jonswap(double  omega, float fetch, float U_10)
+	float jonswap(double  omega,float omega_p, float fetch, float U_10)
 	{
 		float g = 9.81f;
 
 		float alpha = 0.076f * pow(pow(U_10, 2) / (fetch * g), 0.22f) * 1.3; // equilibrium range parameter
 
-		float omega_p = 22 * pow(g * g / (U_10 * fetch), 0.333f); //angular frequency of the spectral peak
-
 		float gamma = 3.3f;
 
-		// Calculate the significant wave height
 		double sigma = omega < omega_p ? 0.07 : 0.09; // Standard deviation for JONSWAP spectrum
-		//  double omega_p = 2 * M_PI / Tp; // Peak angular frequency
-
 
 
 		float beta = 1.25f;
@@ -370,7 +359,7 @@ public:
 
 	std::random_device rd;
 	std::mt19937 gen{ rd() };
-	std::normal_distribution<float> distribution{ 0.0f, 1.0f };
+	std::uniform_real_distribution<float> distribution{ 0.0f, 1.0f };
 private:
 	int mandelbulb_factor = 8;
 
