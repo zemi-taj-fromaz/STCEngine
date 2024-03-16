@@ -100,10 +100,10 @@ public:
 
 		//-------------------------------------- IMAGE FIELDS --------------------------------------------
 
-		int Lx = 1024;
-		int Lz = 1024;
+		int Lx = 512;
+		int Lz = 512;
 
-		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(1024, [Lx, Lz, this](int width, int height, int channels) {
+		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(512, [Lx, Lz, this](int width, int height, int channels) {
 			float* pixels;
 			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
@@ -130,6 +130,7 @@ public:
 					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
 					if (k_len > std::sqrt(2) * 2 * M_PI / Lx && k_len < M_PI)
 					{
+						//if (std::abs(K.x) < 0.0002f) continue;
 						float phi = std::atan(K.y / K.x);
 						h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k);
 					//	std::cout << h_0.x << std::endl;
@@ -141,8 +142,6 @@ public:
 					pixels[index + 3] = kz;  // Alpha component (set to full alpha)
 				}
 			}
-
-			std::cout << "VAL" << avg_x << " " << avg_y << std::endl;
 
 			return pixels;
 			});
@@ -287,7 +286,7 @@ public:
 
 		float omega_p = 22 * pow(g * g / (u_10 * fetch), 0.333f); //angular frequency of the spectral peak
 
-		float phi = jonswap(omega, omega_p, fetch, u_10) * directional_spread(omega, omega_p, theta, 0.0f) * sqrt(g / k_len) / (2 * k_len);
+		float phi = jonswap(omega, omega_p, fetch, u_10) * oceanography_donelan_banner_directional_spreading(omega, omega_p, glm::radians(45.0f)) * sqrt(g / k_len) / (2 * k_len);
 
 		float factor = 1 / pow(2, 0.5f) * pow(2 * phi, 0.5f) * delta_k;
 

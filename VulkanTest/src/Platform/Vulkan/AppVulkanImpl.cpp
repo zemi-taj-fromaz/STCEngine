@@ -2281,7 +2281,7 @@ void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIn
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
 
-            vkCmdDispatch(commandBuffer, 1, 1024, 1);
+            vkCmdDispatch(commandBuffer, 1, 512, 1);
             break;
 
         }

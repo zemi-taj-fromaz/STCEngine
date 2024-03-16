@@ -451,7 +451,7 @@ bool Mesh::load_terrain(bool illuminated, bool textured)
 bool Mesh::load_plain(bool illuminated, bool textured)
 {
 
-    static int VERTEX_COUNT{ 1024 };
+    static int VERTEX_COUNT{ 512 };
     static int SIZE{ 100 };
 
     for (int i = 0; i < VERTEX_COUNT; i++)

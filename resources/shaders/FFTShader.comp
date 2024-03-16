@@ -3,8 +3,8 @@
 const float PI = 3.14159265359;
 const float g = 9.81;
 
-#define OWGE_FFT_SIZE 1024 // Define OWGE_FFT_SIZE here
-#define OWGE_FFT_LOG_SIZE 10 // Define OWGE_FFT_LOG_SIZE here
+#define OWGE_FFT_SIZE 512 // Define OWGE_FFT_SIZE here
+#define OWGE_FFT_LOG_SIZE 9 // Define OWGE_FFT_LOG_SIZE here
 
 const uint OWGE_FFT_SIZE_BITS = 32u;
 
@@ -67,11 +67,13 @@ void main() {
     int ping_pong = 0;
     ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
 	vec4 pixelValue = imageLoad(imageIn, texpos);
-	vec2 k = pixelValue.zw;
+	vec2 k = pixelValue.zw + 2*PI;
 	vec2 h0 = pixelValue.xy;
 	float omega = sqrt(g * length(k));
 	
-	vec2 euler = vec2( cos( dot_vec2(k, vec2(texpos)) - omega * bo.deltaTime ), sin( dot_vec2(k, vec2(texpos)) - omega * bo.deltaTime ) );
+	vec2 X = vec2(texpos) - OWGE_FFT_SIZE / 2 - 1;
+	
+	vec2 euler = vec2( cos( dot_vec2(k, X) - omega * bo.deltaTime ), sin( dot_vec2(k, X) - omega * bo.deltaTime ) );
 	
 	vec2 h_kapica = complex_mul(h0, euler);
 	
@@ -96,6 +98,7 @@ void main() {
         memoryBarrierShared();
         ping_pong = (ping_pong + 1) % 2;
     }
+	
 	vec2 val = ping_pong_buffer[ping_pong][gl_GlobalInvocationID.x].xy;
 	vec2 valNormals = ping_pong_buffer_normals[ping_pong][gl_GlobalInvocationID.x].xy;
 	vec4 encodedValue = vec4(val.x, val.y, 0.0, 1.0);
