@@ -13,15 +13,20 @@ layout(set = 0, binding = 0) uniform BufferObject {
 	float deltaTime;
 } bo;
 
-layout(rgba32f,set = 1, binding = 0) uniform image2D imageIn;
-layout(rgba32f,set = 2, binding = 0) uniform image2D imageOut;
-layout(rgba32f,set = 3, binding = 0) uniform image2D imageOutNormals;
+layout(set = 1, binding = 0) uniform FObject {
+	bool vertical;
+} bull;
+
+
+layout(rgba32f,set = 2, binding = 0) uniform image2D imageIn;
+layout(rgba32f,set = 3, binding = 0) uniform image2D imageOut;
+layout(rgba32f,set = 4, binding = 0) uniform image2D imageOutNormals;
 
 shared vec2 ping_pong_buffer[2][OWGE_FFT_SIZE];
 shared vec2 ping_pong_buffer_normals[2][OWGE_FFT_SIZE];
 
 void butterfly(uint thread_idx, uint iteration, out uvec2 twiddle_indices, out vec2 twiddle_factor) {
-    uint butterfly_size = 1u << iteration;
+    uint butterfly_size = 2u << iteration;
     uint butterfly_half_size = butterfly_size >> 1u;
     uint butterfly_size_relative_idx = thread_idx % butterfly_size;
     uint butterfly_start_idx = butterfly_size * (thread_idx / butterfly_size);
@@ -32,7 +37,7 @@ void butterfly(uint thread_idx, uint iteration, out uvec2 twiddle_indices, out v
     twiddle_indices = uvec2(lower_idx, upper_idx);
 
     float arg = -2.0 * PI * float(butterfly_size_relative_idx) / float(butterfly_size);
-    twiddle_factor = vec2(cos(arg), sin(arg));
+    twiddle_factor = vec2(cos(arg), -sin(arg));
 }
 
 vec2 complex_mul(vec2 a, vec2 b) {
@@ -60,27 +65,41 @@ float dot_vec2(vec2 v1, vec2 v2) {
 	return v1.x * v2.x + v1.y * v2.y;
 }
 
+vec2 exp_i(float arg)
+{
+	return vec2( cos(arg), sin(arg) );
+
+}
+
 
 layout (local_size_x = OWGE_FFT_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
     int ping_pong = 0;
-    ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
-	vec4 pixelValue = imageLoad(imageIn, texpos);
-	vec2 k = pixelValue.zw + 2*PI;
-	vec2 h0 = pixelValue.xy;
-	float omega = sqrt(g * length(k));
+    ivec2 texpos = bull.vertical ?	ivec2(gl_GlobalInvocationID.xy) : ivec2(gl_GlobalInvocationID.yx);
 	
 	vec2 X = vec2(texpos) - OWGE_FFT_SIZE / 2 - 1;
 	
-	vec2 euler = vec2( cos( dot_vec2(k, X) - omega * bo.deltaTime ), sin( dot_vec2(k, X) - omega * bo.deltaTime ) );
+	vec4 pixelValue = imageLoad(imageIn, texpos);
+	vec2 k = vec2(2.0 * PI * X.x / OWGE_FFT_SIZE, 2.0*PI*X.y / OWGE_FFT_SIZE);
+	vec2 h0 = pixelValue.xy;
 	
-	vec2 h_kapica = complex_mul(h0, euler);
+	vec4 conjugatePixelValue = imageLoad(imageIn, ivec2(512 - texpos.x - 1, 512 - texpos.y - 1));
+	vec2 minus_k = conjugatePixelValue.zw;
+	vec2 h0_conjugate = vec2(conjugatePixelValue.x, -conjugatePixelValue.y);
+	
+	float magnitude = length(k);
+	if(magnitude < 0.00001) magnitude = 0.00001;
+	
+	float omega = sqrt(g * magnitude);
+	
+	vec2 h_kapica = complex_mul(h0, exp_i(omega*bo.deltaTime)) + complex_mul(h0_conjugate, exp_i(-omega*bo.deltaTime));
+	vec2 fft_arg = complex_mul(h_kapica, exp_i(dot_vec2(k, X)));
 	
 	vec2 ki = vec2(-k.y, k.x);
-	vec2 hd_kapica = complex_mul(ki, euler);
+	vec2 hd_kapica = complex_mul(ki, exp_i(dot_vec2(k, X) - omega * bo.deltaTime ));
 	
-    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = h_kapica;
+    ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (32u - OWGE_FFT_LOG_SIZE)] = fft_arg;
     ping_pong_buffer_normals[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = hd_kapica;
 
     memoryBarrierShared();

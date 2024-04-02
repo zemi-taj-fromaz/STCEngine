@@ -74,6 +74,12 @@ public:
     void set_reload_time(float recall) { this->recall = recall; }
     float get_reload_time() { return this->recall; }
     float get_total_time() { return totalTime; }
+    bool get_vertical() { 
+        static bool vertical = true;
+        vertical = !vertical;
+        return vertical;
+    }
+
     float get_delta_time() { return deltaTime; }
     glm::vec2 get_resolution() { return glm::vec2(width,height); }
     size_t get_particles_size() { return particles.size(); }

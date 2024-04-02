@@ -32,10 +32,13 @@ public:
 		auto totalTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
 		auto totalTimeCompute = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
 
+		auto verticalFlag = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(bool), Functions::verticalFlagUpdateFunc);
+
+
 		auto mandelbulbFactor = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::mandelbulbFactorUpdateFunc);
 		auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight), Functions::globalLightUpdateFunc);
 
-		create_descriptors({ camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
+		create_descriptors({ verticalFlag, camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
@@ -51,7 +54,7 @@ public:
 
 		TopoloG pleaseTop({ camera, totalTime, objects, sampler });
 
-		TopoloG computeShaderTopology({ totalTimeCompute, image2dIn, image2dOut, image2dOut2 });
+		TopoloG computeShaderTopology({ totalTimeCompute, verticalFlag, image2dIn, image2dOut, image2dOut2 });
 
 		auto skyboxLayout = std::make_shared<PipelineLayout>(skyboxTopology);
 		auto oceanLayout = std::make_shared<PipelineLayout>(oceanTopology);
@@ -128,14 +131,11 @@ public:
 					float k_len = glm::length(K);
 
 					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
-					if (k_len > std::sqrt(2) * 2 * M_PI / Lx && k_len < M_PI)
-					{
-						//if (std::abs(K.x) < 0.0002f) continue;
-						float phi = std::atan(K.y / K.x);
-						h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k);
-					//	std::cout << h_0.x << std::endl;
-					}
-
+				
+					k_len = std::clamp(k_len, static_cast<float>(std::sqrt(2) * 2 * M_PI / Lx), static_cast<float>(M_PI));
+					float phi = std::atan(K.y / K.x);
+					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, K);
+					
 					pixels[index + 0] = h_0.x;   // Red component
 					pixels[index + 1] = h_0.y;  // Green component
 					pixels[index + 2] = kx;  // Blue component (set to 0 for simplicity)
@@ -276,7 +276,7 @@ public:
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
 
-	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::uniform_real_distribution<float>& distribution, float theta, float delta_k)
+	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::uniform_real_distribution<float>& distribution, float theta, float delta_k, glm::vec2 k)
 	{
 		float g = 9.81f;
 		float omega = pow(g * k_len, 0.5f); // dispertion relation
@@ -286,11 +286,59 @@ public:
 
 		float omega_p = 22 * pow(g * g / (u_10 * fetch), 0.333f); //angular frequency of the spectral peak
 
-		float phi = jonswap(omega, omega_p, fetch, u_10) * oceanography_donelan_banner_directional_spreading(omega, omega_p, glm::radians(45.0f)) * sqrt(g / k_len) / (2 * k_len);
+		float phi = 2*jonswap(omega, omega_p, fetch, u_10) * oceanography_donelan_banner_directional_spreading(omega, omega_p, glm::radians(45.0f)) * sqrt(g / k_len) / (2 * k_len) * delta_k * delta_k;
+	//	float phi = phillips_spectrum(k.x, k.y);
 
-		float factor = 1 / pow(2, 0.5f) * pow(2 * phi, 0.5f) * delta_k;
+		float factor = 1 / pow(2, 0.5f) * pow(phi, 0.5f);
 
 		return glm::vec3(factor * distribution(gen), factor * distribution(gen), omega);
+	}
+
+	float __oceanography_hasselmann_s(float omega, float omega_peak, float u, float g)
+	{
+		float s0 = 6.97f * pow(omega / omega_peak, 4.06f);
+		float s1_exp = -2.33f - 1.45f * (((u * omega_peak) / g) - 1.17f);
+		float s1 = 9.77f * pow(omega / omega_peak, s1_exp);
+		return omega > omega_peak
+			? s1
+			: s0;
+	}
+
+	float __oceanography_mitsuyasu_s(float omega, float omega_peak, float u, float g)
+	{
+		float s_p = 11.5f * pow((omega_peak * u) / g, -2.5f);
+		float s0 = pow(s_p, 5.0f);
+		float s1 = pow(s_p, -2.5f);
+		return omega > omega_peak
+			? s1
+			: s0;
+	}
+
+	float math_stirling_approximation(float n)
+	{
+		return sqrt(2.0f * M_PI * n) * pow(n / glm::e<float>(), n);
+	}
+
+	float __oceanography_mitsuyasu_q(float s)
+	{
+		float a = pow(2.0f, 2.0f * s - 1) / M_PI;
+		float b = pow(math_stirling_approximation(s + 1), 2.0f);
+		float c = math_stirling_approximation(2.0f * s + 1);
+		return a * (b / c);
+	}
+
+	float oceanography_mitsuyasu_directional_spreading(float omega, float omega_peak, float theta, float u, float g)
+	{
+		float s = __oceanography_mitsuyasu_s(omega, omega_peak, u, g);
+		float q_s = __oceanography_mitsuyasu_q(s);
+		return q_s * pow(abs(cos(theta / 2.0f)), 2.0f);
+	}
+
+	float oceanography_hasselmann_directional_spreading(float omega, float omega_peak, float theta, float u, float g)
+	{
+		float s = __oceanography_hasselmann_s(omega, omega_peak, u, g);
+		float q_s = __oceanography_mitsuyasu_q(s);
+		return q_s * pow(abs(cos(theta / 2.0f)), 2.0f);
 	}
 
 	float directional_spread(float omega, float omega_p, float theta, float wind_direction)
@@ -352,6 +400,37 @@ public:
 		float energy = S * peakEnhancementFactor;
 
 		return energy;
+	}
+
+	float phillips_spectrum(float kx, float ky) {
+		// Calculate wave vector length
+		float k_squared = kx * kx + ky * ky;
+		float k = sqrt(k_squared);
+
+		glm::vec2 wind_direction = glm::vec2(0.0f, 1.0f);
+
+		// Calculate wind speed magnitude
+
+		// Calculate directional vector
+		float k_dot_w = (kx / k) * (wind_direction.x) + (ky / k) * (wind_direction.y);
+
+		float gravity = 9.81f;
+
+		float wind_speed_mag = 10.0f;
+
+		// Calculate exponent
+		float L = wind_speed_mag * wind_speed_mag / gravity;
+		float L_squared = L * L;
+		float damping = 0.001f * L; // Damping factor to prevent division by zero
+		float damping_squared = damping * damping;
+		float exponent = -1.0f / (k_squared * L_squared) - k_squared * damping_squared;
+
+		float A = 0.81f*0.7f / (512.f*512.f);
+
+		// Calculate Phillips spectrum
+		float P = A * exp(exponent) / (k_squared * k_squared) * k_dot_w * k_dot_w;
+
+		return P;
 	}
 
 

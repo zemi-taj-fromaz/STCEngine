@@ -106,6 +106,14 @@ namespace Functions
 
 	};
 
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> verticalFlagUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+		{
+			bool* vertical = (bool*)bufferMapped;
+			*vertical = app->get_vertical();
+			return true;
+
+		};
+
 
 	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
