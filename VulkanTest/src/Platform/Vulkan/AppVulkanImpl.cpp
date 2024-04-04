@@ -2246,8 +2246,6 @@ void AppVulkanImpl::draw_objects(VkCommandBuffer commandBuffer, std::vector<std:
 
 void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
-    // TODO - pogledaj - mozda se ovo može restrukturirati da se ne iterira po list deskriptora?
-
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0; // Optional
@@ -2257,98 +2255,11 @@ void AppVulkanImpl::draw_compute(VkCommandBuffer commandBuffer, uint32_t imageIn
         throw std::runtime_error("failed to begin recording command buffer!");
     }
 
+    //TODO - probaj vidjeti mogu li se sortirati deskriptori pri otvaranju da se pojednostavi logika za bindanje
+    
     auto layer = m_LayerStack[m_ActiveLayer];
 
-    auto& descriptors = layer->get_descriptors();
-
-    for (auto& descriptor : descriptors)
-    {
-        if (descriptor->shaderFlags == VK_SHADER_STAGE_COMPUTE_BIT && !descriptor->tie)
-        {
-            std::shared_ptr<Pipeline> computePipeline = layer->get_compute_pipeline();
-            for (int i = 0; i < computePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
-            {
-                if (computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        || computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-                    ) continue;
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipelineLayout->layout, i, 1, &computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
-            }
-
-            for (int i = 0; i < computePipeline->ImageFields.size(); ++i)
-            {
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipelineLayout->layout, computePipeline->pipelineLayout->descriptorSetLayout.size() - computePipeline->ImageFields.size() + i, 1, &computePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
-            }
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
-
-            vkCmdDispatch(commandBuffer, 1, 512, 1);
-
-            // Barrier to synchronize memory access between dispatches
-            VkMemoryBarrier memoryBarrier{};
-            memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-            memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
-            memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  // Access mask for reads in subsequent dispatch
-
-            vkCmdPipelineBarrier(
-                commandBuffer,
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
-                0,                                    // Dependency flags
-                1,                                    // Memory barrier count
-                &memoryBarrier,                       // Pointer to memory barriers
-                0,                                    // Buffer memory barrier count
-                nullptr,                              // Pointer to buffer memory barriers
-                0,                                    // Image memory barrier count
-                nullptr                               // Pointer to image memory barriers
-            );
-
-
-            //OVO JE UZASNO _ POPRAVI :_ TODO
-            descriptors[0]->bufferUpdateFunc(this, descriptor->bufferWrappers[imageIndex % descriptor->bufferWrappers.size()].bufferMapped);
-
-
-            for (int i = 0; i < computePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
-            {
-                if (computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                    || computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-                    ) continue;
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipelineLayout->layout, i, 1, &computePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
-            }
-
-            for (int i = 0; i < computePipeline->ImageFields.size(); ++i)
-            {
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipelineLayout->layout, computePipeline->pipelineLayout->descriptorSetLayout.size() - computePipeline->ImageFields.size() + i, 1, &computePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
-            }
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->pipeline);
-
-
-            vkCmdDispatch(commandBuffer, 1, 512, 1);
-
-            // Barrier to synchronize memory access between dispatches
-            VkMemoryBarrier memoryBarrier2{};
-            memoryBarrier2.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-            memoryBarrier2.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
-            memoryBarrier2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;  // Access mask for reads in subsequent dispatch
-
-            vkCmdPipelineBarrier(
-                commandBuffer,
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
-                0,                                    // Dependency flags
-                1,                                    // Memory barrier count
-                &memoryBarrier2,                       // Pointer to memory barriers
-                0,                                    // Buffer memory barrier count
-                nullptr,                              // Pointer to buffer memory barriers
-                0,                                    // Image memory barrier count
-                nullptr                               // Pointer to image memory barriers
-            );
-
-            break;
-
-        }
-    }
-   // vkCmdEndRenderPass(commandBuffer);
+    layer->compute_shaders_dispatch(commandBuffer, imageIndex, this);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");

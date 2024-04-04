@@ -81,20 +81,15 @@ void main() {
 	vec2 X = vec2(texpos) - OWGE_FFT_SIZE / 2 - 1;
 	
 	vec4 pixelValue = imageLoad(imageIn, texpos);
-	vec2 k = vec2(2.0 * PI * X.x / OWGE_FFT_SIZE, 2.0*PI*X.y / OWGE_FFT_SIZE);
-	vec2 h0 = pixelValue.xy;
+	vec2 k = pixelValue.zw;
+	vec2 h_kt = pixelValue.xy;
 	
-	vec4 conjugatePixelValue = imageLoad(imageIn, ivec2(512 - texpos.x - 1, 512 - texpos.y - 1));
-	vec2 minus_k = conjugatePixelValue.zw;
-	vec2 h0_conjugate = vec2(conjugatePixelValue.x, -conjugatePixelValue.y);
+	vec2 fft_arg = complex_mul(h_kt, exp_i(dot_vec2(k, X)));
 	
 	float magnitude = length(k);
 	if(magnitude < 0.00001) magnitude = 0.00001;
 	
 	float omega = sqrt(g * magnitude);
-	
-	vec2 h_kapica = complex_mul(h0, exp_i(omega*bo.deltaTime)) + complex_mul(h0_conjugate, exp_i(-omega*bo.deltaTime));
-	vec2 fft_arg = complex_mul(h_kapica, exp_i(dot_vec2(k, X)));
 	
 	vec2 ki = vec2(-k.y, k.x);
 	vec2 hd_kapica = complex_mul(ki, exp_i(dot_vec2(k, X) - omega * bo.deltaTime ));

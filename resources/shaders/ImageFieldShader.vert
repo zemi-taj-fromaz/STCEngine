@@ -38,8 +38,8 @@ void main() {
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
 	vec3 normalFromMap = normalize(imageLoad(normalmap, ivec2(inTexCoord)).xyz);
+	//vec3 Position = vec3(inPosition.x, inPosition.y, inPosition.z);
 	vec3 Position = vec3(inPosition.x, inPosition.y + imageLoad(heightmap, ivec2(inTexCoord)).x, inPosition.z);
-   // gl_Position =  MVP * vec4(inPosition, 1.0);
     gl_Position =  MVP * vec4(Position, 1.0);
     texCoord = inTexCoord;
 	

@@ -45,6 +45,7 @@ rem Compile each shader with relative paths
 "%glslcPath%" ImageFieldShader.vert -o ImageFieldShadervert.spv
 "%glslcPath%" ImageFieldShader.frag -o ImageFieldShaderfrag.spv
 "%glslcPath%" FFTShader.comp -o FFTShadercomp.spv
+"%glslcPath%" FrequencyFieldShader.comp -o FrequencyFieldShadercomp.spv
 
 echo "Compilation Done"
 

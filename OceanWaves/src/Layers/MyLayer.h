@@ -25,6 +25,7 @@ public:
 		auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL);
 
 		auto image2dIn = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
+		auto image2dIn2 = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
 		auto image2dOut = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
 		auto image2dOut2 = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
 		auto image2DFragment = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_ALL);
@@ -38,7 +39,7 @@ public:
 		auto mandelbulbFactor = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::mandelbulbFactorUpdateFunc);
 		auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight), Functions::globalLightUpdateFunc);
 
-		create_descriptors({ verticalFlag, camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
+		create_descriptors({ verticalFlag, camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
@@ -55,6 +56,7 @@ public:
 		TopoloG pleaseTop({ camera, totalTime, objects, sampler });
 
 		TopoloG computeShaderTopology({ totalTimeCompute, verticalFlag, image2dIn, image2dOut, image2dOut2 });
+		TopoloG computeShaderTopology2({ totalTimeCompute, image2dIn, image2dIn2, image2dOut });
 
 		auto skyboxLayout = std::make_shared<PipelineLayout>(skyboxTopology);
 		auto oceanLayout = std::make_shared<PipelineLayout>(oceanTopology);
@@ -64,9 +66,10 @@ public:
 		auto pleaseLayout = std::make_shared<PipelineLayout>(pleaseTop);
 
 		auto computeLayout = std::make_shared<PipelineLayout>(computeShaderTopology);
+		auto computeLayout2 = std::make_shared<PipelineLayout>(computeShaderTopology2);
 		//auto mandelbulbLayout = std::make_shared<PipelineLayout>(mandelbulbTopology);
 
-		create_layouts({ oceanLayout, plainLayout , pleaseLayout, computeLayout , pipelineLayoutTex, imageFieldPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
+		create_layouts({ oceanLayout, plainLayout , pleaseLayout, computeLayout , pipelineLayoutTex, imageFieldPipelineLayout, computeLayout2 });// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
@@ -76,6 +79,7 @@ public:
 		std::vector<std::string> fftShaderNames({ "FFTOceanShader.vert", "FFTOceanShader.frag" });
 		std::vector<std::string> plainShaderNames({ "PlainShader.vert", "PlainShader.frag" });
 		std::vector<std::string> computerShaderNames({ "FFTShader.comp" });
+		std::vector<std::string> frequencyFieldShaderNames({ "FrequencyFieldShader.comp" });
 		std::vector<std::string> textureShaderNames({ "TextureShader.vert", "TextureShader.frag" });
 		std::vector<std::string> imageFieldShaderNames({ "ImageFieldShader.vert", "ImageFieldShader.frag" });
 
@@ -91,10 +95,12 @@ public:
 		auto fftPipeline = std::make_shared<Pipeline>(pleaseLayout, fftShaderNames);
 
 		auto computePipeline = std::make_shared<Pipeline>(computeLayout, computerShaderNames);
+		auto computePipeline2 = std::make_shared<Pipeline>(computeLayout2, frequencyFieldShaderNames);
 		m_ComputePipeline = computePipeline;
+		m_ComputePipeline2 = computePipeline2;
 
 
-		create_pipelines({oceanPipeline, plainPipeline, fftPipeline, computePipeline , texturedPipeline, imagefieldPipeline });
+		create_pipelines({oceanPipeline, plainPipeline, fftPipeline, computePipeline , computePipeline2, texturedPipeline, imagefieldPipeline });
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
 
@@ -123,18 +129,17 @@ public:
 
 					float kx = 2 * M_PI * n / Lx;
 					float kz = 2 * M_PI * m / Lz;
+					glm::vec2 wavevector = glm::vec2(kx, kz);
 
-					//	std::cout << kx << " " << kz << std::endl;
-
-					glm::vec2 K = glm::vec2(kx, kz);
-
-					float k_len = glm::length(K);
+					float k_len = glm::length(wavevector);
 
 					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
 				
 					k_len = std::clamp(k_len, static_cast<float>(std::sqrt(2) * 2 * M_PI / Lx), static_cast<float>(M_PI));
-					float phi = std::atan(K.y / K.x);
-					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, K);
+
+					float phi = std::atan(wavevector.y / wavevector.x);
+					
+					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, wavevector);
 					
 					pixels[index + 0] = h_0.x;   // Red component
 					pixels[index + 1] = h_0.y;  // Green component
@@ -146,17 +151,60 @@ public:
 			return pixels;
 			});
 
+		std::shared_ptr<Texture> h0_conjugate = std::make_shared<Texture>(512, [Lx, Lz, this](int width, int height, int channels) {
+			float* pixels;
+			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
-		std::shared_ptr<Texture> hx = std::make_shared<Texture>(1024);
-		std::shared_ptr<Texture> dh = std::make_shared<Texture>(1024);
+			// Generate pixel data with unique colors
+			float avg_x = 0.0f;
+			float avg_y = 0.0f;
+			float delta_k = 2 * M_PI / Lx;
+			for (int y = 0; y < height; ++y) {
+				for (int x = 0; x < width; ++x) {
+					int index = (y * width + x) * channels;
+
+					int n = x - width / 2;
+					int m = y - height / 2;
+
+					float kx = 2 * M_PI * n / Lx;
+					float kz = 2 * M_PI * m / Lz;
+
+					glm::vec2 wavevector = glm::vec2(kx, kz);
+
+					float k_len = glm::length(wavevector);
+
+					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
+
+					k_len = std::clamp(k_len, static_cast<float>(std::sqrt(2) * 2 * M_PI / Lx), static_cast<float>(M_PI));
+					float phi = std::atan(wavevector.y / wavevector.x);
+					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, wavevector);
+
+					pixels[index + 0] = h_0.x;   // Red component
+					pixels[index + 1] = h_0.y;  // Green component
+					pixels[index + 2] = kx;  // Blue component (set to 0 for simplicity)
+					pixels[index + 3] = kz;  // Alpha component (set to full alpha)
+				}
+			}
+
+			return pixels;
+			});
+
+
+		std::shared_ptr<Texture> hk = std::make_shared<Texture>(512);
+		std::shared_ptr<Texture> hx = std::make_shared<Texture>(512);
+		std::shared_ptr<Texture> dh = std::make_shared<Texture>(512);
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
-		create_image_fields({ h0, hx, dh });
+		create_image_fields({ h0,h0_conjugate, hk, hx, dh });
 
-		m_ComputePipeline->ImageFields.push_back(h0);
+		m_ComputePipeline->ImageFields.push_back(hk);
 		m_ComputePipeline->ImageFields.push_back(hx);
 		m_ComputePipeline->ImageFields.push_back(dh);
+
+		m_ComputePipeline2->ImageFields.push_back(h0);
+		m_ComputePipeline2->ImageFields.push_back(h0_conjugate);
+		m_ComputePipeline2->ImageFields.push_back(hk);
 
 		//----------------------- MESH --------------------------------------------------------------------
 		Mesh box("skybox.obj");
@@ -270,8 +318,124 @@ public:
 	//	meshWrappers.push_back(heightmap);
 
 		create_mesh(meshWrappers);
+	}
 
+	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
+	{
+		// Computing the frequency field
+		for (int i = 0; i < m_ComputePipeline2->pipelineLayout->descriptorSetLayout.size(); ++i)
+		{
+			if (m_ComputePipeline2->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+				|| m_ComputePipeline2->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+				) continue;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline2->pipelineLayout->layout, i, 1, &m_ComputePipeline2->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
 
+		for (int i = 0; i < m_ComputePipeline2->ImageFields.size(); ++i)
+		{
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline2->pipelineLayout->layout, m_ComputePipeline2->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline2->ImageFields.size() + i, 1, &m_ComputePipeline2->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline2->pipeline);
+
+		vkCmdDispatch(commandBuffer, 1, 512, 1);
+
+		// Barrier to synchronize memory access between dispatches
+		VkMemoryBarrier memoryBarrier3{};
+		memoryBarrier3.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier3.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
+		memoryBarrier3.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  // Access mask for reads in subsequent dispatch
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
+			0,                                    // Dependency flags
+			1,                                    // Memory barrier count
+			&memoryBarrier3,                       // Pointer to memory barriers
+			0,                                    // Buffer memory barrier count
+			nullptr,                              // Pointer to buffer memory barriers
+			0,                                    // Image memory barrier count
+			nullptr                               // Pointer to image memory barriers
+		);
+
+		// computing the heigh field with fft
+
+		for (int i = 0; i < m_ComputePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
+		{
+			if (m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+				|| m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+				) continue;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, i, 1, &m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		for (int i = 0; i < m_ComputePipeline->ImageFields.size(); ++i)
+		{
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, m_ComputePipeline->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline->ImageFields.size() + i, 1, &m_ComputePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipeline);
+
+		vkCmdDispatch(commandBuffer, 1, 512, 1);
+
+		// Barrier to synchronize memory access between dispatches
+		VkMemoryBarrier memoryBarrier{};
+		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
+		memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  // Access mask for reads in subsequent dispatch
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
+			0,                                    // Dependency flags
+			1,                                    // Memory barrier count
+			&memoryBarrier,                       // Pointer to memory barriers
+			0,                                    // Buffer memory barrier count
+			nullptr,                              // Pointer to buffer memory barriers
+			0,                                    // Image memory barrier count
+			nullptr                               // Pointer to image memory barriers
+		);
+
+		//OVO JE UZASNO _ POPRAVI :_ TODO
+		auto descriptor = get_descriptors()[0];
+		descriptor->bufferUpdateFunc(app, descriptor->bufferWrappers[imageIndex % descriptor->bufferWrappers.size()].bufferMapped);
+
+		for (int i = 0; i < m_ComputePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
+		{
+			if (m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+				|| m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+				) continue;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, i, 1, &m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		for (int i = 0; i < m_ComputePipeline->ImageFields.size(); ++i)
+		{
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, m_ComputePipeline->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline->ImageFields.size() + i, 1, &m_ComputePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipeline);
+
+		vkCmdDispatch(commandBuffer, 1, 512, 1);
+
+		// Barrier to synchronize memory access between dispatches
+		VkMemoryBarrier memoryBarrier2{};
+		memoryBarrier2.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier2.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
+		memoryBarrier2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;  // Access mask for reads in subsequent dispatch
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
+			0,                                    // Dependency flags
+			1,                                    // Memory barrier count
+			&memoryBarrier2,                       // Pointer to memory barriers
+			0,                                    // Buffer memory barrier count
+			nullptr,                              // Pointer to buffer memory barriers
+			0,                                    // Image memory barrier count
+			nullptr                               // Pointer to image memory barriers
+		);
 	}
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }

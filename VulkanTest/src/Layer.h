@@ -89,6 +89,7 @@ public:
 	virtual void on_update(float timeStep = 0) {}
 	virtual bool poll_inputs(GLFWwindow* window, float deltaTime);
 	virtual void set_callbacks(GLFWwindow* window);
+	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app){}
 
 	inline const std::string& get_name() const { return m_DebugName; }
 	std::vector<std::shared_ptr<Descriptor>>& get_descriptors() { return m_Descriptors; }
@@ -147,7 +148,8 @@ public:
 
 	virtual bool generate_perlin_noise() { return false;  }
 
-
+	std::shared_ptr<Pipeline> m_ComputePipeline;
+	std::shared_ptr<Pipeline> m_ComputePipeline2;
 
 protected:
 
@@ -200,9 +202,6 @@ protected:
 	{
 	}
 
-
-
-	std::shared_ptr<Pipeline> m_ComputePipeline;
 	std::shared_ptr<Pipeline> m_ComputeGraphicsPipeline;
 
 	std::vector<std::shared_ptr<MeshWrapper>> m_Mesh;
