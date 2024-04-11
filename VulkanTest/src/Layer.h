@@ -61,6 +61,24 @@ struct Pipeline
 	VkPrimitiveTopology Topology{ VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST };
 	VkPipeline pipeline;
 	std::vector<std::shared_ptr<Texture>> ImageFields;
+
+	void bind(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+	{
+		for (int i = 0; i < this->pipelineLayout->descriptorSetLayout.size(); ++i)
+		{
+			if (this->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+				|| this->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+				) continue;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, this->pipelineLayout->layout, i, 1, &this->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		for (int i = 0; i < this->ImageFields.size(); ++i)
+		{
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, this->pipelineLayout->layout, this->pipelineLayout->descriptorSetLayout.size() - this->ImageFields.size() + i, 1, &this->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, this->pipeline);
+	}
 };
 
 

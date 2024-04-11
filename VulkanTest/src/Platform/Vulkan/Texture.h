@@ -4,10 +4,10 @@
 
 struct Texture
 {
-    Texture(int N, std::function<float* (int width, int height, int channels)> generateTexture) : Width(N), GenerateTexture(generateTexture)
+    Texture(int N, int M, std::function<float* (int width, int height, int channels)> generateTexture) : Width(N), Height(M),  GenerateTexture(generateTexture)
     {}
 
-    Texture(int N) : Width(N)
+    Texture(int N, int M) : Width(N), Height(M)
     {
         GenerateTexture = [](int width, int height, int channels) 
         {
@@ -41,6 +41,7 @@ struct Texture
         Filename = texture.Filename;
         DescriptorType = texture.DescriptorType;
         Width = texture.Width;
+        Height = texture.Height;
         GenerateTexture = texture.GenerateTexture;
     }
 
@@ -54,6 +55,7 @@ struct Texture
     VkDescriptorType DescriptorType{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER };
 
     int Width;
+    int Height;
 
     std::function<float* (int width, int height, int channels)> GenerateTexture;
     std::vector<VkDescriptorSet> descriptorSets;

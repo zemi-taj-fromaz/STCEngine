@@ -732,7 +732,7 @@ void AppVulkanImpl::create_image_field(Texture& texture)
     float* pixels;
 
     texWidth = texture.Width;
-    texHeight = texture.Width;
+    texHeight = texture.Height;
     texChannels = 4;
 
     pixels = texture.GenerateTexture(texWidth, texHeight, texChannels);
@@ -1094,7 +1094,7 @@ void AppVulkanImpl::create_descriptors(std::shared_ptr<Layer>& layer)
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 50 },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 50 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 50 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 50 }
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 }
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {};

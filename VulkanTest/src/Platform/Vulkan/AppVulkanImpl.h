@@ -80,6 +80,28 @@ public:
         return vertical;
     }
 
+    void pipeline_barrier(VkCommandBuffer commandBuffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlagBits srcPipelineStage, VkPipelineStageFlagBits dstPipelineStage)
+    {
+        // Barrier to synchronize memory access between dispatches
+        VkMemoryBarrier memoryBarrier{};
+        memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        memoryBarrier.srcAccessMask = srcAccessMask; // Access mask for writes in previous dispatch
+        memoryBarrier.dstAccessMask = dstAccessMask;  // Access mask for reads in subsequent dispatch
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            srcPipelineStage, // Source pipeline stage
+            dstPipelineStage, // Destination pipeline stage
+            0,                                    // Dependency flags
+            1,                                    // Memory barrier count
+            &memoryBarrier,                       // Pointer to memory barriers
+            0,                                    // Buffer memory barrier count
+            nullptr,                              // Pointer to buffer memory barriers
+            0,                                    // Image memory barrier count
+            nullptr                               // Pointer to image memory barriers
+        );
+    }
+
     float get_delta_time() { return deltaTime; }
     glm::vec2 get_resolution() { return glm::vec2(width,height); }
     size_t get_particles_size() { return particles.size(); }
