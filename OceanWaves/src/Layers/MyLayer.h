@@ -429,6 +429,44 @@ public:
 			return pixels;
 			});
 
+		std::shared_ptr<Texture> color_red = std::make_shared<Texture>(28, 28, [Lx, Lz, this](int width, int height, int channels) {
+			float* pixels;
+			pixels = (float*)malloc(width * height * channels * sizeof(float));
+
+			// Generate pixel data with unique colors
+			float avg_x = 0.0f;
+			float avg_y = 0.0f;
+			float delta_k = 2 * M_PI / Lx;
+			for (int y = 0; y < height; ++y) {
+				for (int x = 0; x < width; ++x) {
+					int index = (y * width + x) * channels;
+
+					int n = x - width / 2;
+					int m = y - height / 2;
+
+					float kx = 2 * M_PI * n / Lx;
+					float kz = 2 * M_PI * m / Lz;
+
+					glm::vec2 wavevector = glm::vec2(kx, kz);
+
+					float k_len = glm::length(wavevector);
+
+					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
+
+					k_len = std::clamp(k_len, static_cast<float>(std::sqrt(2) * 2 * M_PI / Lx), static_cast<float>(M_PI));
+					float phi = std::atan(wavevector.y / wavevector.x);
+					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, wavevector);
+
+					pixels[index + 0] = 255.0f;   // Red component
+					pixels[index + 1] = 1.0f;  // Green component
+					pixels[index + 2] =	1.0f;  // Blue component (set to 0 for simplicity)
+					pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
+				}
+			}
+
+			return pixels;
+			});
+
 		fftw_complex* in, * out;
 		fftw_plan p;
 
@@ -450,7 +488,7 @@ public:
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
-		create_image_fields({ h0,h0_conjugate, hk, hx, dh });
+		create_image_fields({hx, h0,h0_conjugate, hk, dh });
 
 		m_ComputePipeline->ImageFields.push_back(hk);
 		m_ComputePipeline->ImageFields.push_back(hx);
@@ -920,29 +958,65 @@ public:
 
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
 	{
-		imageIndex = imageIndex % app->MAX_FRAMES_IN_FLIGHT;
 
-		//COMPUTE h(k,t)
-		m_ComputePipeline2->bind(commandBuffer, imageIndex);
-		vkCmdDispatch(commandBuffer, 1, 512, 1);
-		app->pipeline_barrier(commandBuffer, 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+		auto& hx = get_image_fields()[0];
+		int width = hx->Width;
+		int height = hx->Height;
+		VkDeviceSize imageSize = hx->Width * hx->Height * 4 * sizeof(float);
 
-		//Compute h(X,t) with fft
-		auto descriptor = get_descriptors()[0];
-		{
-			bool* vertFlag = (bool*)descriptor->bufferWrappers[imageIndex].bufferMapped;
-			*vertFlag = false;
+		void* data;
+		vkMapMemory(app->get_device(), hx->Memory, 0, imageSize, 0, &data);
+		// Copy newData into data (assuming newData is of size `size`)
 
-			m_ComputePipeline->bind(commandBuffer, imageIndex);
-			vkCmdDispatch(commandBuffer, 1, 512, 1);
-			app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+		float* pixels;
+		pixels = (float*)malloc(width * height * 4 * sizeof(float));
 
-			*vertFlag = true;
+		float time = app->get_total_time();
 
-			m_ComputePipeline->bind(commandBuffer, imageIndex);
-			vkCmdDispatch(commandBuffer, 1, 512, 1);
-			app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				int index = (y * width + x) * 4;
+
+				// Calculate color components based on time
+				float red = 0.5f + 0.5f * sin(2.0f * 3.14f * time);
+				float green = 0.5f + 0.5f * cos(2.0f * 3.14f * time);
+				float blue = 0.5f + 0.5f * sin(2.0f * 3.14f * time + 2.0f);
+
+				// Set pixel color
+				pixels[index + 0] = red * 255.0f;   // Red component
+				pixels[index + 1] = green * 255.0f; // Green component
+				pixels[index + 2] = blue * 255.0f;  // Blue component
+				pixels[index + 3] = 255.0f;          // Alpha component (set to full alpha)
+			}
 		}
+
+
+
+		memcpy(data, pixels, imageSize);
+		vkUnmapMemory(app->get_device(), hx->Memory);
+		//imageIndex = imageIndex % app->MAX_FRAMES_IN_FLIGHT;
+
+		////COMPUTE h(k,t)
+		//m_ComputePipeline2->bind(commandBuffer, imageIndex);
+		//vkCmdDispatch(commandBuffer, 1, 512, 1);
+		//app->pipeline_barrier(commandBuffer, 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		////Compute h(X,t) with fft
+		//auto descriptor = get_descriptors()[0];
+		//{
+		//	bool* vertFlag = (bool*)descriptor->bufferWrappers[imageIndex].bufferMapped;
+		//	*vertFlag = false;
+
+		//	m_ComputePipeline->bind(commandBuffer, imageIndex);
+		//	vkCmdDispatch(commandBuffer, 1, 512, 1);
+		//	app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		//	*vertFlag = true;
+
+		//	m_ComputePipeline->bind(commandBuffer, imageIndex);
+		//	vkCmdDispatch(commandBuffer, 1, 512, 1);
+		//	app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
+		//}
 	}
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }

@@ -41,6 +41,8 @@ public:
 
     int MAX_FRAMES_IN_FLIGHT = 2;
 
+    VkDevice& get_device() { return m_Device; }
+
     virtual void initialize_window() override;
     virtual void initialize_app() override;
     virtual void main_loop() override;

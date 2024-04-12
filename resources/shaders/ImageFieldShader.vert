@@ -38,15 +38,15 @@ void main() {
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
 	vec3 normalFromMap = normalize(imageLoad(normalmap, ivec2(inTexCoord)).xyz);
-	//vec3 Position = vec3(inPosition.x, inPosition.y, inPosition.z);
-	vec3 Position = vec3(inPosition.x, inPosition.y + imageLoad(heightmap, ivec2(inTexCoord)).x, inPosition.z);
+	vec3 Position = vec3(inPosition.x, inPosition.y, inPosition.z);
+	//vec3 Position = vec3(inPosition.x, inPosition.y + imageLoad(heightmap, ivec2(inTexCoord)).x, inPosition.z);
     gl_Position =  MVP * vec4(Position, 1.0);
     texCoord = inTexCoord;
 	
 	vec4 worldCoord = model * vec4(Position,1.0);
     fragPos = worldCoord.xyz / worldCoord.w;
 	
-    fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
+    fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz + imageLoad(heightmap, ivec2(inTexCoord)).xyz;
     normal = normalFromMap;
 	cameraPos = camera.pos.xyz;
 }
