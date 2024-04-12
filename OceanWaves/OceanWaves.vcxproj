@@ -119,7 +119,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)VulkanTest/src;vendor\;...\libs\imgui;..\resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)VulkanTest/src;vendor\;...\libs\imgui;..\resources;..\libs;src;..\libs\glm;..\libs\glfw-3.3.8.bin.WIN64\include;..\libs\VulkanSDK\1.3.261.0\Include;..\src;..\libs\fftw\fftw-3.3.5-dll64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PreprocessorDefinitions>_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -130,8 +130,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions />
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3_mt.lib;VulkanTest.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\libs\VulkanSDK\1.3.261.0\Lib;..\libs\glfw-3.3.8.bin.WIN64\lib-vc2022;..\libs\freetype;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3_mt.lib;VulkanTest.lib;libfftw3-3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\libs\fftw\fftw-3.3.5-dll64;..\libs\VulkanSDK\1.3.261.0\Lib;..\libs\glfw-3.3.8.bin.WIN64\lib-vc2022;..\libs\freetype;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries> libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>

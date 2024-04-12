@@ -6,6 +6,8 @@
 #include <glm/gtc/constants.hpp>
 
 
+#include <fftw3.h>
+
 class MyLayer : public Layer
 {
 public:
@@ -112,7 +114,7 @@ public:
 		int Lx = 512;
 		int Lz = 512;
 
-		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(512, [Lx, Lz, this](int width, int height, int channels) {
+		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(512, 512, [Lx, Lz, this](int width, int height, int channels) {
 			float* pixels;
 			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
@@ -151,7 +153,7 @@ public:
 			return pixels;
 			});
 
-		std::shared_ptr<Texture> h0_conjugate = std::make_shared<Texture>(512, [Lx, Lz, this](int width, int height, int channels) {
+		std::shared_ptr<Texture> h0_conjugate = std::make_shared<Texture>(512, 512, [Lx, Lz, this](int width, int height, int channels) {
 			float* pixels;
 			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
@@ -189,10 +191,24 @@ public:
 			return pixels;
 			});
 
+		fftw_complex* in, * out;
+		fftw_plan p;
 
-		std::shared_ptr<Texture> hk = std::make_shared<Texture>(512);
-		std::shared_ptr<Texture> hx = std::make_shared<Texture>(512);
-		std::shared_ptr<Texture> dh = std::make_shared<Texture>(512);
+		int N = 32;
+
+		in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+		out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+		p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+
+		fftw_execute(p); /* repeat as needed */
+
+		fftw_destroy_plan(p);
+		fftw_free(in); fftw_free(out);
+
+
+		std::shared_ptr<Texture> hk = std::make_shared<Texture>(512, 512);
+		std::shared_ptr<Texture> hx = std::make_shared<Texture>(512, 512);
+		std::shared_ptr<Texture> dh = std::make_shared<Texture>(512, 512);
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
@@ -322,120 +338,29 @@ public:
 
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
 	{
-		// Computing the frequency field
-		for (int i = 0; i < m_ComputePipeline2->pipelineLayout->descriptorSetLayout.size(); ++i)
-		{
-			if (m_ComputePipeline2->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-				|| m_ComputePipeline2->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-				) continue;
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline2->pipelineLayout->layout, i, 1, &m_ComputePipeline2->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
-		}
+		imageIndex = imageIndex % app->MAX_FRAMES_IN_FLIGHT;
 
-		for (int i = 0; i < m_ComputePipeline2->ImageFields.size(); ++i)
-		{
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline2->pipelineLayout->layout, m_ComputePipeline2->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline2->ImageFields.size() + i, 1, &m_ComputePipeline2->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
-		}
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline2->pipeline);
-
+		//COMPUTE h(k,t)
+		m_ComputePipeline2->bind(commandBuffer, imageIndex);
 		vkCmdDispatch(commandBuffer, 1, 512, 1);
+		app->pipeline_barrier(commandBuffer, 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-		// Barrier to synchronize memory access between dispatches
-		VkMemoryBarrier memoryBarrier3{};
-		memoryBarrier3.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-		memoryBarrier3.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
-		memoryBarrier3.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  // Access mask for reads in subsequent dispatch
-
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
-			0,                                    // Dependency flags
-			1,                                    // Memory barrier count
-			&memoryBarrier3,                       // Pointer to memory barriers
-			0,                                    // Buffer memory barrier count
-			nullptr,                              // Pointer to buffer memory barriers
-			0,                                    // Image memory barrier count
-			nullptr                               // Pointer to image memory barriers
-		);
-
-		// computing the heigh field with fft
-
-		for (int i = 0; i < m_ComputePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
-		{
-			if (m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-				|| m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-				) continue;
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, i, 1, &m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
-		}
-
-		for (int i = 0; i < m_ComputePipeline->ImageFields.size(); ++i)
-		{
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, m_ComputePipeline->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline->ImageFields.size() + i, 1, &m_ComputePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
-		}
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipeline);
-
-		vkCmdDispatch(commandBuffer, 1, 512, 1);
-
-		// Barrier to synchronize memory access between dispatches
-		VkMemoryBarrier memoryBarrier{};
-		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-		memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
-		memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  // Access mask for reads in subsequent dispatch
-
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
-			0,                                    // Dependency flags
-			1,                                    // Memory barrier count
-			&memoryBarrier,                       // Pointer to memory barriers
-			0,                                    // Buffer memory barrier count
-			nullptr,                              // Pointer to buffer memory barriers
-			0,                                    // Image memory barrier count
-			nullptr                               // Pointer to image memory barriers
-		);
-
-		//OVO JE UZASNO _ POPRAVI :_ TODO
+		//Compute h(X,t) with fft
 		auto descriptor = get_descriptors()[0];
-		descriptor->bufferUpdateFunc(app, descriptor->bufferWrappers[imageIndex % descriptor->bufferWrappers.size()].bufferMapped);
-
-		for (int i = 0; i < m_ComputePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
 		{
-			if (m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-				|| m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-				) continue;
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, i, 1, &m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+			bool* vertFlag = (bool*)descriptor->bufferWrappers[imageIndex].bufferMapped;
+			*vertFlag = false;
+
+			m_ComputePipeline->bind(commandBuffer, imageIndex);
+			vkCmdDispatch(commandBuffer, 1, 512, 1);
+			app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+			*vertFlag = true;
+
+			m_ComputePipeline->bind(commandBuffer, imageIndex);
+			vkCmdDispatch(commandBuffer, 1, 512, 1);
+			app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
 		}
-
-		for (int i = 0; i < m_ComputePipeline->ImageFields.size(); ++i)
-		{
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, m_ComputePipeline->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline->ImageFields.size() + i, 1, &m_ComputePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
-		}
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipeline);
-
-		vkCmdDispatch(commandBuffer, 1, 512, 1);
-
-		// Barrier to synchronize memory access between dispatches
-		VkMemoryBarrier memoryBarrier2{};
-		memoryBarrier2.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-		memoryBarrier2.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
-		memoryBarrier2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;  // Access mask for reads in subsequent dispatch
-
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
-			0,                                    // Dependency flags
-			1,                                    // Memory barrier count
-			&memoryBarrier2,                       // Pointer to memory barriers
-			0,                                    // Buffer memory barrier count
-			nullptr,                              // Pointer to buffer memory barriers
-			0,                                    // Image memory barrier count
-			nullptr                               // Pointer to image memory barriers
-		);
 	}
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }

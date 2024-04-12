@@ -39,6 +39,8 @@ public:
     AppVulkanImpl();
     ~AppVulkanImpl();
 
+    int MAX_FRAMES_IN_FLIGHT = 2;
+
     virtual void initialize_window() override;
     virtual void initialize_app() override;
     virtual void main_loop() override;
@@ -249,7 +251,6 @@ private:
     GLFWwindow* m_Window;
     const uint32_t width = 1280;
     const uint32_t height = 720;
-    int MAX_FRAMES_IN_FLIGHT = 2;
     uint32_t m_CurrentFrame{ 0 };
     bool m_FramebufferResized = false;
 

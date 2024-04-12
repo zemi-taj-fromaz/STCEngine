@@ -8,7 +8,6 @@ const float g = 9.81;
 
 const uint OWGE_FFT_SIZE_BITS = 32u;
 
-
 layout(set = 0, binding = 0) uniform BufferObject {
 	float deltaTime;
 } bo;
@@ -16,7 +15,6 @@ layout(set = 0, binding = 0) uniform BufferObject {
 layout(set = 1, binding = 0) uniform FObject {
 	bool vertical;
 } bull;
-
 
 layout(rgba32f,set = 2, binding = 0) uniform image2D imageIn;
 layout(rgba32f,set = 3, binding = 0) uniform image2D imageOut;
@@ -68,9 +66,7 @@ float dot_vec2(vec2 v1, vec2 v2) {
 vec2 exp_i(float arg)
 {
 	return vec2( cos(arg), sin(arg) );
-
 }
-
 
 layout (local_size_x = OWGE_FFT_SIZE, local_size_y = 1, local_size_z = 1) in;
 
@@ -93,12 +89,18 @@ void main() {
 	
 	vec2 ki = vec2(-k.y, k.x);
 	vec2 hd_kapica = complex_mul(ki, exp_i(dot_vec2(k, X) - omega * bo.deltaTime ));
+//	vec2 hd_kapica = complex_mul(ki, exp_i(dot_vec2(k, X) ));
 	
     ping_pong_buffer[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (32u - OWGE_FFT_LOG_SIZE)] = fft_arg;
     ping_pong_buffer_normals[ping_pong][reverseBits(uint(gl_GlobalInvocationID.x)) >> (OWGE_FFT_SIZE_BITS - OWGE_FFT_LOG_SIZE)] = hd_kapica;
 
-    memoryBarrierShared();
-    
+	barrier(); // Ensures all threads within the work group have reached this point
+
+	if (gl_LocalInvocationID.x == 0) {
+		// Only one thread per work group executes this block
+		memoryBarrierShared(); // Ensures memory accesses within the work group are visible to all threads
+	}
+		
     for (uint i = 0u; i < OWGE_FFT_LOG_SIZE; ++i) {
         uvec2 twiddle_indices;
         vec2 twiddle_factor;
@@ -109,7 +111,12 @@ void main() {
 		ping_pong_buffer_normals[(ping_pong + 1) % 2][gl_GlobalInvocationID.x] =
             ping_pong_buffer_normals[ping_pong][twiddle_indices.x] + complex_mul(ping_pong_buffer_normals[ping_pong][twiddle_indices.y], twiddle_factor);
         
-        memoryBarrierShared();
+        barrier(); // Ensures all threads within the work group have reached this point
+
+		if (gl_LocalInvocationID.x == 0) {
+			// Only one thread per work group executes this block
+			memoryBarrierShared(); // Ensures memory accesses within the work group are visible to all threads
+		}
         ping_pong = (ping_pong + 1) % 2;
     }
 	
