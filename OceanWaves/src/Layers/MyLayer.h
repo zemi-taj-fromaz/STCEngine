@@ -4,15 +4,253 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-
+#include <glm/ext.hpp>
 
 #include <fftw3.h>
+#include <complex>
 
 class MyLayer : public Layer
 {
 public:
-	MyLayer() : Layer("Example")
+
+	static constexpr uint32_t     s_kDefaultTileSize{ 512 };
+	static constexpr float        s_kDefaultTileLength{ 1000.0f };
+
+	static inline const glm::vec2 s_kDefaultWindDir{ 1.0f, 1.0f };
+	static constexpr float        s_kDefaultWindSpeed{ 30.0f };
+	static constexpr float        s_kDefaultAnimPeriod{ 200.0f };
+	static constexpr float        s_kDefaultPhillipsConst{ 3e-7f };
+	static constexpr float        s_kDefaultPhillipsDamping{ 0.1f };
+
+	// Both vec4 due to GPU memory alignment requirements
+	using Displacement = glm::vec4;
+	using Normal = glm::vec4;
+	using Complex = std::complex<float>;
+
+	struct WaveVector
 	{
+		glm::vec2 vec;
+		glm::vec2 unit;
+
+		WaveVector(glm::vec2 v)
+			: vec(v),
+			unit(glm::length(v) > 0.00001f ? glm::normalize(v) : glm::vec2(0))
+		{}
+
+		WaveVector(glm::vec2 v, glm::vec2 u)
+			: vec(v), unit(u) {}
+	};
+
+	struct BaseWaveHeight
+	{
+		Complex heightAmp;          ///< FT amplitude of wave height
+		Complex heightAmp_conj;     ///< conjugate of wave height amplitude
+		float dispersion;           ///< Descrete dispersion value
+	};
+
+
+	uint32_t m_TileSize;
+	float    m_TileLength;
+
+	glm::vec2 m_WindDir;        ///< Unit vector
+	float m_WindSpeed;
+
+	// Phillips spectrum
+	float m_A;
+	float m_Damping;
+
+	float m_AnimationPeriod;
+	float m_BaseFreq{ 1.0f };
+
+	float m_Lambda{ -1.0f };  ///< Importance of displacement vector
+
+	// -------------------------------------------------------------------------
+	// Data
+
+	// vec4(Displacement_X, height, Displacement_Z, [jacobian])
+	std::vector<Displacement> m_Displacements;
+	// vec4(slopeX, slopeZ, dDxdx, dDzdz )
+	std::vector<Normal> m_Normals;
+
+	// =========================================================================
+	// Computation
+
+	std::vector<WaveVector> m_WaveVectors;   ///< Precomputed Wave vectors
+
+	// Base wave height field generated from the spectrum for each wave vector
+	std::vector<BaseWaveHeight> m_BaseWaveHeights;
+
+	// ---------------------------------------------------------------------
+	// FT computation using FFTW
+
+	Complex* m_Height{ nullptr };
+	Complex* m_SlopeX{ nullptr };
+	Complex* m_SlopeZ{ nullptr };
+	Complex* m_DisplacementX{ nullptr };
+	Complex* m_DisplacementZ{ nullptr };
+	Complex* m_dxDisplacementX{ nullptr };
+	Complex* m_dzDisplacementZ{ nullptr };
+#ifdef COMPUTE_JACOBIAN
+	Complex* m_dxDisplacementZ{ nullptr };
+	Complex* m_dzDisplacementX{ nullptr };
+#endif
+
+	fftwf_plan m_PlanHeight{ nullptr };
+	fftwf_plan m_PlanSlopeX{ nullptr };
+	fftwf_plan m_PlanSlopeZ{ nullptr };
+	fftwf_plan m_PlanDisplacementX{ nullptr };
+	fftwf_plan m_PlanDisplacementZ{ nullptr };
+	fftwf_plan m_PlandxDisplacementX{ nullptr };
+	fftwf_plan m_PlandzDisplacementZ{ nullptr };
+#ifdef COMPUTE_JACOBIAN
+	fftwf_plan m_PlandxDisplacementZ{ nullptr };
+	fftwf_plan m_PlandzDisplacementX{ nullptr };
+#endif
+
+	float m_MinHeight{ -1.0f };
+	float m_MaxHeight{ 1.0f };
+
+	static constexpr float s_kG{ 9.81 };   ///< Gravitational constant
+	const float s_kOneOver2sqrt{ std::sqrt(0.5f) }; // 1/sqrt(2)
+
+	/**
+	 * @brief Realization of water wave height field in fourier domain
+	 * @return Fourier amplitudes of a wave height field
+	 */
+	Complex BaseWaveHeightFT(const Complex gaussRandom,
+		const glm::vec2 unitWaveVec,
+		float k) const
+	{
+		return s_kOneOver2sqrt * gaussRandom *
+			glm::sqrt(PhillipsSpectrum(unitWaveVec, k));
+	}
+
+	/**
+	 * @brief Phillips spectrum - wave spectrum,
+	 *  a model for wind-driven waves larger than capillary waves
+	 */
+	float PhillipsSpectrum(const glm::vec2 unitWaveVec, float k) const
+	{
+		const float k2 = k * k;
+		const float k4 = k2 * k2;
+
+		float cosFact = glm::dot(unitWaveVec, m_WindDir);
+		cosFact = cosFact * cosFact;
+
+		const float L = m_WindSpeed * m_WindSpeed / s_kG;
+		const float L2 = L * L;
+
+		return m_A * glm::exp(-1.0f / (k2 * L2)) / k4
+			* cosFact
+			* glm::exp(-k2 * m_Damping * m_Damping);
+	}
+
+	static Complex WaveHeightFT(const BaseWaveHeight& waveHeight, const float t)
+	{
+		const float omega_t = waveHeight.dispersion * t;
+
+		// exp(ix) = cos(x) * i*sin(x)
+		const float pcos = glm::cos(omega_t);
+		const float psin = glm::sin(omega_t);
+
+		return waveHeight.heightAmp * Complex(pcos, psin) +
+			waveHeight.heightAmp_conj * Complex(pcos, -psin);
+	}
+
+	float QDispersion(float k) const
+	{
+		return glm::floor(DispersionDeepWaves(k) / m_BaseFreq) * m_BaseFreq;
+	}
+
+	float DispersionDeepWaves(float k) const
+	{
+		return glm::sqrt(s_kG * k);
+	}
+
+	// ---------------------------------------------------------------------
+// Getters
+
+	auto GetTileSize() const { return m_TileSize; }
+	auto GetTileLength() const { return m_TileLength; }
+	auto GetWindDir() const { return m_WindDir; }
+	auto GetWindSpeed() const { return m_WindSpeed; }
+	auto GetAnimationPeriod() const { return m_AnimationPeriod; }
+	auto GetPhillipsConst() const { return m_A; }
+	auto GetDamping() const { return m_Damping; }
+	auto GetDisplacementLambda() const { return m_Lambda; }
+	float GetMinHeight() const { return m_MinHeight; }
+	float GetMaxHeight() const { return m_MaxHeight; }
+
+
+	size_t GetDisplacementCount() const { return m_Displacements.size(); }
+	const std::vector<Displacement>& GetDisplacements() const {
+		return m_Displacements;
+	}
+
+	size_t GetNormalCount() const { return m_Normals.size(); }
+	const std::vector<Normal>& GetNormals() const { return m_Normals; }
+
+	// ---------------------------------------------------------------------
+	void SetTileSize(uint32_t size)
+	{
+		const bool kSizeIsPowerOfTwo = (size & (size - 1)) == 0;
+
+		if (!kSizeIsPowerOfTwo)
+			return;
+
+		m_TileSize = size;
+	}
+
+	void SetTileLength(float length)
+	{
+		m_TileLength = length;
+	}
+
+	void SetWindDirection(const glm::vec2& w)
+	{
+		m_WindDir = glm::normalize(w);
+	}
+
+	void SetWindSpeed(float v)
+	{
+		m_WindSpeed = glm::max(0.0001f, v);
+	}
+
+	void SetAnimationPeriod(float T)
+	{
+		m_AnimationPeriod = T;
+		m_BaseFreq = 2.0f * M_PI / m_AnimationPeriod;
+	}
+
+	void SetPhillipsConst(float A)
+	{
+		m_A = A;
+	}
+
+	void SetLambda(float lambda)
+	{
+		m_Lambda = lambda;
+	}
+
+	void SetDamping(float damping)
+	{
+		m_Damping = damping;
+	}
+
+
+
+	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
+	{
+
+		SetTileSize(tileSize);
+		SetTileLength(tileLength);
+
+		SetWindDirection(s_kDefaultWindDir);
+		SetWindSpeed(s_kDefaultWindSpeed);
+		SetAnimationPeriod(s_kDefaultAnimPeriod);
+
+		SetPhillipsConst(s_kDefaultPhillipsConst);
+		SetDamping(s_kDefaultPhillipsDamping);
 
 		imguiEnabled = false;
 
@@ -238,59 +476,6 @@ public:
 		std::mt19937 gen(rd());
 
 
-			// Procedural Settings
-		int waveCount = 32;
-		float medianWavelength = 2.0f;
-		float wavelengthRange = 1.0f;
-		float medianDirection = 0.0f;
-		float directionalRange = 180.0f;
-		float medianAmplitude = 1.0f;
-		float medianSpeed = 0.5f;
-		float speedRange = 0.1f;
-		float steepness = 0.0f;
-
-		float wavelengthMin = medianWavelength / (1.0f + wavelengthRange);
-		float wavelengthMax = medianWavelength * (1.0f + wavelengthRange);
-		float directionMin = medianDirection - directionalRange;
-		float directionMax = medianDirection + directionalRange;
-		float speedMin = glm::max(0.01f, medianSpeed - speedRange);
-		float speedMax = medianSpeed + speedRange;
-		float ampOverLen = medianAmplitude / medianWavelength;
-
-		float halfPlaneWidth = 400 * 0.5f;
-		glm::vec3 minPoint = glm::vec3(-halfPlaneWidth, 0.0f, -halfPlaneWidth);
-		glm::vec3 maxPoint = glm::vec3(halfPlaneWidth, 0.0f, halfPlaneWidth);
-
-
-
-
-		std::uniform_real_distribution<float> wavelengthDis(wavelengthMin, wavelengthMax);
-		std::uniform_real_distribution<float> directionDis(directionMin, directionMax);
-		std::uniform_real_distribution<float> speedDis(speedMin, speedMax);
-		std::uniform_real_distribution<float> originDis(0.0f, 800.0f);
-
-		std::vector<std::shared_ptr<WaveData>> waveData;
-		
-		float wavelength = 6.0f;
-		float amplitude = 0.6f;
-
-		float factor = 0.2;
-		
-		for (int wi = 0; wi < waveCount; ++wi) {
-			//float wavelength = wavelengthDis(gen);
-			float direction = directionDis(gen);
-			//float amplitude = wavelength * ampOverLen;
-			float speed = speedDis(gen);
-			glm::vec2 origin = glm::vec2( originDis(gen), originDis(gen));
-
-			waveData.push_back(std::make_shared<WaveData>(wavelength, amplitude, speed, direction, steepness, origin));
-
-			wavelength *=  1/(1.0f + factor);
-			amplitude *= (1.0f - factor);
-		}
-
-		create_waves(waveData);
-
 		//-------------------- LIGHTS -----------------------------------------------------------------------
 
 		this->m_Camera = Camera();
@@ -334,6 +519,403 @@ public:
 	//	meshWrappers.push_back(heightmap);
 
 		create_mesh(meshWrappers);
+
+		m_WaveVectors = ComputeWaveVectors();
+
+		std::vector<Complex> gaussRandomArr = ComputeGaussRandomArray();
+		m_BaseWaveHeights = ComputeBaseWaveHeightField(gaussRandomArr);
+
+		const uint32_t kSize = m_TileSize;
+
+		const Displacement kDefaultDisplacement{ 0.0 };
+		m_Displacements.resize(kSize * kSize, kDefaultDisplacement);
+
+		const Normal kDefaultNormal{ 0.0, 1.0, 0.0, 0.0 };
+		m_Normals.resize(kSize * kSize, kDefaultNormal);
+
+		DestroyFFTW();
+		SetupFFTW();
+	}
+
+	float ComputeWaves(float t)
+	{
+		const auto kTileSize = m_TileSize;
+
+		float masterMaxHeight = std::numeric_limits<float>::min();
+		float masterMinHeight = std::numeric_limits<float>::max();
+
+#pragma omp parallel shared(masterMaxHeight, masterMinHeight)
+		{
+#pragma omp for collapse(2) schedule(static)
+			for (uint32_t m = 0; m < kTileSize; ++m)
+				for (uint32_t n = 0; n < kTileSize; ++n)
+				{
+					m_Height[m * kTileSize + n] =
+						WaveHeightFT(m_BaseWaveHeights[m * kTileSize + n], t);
+				}
+
+			// Slopes for normals computation
+#pragma omp for collapse(2) schedule(static) nowait
+			for (uint32_t m = 0; m < kTileSize; ++m)
+				for (uint32_t n = 0; n < kTileSize; ++n)
+				{
+					const uint32_t kIndex = m * kTileSize + n;
+
+					const auto& kWaveVec = m_WaveVectors[kIndex].vec;
+					m_SlopeX[kIndex] = Complex(0, kWaveVec.x) * m_Height[kIndex];
+					m_SlopeZ[kIndex] = Complex(0, kWaveVec.y) * m_Height[kIndex];
+				}
+
+			// Displacement vectors
+#pragma omp for collapse(2) schedule(static)
+			for (uint32_t m = 0; m < kTileSize; ++m)
+				for (uint32_t n = 0; n < kTileSize; ++n)
+				{
+					const uint32_t kIndex = m * kTileSize + n;
+
+					const auto& kWaveVec = m_WaveVectors[kIndex];
+					m_DisplacementX[kIndex] = Complex(0, -kWaveVec.unit.x) *
+						m_Height[kIndex];
+					m_DisplacementZ[kIndex] = Complex(0, -kWaveVec.unit.y) *
+						m_Height[kIndex];
+					m_dxDisplacementX[kIndex] = Complex(0, kWaveVec.vec.x) *
+						m_DisplacementX[kIndex];
+					m_dzDisplacementZ[kIndex] = Complex(0, kWaveVec.vec.y) *
+						m_DisplacementZ[kIndex];
+#ifdef COMPUTE_JACOBIAN
+					m_dzDisplacementX[kIndex] = Complex(0, kWaveVec.vec.y) *
+						m_DisplacementX[kIndex];
+					m_dxDisplacementZ[kIndex] = Complex(0, kWaveVec.vec.x) *
+						m_DisplacementZ[kIndex];
+#endif
+				}
+
+#pragma omp sections
+			{
+#pragma omp section
+				{
+					fftwf_execute(m_PlanHeight);
+				}
+#pragma omp section
+				{
+					fftwf_execute(m_PlanSlopeX);
+				}
+#pragma omp section
+				{
+					fftwf_execute(m_PlanSlopeZ);
+				}
+#pragma omp section
+				{
+					fftwf_execute(m_PlanDisplacementX);
+				}
+#pragma omp section
+				{
+					fftwf_execute(m_PlanDisplacementZ);
+				}
+#pragma omp section
+				{
+					fftwf_execute(m_PlandxDisplacementX);
+				}
+#pragma omp section
+				{
+					fftwf_execute(m_PlandzDisplacementZ);
+				}
+#ifdef COMPUTE_JACOBIAN
+#pragma omp section
+				{
+					fftwf_execute(m_PlandzDisplacementX);
+				}
+#pragma omp section
+				{
+					fftwf_execute(m_PlandxDisplacementZ);
+				}
+#endif
+			}
+
+			float maxHeight = std::numeric_limits<float>::min();
+			float minHeight = std::numeric_limits<float>::max();
+
+			// Conversion of the grid back to interval
+			//  [-m_TileSize/2, ..., 0, ..., m_TileSize/2]
+			const float kSigns[] = { 1.0f, -1.0f };
+
+#pragma omp for collapse(2) schedule(static) nowait
+			for (uint32_t m = 0; m < kTileSize; ++m)
+			{
+				for (uint32_t n = 0; n < kTileSize; ++n)
+				{
+					const uint32_t kIndex = m * kTileSize + n;
+					const int sign = kSigns[(n + m) & 1];
+					const auto h_FT = m_Height[kIndex].real() * static_cast<float>(sign);
+					maxHeight = glm::max(h_FT, maxHeight);
+					minHeight = glm::min(h_FT, minHeight);
+
+					auto& displacement = m_Displacements[kIndex];
+					displacement.y = h_FT;
+					displacement.x =
+						static_cast<float>(sign) * m_Lambda * m_DisplacementX[kIndex].real();
+					displacement.z =
+						static_cast<float>(sign) * m_Lambda * m_DisplacementZ[kIndex].real();
+					displacement.w = 1.0f;
+				}
+			}
+			// TODO reduction
+#pragma omp critical
+			{
+				masterMaxHeight = glm::max(maxHeight, masterMaxHeight);
+				masterMinHeight = glm::min(minHeight, masterMinHeight);
+			}
+
+#pragma omp for collapse(2) schedule(static) nowait
+			for (uint32_t m = 0; m < kTileSize; ++m)
+			{
+				for (uint32_t n = 0; n < kTileSize; ++n)
+				{
+					const uint32_t kIndex = m * kTileSize + n;
+					const int sign = kSigns[(n + m) & 1];
+#ifdef COMPUTE_JACOBIAN
+					const float jacobian =
+						(1.0f + m_Lambda * sign * m_dxDisplacementX[kIndex].real()) *
+						(1.0f + m_Lambda * sign * m_dzDisplacementZ[kIndex].real()) -
+						(m_Lambda * sign * m_dxDisplacementZ[kIndex].real()) *
+						(m_Lambda * sign * m_dzDisplacementX[kIndex].real());
+					displacement.w = jacobian;
+#endif
+
+					m_Normals[kIndex] = glm::vec4(
+						sign * m_SlopeX[kIndex].real(),
+						sign * m_SlopeZ[kIndex].real(),
+						sign * m_dxDisplacementX[kIndex].real(),
+						sign * m_dzDisplacementZ[kIndex].real()
+					);
+				}
+			}
+		}
+
+		return NormalizeHeights(masterMinHeight, masterMaxHeight);
+	}
+
+	float NormalizeHeights(float minHeight, float maxHeight)
+	{
+		m_MinHeight = minHeight;
+		m_MaxHeight = maxHeight;
+
+		const float A = glm::max(glm::abs(minHeight), glm::abs(maxHeight));
+		const float OneOverA = 1.f / A;
+
+		std::for_each(m_Displacements.begin(), m_Displacements.end(),
+			[OneOverA](auto& d) { d.y *= OneOverA; });
+
+		return A;
+	}
+
+	void SetupFFTW()
+	{
+
+		const uint32_t kSize = m_TileSize;
+		const uint32_t kSize2 = kSize * kSize;
+
+#ifndef COMPUTE_JACOBIAN
+		const uint32_t kTotalInputs = 7;
+#else
+		const uint32_t kTotalInputs = 7 + 2;
+#endif
+
+		m_Height = (Complex*)fftwf_alloc_complex(kTotalInputs * kSize2);
+
+		m_SlopeX = m_Height + kSize2;
+		m_SlopeZ = m_SlopeX + kSize2;
+		m_DisplacementX = m_SlopeZ + kSize2;
+		m_DisplacementZ = m_DisplacementX + kSize2;
+		m_dxDisplacementX = m_DisplacementZ + kSize2;
+		m_dzDisplacementZ = m_dxDisplacementX + kSize2;
+#ifdef COMPUTE_JACOBIAN
+		m_dzDisplacementX = m_dzDisplacementZ + kSize2;
+		m_dxDisplacementZ = m_dzDisplacementX + kSize2;
+#endif
+
+#ifdef CAREFUL_ALLOC
+		m_Height = (Complex*)fftwf_alloc_complex(kSize * kSize);
+		m_SlopeX = (Complex*)fftwf_alloc_complex(kSize * kSize);
+		m_SlopeZ = (Complex*)fftwf_alloc_complex(kSize * kSize);
+		m_DisplacementX = (Complex*)fftwf_alloc_complex(kSize * kSize);
+		m_DisplacementZ = (Complex*)fftwf_alloc_complex(kSize * kSize);
+		m_dxDisplacementX = (Complex*)fftwf_alloc_complex(kSize * kSize);
+		m_dzDisplacementZ = (Complex*)fftwf_alloc_complex(kSize * kSize);
+#ifdef COMPUTE_JACOBIAN
+		m_dzDisplacementX = (Complex*)fftwf_alloc_complex(kSize * kSize);
+		m_dxDisplacementZ = (Complex*)fftwf_alloc_complex(kSize * kSize);
+#endif
+#endif
+
+		m_PlanHeight = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_Height),
+			reinterpret_cast<fftwf_complex*>(m_Height),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+		m_PlanSlopeX = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_SlopeX),
+			reinterpret_cast<fftwf_complex*>(m_SlopeX),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+		m_PlanSlopeZ = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_SlopeZ),
+			reinterpret_cast<fftwf_complex*>(m_SlopeZ),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+		m_PlanDisplacementX = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_DisplacementX),
+			reinterpret_cast<fftwf_complex*>(m_DisplacementX),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+		m_PlanDisplacementZ = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_DisplacementZ),
+			reinterpret_cast<fftwf_complex*>(m_DisplacementZ),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+		m_PlandxDisplacementX = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_dxDisplacementX),
+			reinterpret_cast<fftwf_complex*>(m_dxDisplacementX),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+		m_PlandzDisplacementZ = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_dzDisplacementZ),
+			reinterpret_cast<fftwf_complex*>(m_dzDisplacementZ),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+#ifdef COMPUTE_JACOBIAN
+		m_PlandzDisplacementX = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_dzDisplacementX),
+			reinterpret_cast<fftwf_complex*>(m_dzDisplacementX),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+		m_PlandxDisplacementZ = fftwf_plan_dft_2d(
+			kSize, kSize,
+			reinterpret_cast<fftwf_complex*>(m_dxDisplacementZ),
+			reinterpret_cast<fftwf_complex*>(m_dxDisplacementZ),
+			FFTW_BACKWARD,
+			FFTW_MEASURE);
+#endif
+	}
+
+	void DestroyFFTW()
+	{
+
+		if (m_PlanHeight == nullptr)
+			return;
+
+		fftwf_destroy_plan(m_PlanHeight);
+		m_PlanHeight = nullptr;
+		fftwf_destroy_plan(m_PlanSlopeX);
+		fftwf_destroy_plan(m_PlanSlopeZ);
+		fftwf_destroy_plan(m_PlanDisplacementX);
+		fftwf_destroy_plan(m_PlanDisplacementZ);
+		fftwf_destroy_plan(m_PlandxDisplacementX);
+		fftwf_destroy_plan(m_PlandzDisplacementZ);
+#ifdef COMPUTE_JACOBIAN
+		fftwf_destroy_plan(m_PlandxDisplacementZ);
+		fftwf_destroy_plan(m_PlandzDisplacementX);
+#endif
+
+		fftwf_free((fftwf_complex*)m_Height);
+#ifdef CAREFUL_ALLOC
+		fftwf_free((fftwf_complex*)m_SlopeX);
+		fftwf_free((fftwf_complex*)m_SlopeZ);
+		fftwf_free((fftwf_complex*)m_DisplacementX);
+		fftwf_free((fftwf_complex*)m_DisplacementZ);
+		fftwf_free((fftwf_complex*)m_dxDisplacementX);
+		fftwf_free((fftwf_complex*)m_dzDisplacementZ);
+#ifdef COMPUTE_JACOBIAN
+		fftwf_free((fftwf_complex*)m_dxDisplacementZ);
+		fftwf_free((fftwf_complex*)m_dzDisplacementX);
+#endif
+#endif
+	}
+
+	std::vector<BaseWaveHeight> ComputeBaseWaveHeightField(const std::vector<Complex>& gaussRandomArray) const
+	{
+		const uint32_t kSize = m_TileSize;
+
+		std::vector<BaseWaveHeight> baseWaveHeights(kSize * kSize);
+		assert(m_WaveVectors.size() == baseWaveHeights.size());
+		assert(baseWaveHeights.size() == gaussRandomArray.size());
+
+#pragma omp parallel for collapse(2) schedule(guided)
+		for (uint32_t m = 0; m < kSize; ++m)
+		{
+			for (uint32_t n = 0; n < kSize; ++n)
+			{
+				const uint32_t kIndex = m * kSize + n;
+				const auto& kWaveVec = m_WaveVectors[kIndex];
+				const float k = glm::length(kWaveVec.vec);
+
+				auto& h0 = baseWaveHeights[kIndex];
+				if (k > 0.00001f)
+				{
+					const auto gaussRandom = gaussRandomArray[kIndex];
+					h0.heightAmp =
+						BaseWaveHeightFT(gaussRandom, kWaveVec.unit, k);
+					h0.heightAmp_conj = std::conj(
+						BaseWaveHeightFT(gaussRandom, -kWaveVec.unit, k));
+					h0.dispersion = QDispersion(k);
+				}
+				else
+				{
+					h0.heightAmp = Complex(0);
+					h0.heightAmp_conj = std::conj(Complex(0));
+					h0.dispersion = 0.0f;
+				}
+			}
+		}
+
+		return baseWaveHeights;
+	}
+
+	std::vector<Complex> ComputeGaussRandomArray() const
+	{
+		const uint32_t kSize = m_TileSize;
+		std::vector<Complex> randomArr(kSize * kSize);
+
+		for (int32_t m = 0; m < kSize; ++m)
+			for (int32_t n = 0; n < kSize; ++n)
+			{
+				randomArr[m * kSize + n] = Complex(glm::gaussRand(0.0f, 1.0f),
+					glm::gaussRand(0.0f, 1.0f));
+			}
+
+		return randomArr;
+	}
+
+	std::vector<WaveVector> ComputeWaveVectors() const
+	{
+		const int32_t kSize = m_TileSize;
+		const float kLength = m_TileLength;
+
+		std::vector<WaveVector> waveVecs;
+		waveVecs.reserve(kSize * kSize);
+
+		for (int32_t m = 0; m < kSize; ++m)
+		{
+			for (int32_t n = 0; n < kSize; ++n)
+			{
+				waveVecs.emplace_back(
+					glm::vec2(
+						M_PI * (2.0f * n - kSize) / kLength,
+						M_PI * (2.0f * m - kSize) / kLength
+					)
+				);
+			}
+		}
+
+		return waveVecs;
 	}
 
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
@@ -527,6 +1109,9 @@ public:
 	std::random_device rd;
 	std::mt19937 gen{ rd() };
 	std::uniform_real_distribution<float> distribution{ 0.0f, 1.0f };
+
+
+
 private:
 	int mandelbulb_factor = 8;
 
