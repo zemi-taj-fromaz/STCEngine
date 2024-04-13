@@ -448,41 +448,38 @@ bool Mesh::load_terrain(bool illuminated, bool textured)
     return true;
 }
 
-bool Mesh::load_plain(bool illuminated, bool textured, uint32_t tileSize, float tileLength)
+bool Mesh::load_plain(bool illuminated, bool textured)
 {
 
-    static int VERTEX_COUNT{ tileSize + 1 };
+    static int VERTEX_COUNT{ 256 };
     static int SIZE{ 100 };
 
-    const int32_t kHalfSize = tileSize / 2;
-
-    for (int32_t y = -kHalfSize; y <= kHalfSize; ++y)
+    for (int i = 0; i < VERTEX_COUNT; i++)
     {
-        for (int32_t x = -kHalfSize; x <= kHalfSize; ++x)
+        for (int j = 0; j < VERTEX_COUNT; j++)
         {
             Vertex vertex{};
-            vertex.Position = glm::vec3(static_cast<float>(x), 0.0f, static_cast<float>(y)) * tileLength;
+            vertex.Position = glm::vec3(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1) * SIZE, 50.0f, static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1) * SIZE);
             vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            vertex.TexCoord = glm::vec2(static_cast<float>(x + kHalfSize), static_cast<float>(y + kHalfSize)) / static_cast<float>(tileLength);
+         //   vertex.TexCoord = glm::vec2(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1), static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1));
+            vertex.TexCoord = glm::vec2(j, i);
             Vertices.push_back(vertex);
         }
     }
 
-    for (uint32_t y = 0; y < tileSize; ++y)
-    {
-        for (uint32_t x = 0; x < tileSize; ++x)
-        {
-            const uint32_t kVertexIndex = y * VERTEX_COUNT + x;
+    for (int gz = 0; gz < VERTEX_COUNT - 1; gz++) {
+        for (int gx = 0; gx < VERTEX_COUNT - 1; gx++) {
+            int topLeft = (gz * VERTEX_COUNT) + gx;
+            int topRight = topLeft + 1;
+            int bottomLeft = ((gz + 1) * VERTEX_COUNT) + gx;
+            int bottomRight = bottomLeft + 1;
 
-            // Top triangle
-            Indices.push_back(kVertexIndex);
-            Indices.push_back(kVertexIndex + VERTEX_COUNT);
-            Indices.push_back(kVertexIndex + 1);
-
-            // Bottom triangle
-            Indices.push_back(kVertexIndex + 1);
-            Indices.push_back(kVertexIndex + VERTEX_COUNT);
-            Indices.push_back(kVertexIndex + VERTEX_COUNT + 1);
+            Indices.push_back(topLeft);
+            Indices.push_back(bottomLeft);
+            Indices.push_back(topRight);
+            Indices.push_back(topRight);
+            Indices.push_back(bottomLeft);
+            Indices.push_back(bottomRight);
         }
     }
 

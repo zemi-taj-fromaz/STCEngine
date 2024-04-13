@@ -175,8 +175,7 @@ namespace Functions
 			glm::vec3 s_kWavelengthsRGB_nm{ 680, 550, 440 };
 			wateSurface->scatterCoef = 0.219f * ((-0.00113f * s_kWavelengthsRGB_nm + 1.62517f) / (-0.00113f * 514.0f + 1.62517f));
 			wateSurface->backscatterCoef = 0.01829f * wateSurface->scatterCoef + 0.00006f;
-		//	wateSurface->terrainColor = glm::vec3{ 0.964f, 1.0f, 0.824f };
-			wateSurface->terrainColor = glm::vec3{ 0.0f, 0.0f, 1.0f };
+			wateSurface->terrainColor = glm::vec3{ 0.964f, 1.0f, 0.824f };
 			wateSurface->skyIntensity =  1.0f;
 			wateSurface->specularIntensity = 1.0f;
 			wateSurface->specularHighlights = 32.0f;
