@@ -41,6 +41,14 @@ public:
 
     int MAX_FRAMES_IN_FLIGHT = 2;
 
+    void set_amplitude(float amp)
+    {
+        this->amplitude = amp;
+    }
+
+    float get_amplitude() { return amplitude; }
+    float amplitude = 1.0f;
+
     VkDevice& get_device() { return m_Device; }
 
     virtual void initialize_window() override;

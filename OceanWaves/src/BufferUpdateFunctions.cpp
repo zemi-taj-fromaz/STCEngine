@@ -125,6 +125,16 @@ namespace Functions
 
 	};
 
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> amplitudeUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+		{
+			Amplitude ubo{};
+			ubo.amplitude = app->get_amplitude();
+
+			memcpy(bufferMapped, &ubo, sizeof(Amplitude));
+			return true;
+
+		};
+
 	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> mandelbulbFactorUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		int mandelbulbFactor  = app->get_layer()->get_mandelbulb_factor();

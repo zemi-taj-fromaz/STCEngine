@@ -101,6 +101,11 @@ struct Resolution
     glm::vec2 resolution;
 };
 
+struct Amplitude
+{
+    float amplitude;
+};
+
 struct ParameterUBO{
     float deltaTime;
 };

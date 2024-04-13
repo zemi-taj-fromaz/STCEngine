@@ -16,5 +16,6 @@ namespace Functions
 	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> heightMapDataUpdateFunc;
 	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> verticalFlagUpdateFunc;
 	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> surfaceUpdateFunc;
+	extern std::function<bool(AppVulkanImpl* app, void* bufferMapped)> amplitudeUpdateFunc;
 
 }						 

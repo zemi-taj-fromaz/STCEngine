@@ -31,22 +31,31 @@ layout(std140, set = 1, binding = 0) buffer ObjectBuffer{
 	ObjectData objects[];
 } objectBuffer;
 
-layout(set = 4, binding = 0, rgba32f) uniform readonly image2D heightmap;
-layout(set = 5, binding = 0, rgba32f) uniform readonly image2D normalmap;
+layout(set = 4, binding = 0) uniform AmplitudeBufferObj {
+	float amplitude;
+} abo;
+
+layout(set = 5, binding = 0, rgba32f) uniform readonly image2D heightmap;
+layout(set = 6, binding = 0, rgba32f) uniform readonly image2D normalmap;
 
 void main() {
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
 	
 	vec4 Displacement = imageLoad(heightmap, ivec2(inTexCoord));
+	Displacement.y *= abo.amplitude;
+	
 	vec4 slope = imageLoad(normalmap, ivec2(inTexCoord));
-	vec3 Position = vec3(inPosition.x, inPosition.y, inPosition.z) + Displacement.xyz;
+	
+	fragPos.xyz = inPosition + Displacement.xyz;
+	fragPos.w = Displacement.w;
+	
 	//vec3 Position = vec3(inPosition.x, inPosition.y + imageLoad(heightmap, ivec2(inTexCoord)).x, inPosition.z);
-    gl_Position =  MVP * vec4(Position, 1.0);
+    gl_Position =  MVP * vec4(fragPos.xyz, 1.0f);
     texCoord = inTexCoord;
 	
 //	vec4 worldCoord = model * vec4(Position,1.0);
-    fragPos = vec4(Position, Displacement.w);
+ //   fragPos = Position;
 	
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
 	
