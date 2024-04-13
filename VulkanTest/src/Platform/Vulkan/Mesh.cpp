@@ -459,7 +459,7 @@ bool Mesh::load_plain(bool illuminated, bool textured)
         for (int j = 0; j < VERTEX_COUNT; j++)
         {
             Vertex vertex{};
-            vertex.Position = glm::vec3(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1) * SIZE, 50.0f, static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1) * SIZE);
+            vertex.Position = glm::vec3(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1) * SIZE, 0.0f, static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1) * SIZE);
             vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
          //   vertex.TexCoord = glm::vec2(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1), static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1));
             vertex.TexCoord = glm::vec2(j, i);
