@@ -13,8 +13,8 @@ class MyLayer : public Layer
 {
 public:
 
-	static constexpr uint32_t     s_kDefaultTileSize{ 512 };
-	static constexpr float        s_kDefaultTileLength{ 1000.0f };
+	static constexpr uint32_t     s_kDefaultTileSize{ 256 };
+	static constexpr float        s_kDefaultTileLength{ 256.0f };
 
 	static inline const glm::vec2 s_kDefaultWindDir{ 1.0f, 1.0f };
 	static constexpr float        s_kDefaultWindSpeed{ 30.0f };
@@ -252,6 +252,22 @@ public:
 		SetPhillipsConst(s_kDefaultPhillipsConst);
 		SetDamping(s_kDefaultPhillipsDamping);
 
+		m_WaveVectors = ComputeWaveVectors();
+
+		std::vector<Complex> gaussRandomArr = ComputeGaussRandomArray();
+		m_BaseWaveHeights = ComputeBaseWaveHeightField(gaussRandomArr);
+
+		const uint32_t kSize = m_TileSize;
+
+		const Displacement kDefaultDisplacement{ 0.0 };
+		m_Displacements.resize(kSize * kSize, kDefaultDisplacement);
+
+		const Normal kDefaultNormal{ 0.0, 1.0, 0.0, 0.0 };
+		m_Normals.resize(kSize * kSize, kDefaultNormal);
+
+		DestroyFFTW();
+		SetupFFTW();
+
 		imguiEnabled = false;
 
 		//------------------------------ DESCRIPTORS ---------------------------------------------------
@@ -276,10 +292,12 @@ public:
 		auto verticalFlag = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(bool), Functions::verticalFlagUpdateFunc);
 
 
+		auto waterSurfaceUBO = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(WaterSurfaceUBO), Functions::surfaceUpdateFunc);
+
 		auto mandelbulbFactor = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::mandelbulbFactorUpdateFunc);
 		auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight), Functions::globalLightUpdateFunc);
 
-		create_descriptors({ verticalFlag, camera,objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
+		create_descriptors({ verticalFlag, camera, waterSurfaceUBO, objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
@@ -291,7 +309,7 @@ public:
 		TopoloG plainTopology({ camera, objects });
 
 		TopoloG topologyTex({ camera, objects, sampler });
-		TopoloG imagefieldTopology({ camera, objects, globalLight, image2DFragment, image2dOut2 });
+		TopoloG imagefieldTopology({ camera, objects, globalLight, waterSurfaceUBO, image2DFragment, image2dOut2 });
 
 		TopoloG pleaseTop({ camera, totalTime, objects, sampler });
 
@@ -352,7 +370,7 @@ public:
 		int Lx = 512;
 		int Lz = 512;
 
-		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(512, 512, [Lx, Lz, this](int width, int height, int channels) {
+		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(tileSize, tileSize, [Lx, Lz, this](int width, int height, int channels) {
 			float* pixels;
 			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
@@ -391,7 +409,7 @@ public:
 			return pixels;
 			});
 
-		std::shared_ptr<Texture> h0_conjugate = std::make_shared<Texture>(512, 512, [Lx, Lz, this](int width, int height, int channels) {
+		std::shared_ptr<Texture> h0_conjugate = std::make_shared<Texture>(tileSize, tileSize, [Lx, Lz, this](int width, int height, int channels) {
 			float* pixels;
 			pixels = (float*)malloc(width * height * channels * sizeof(float));
 
@@ -429,66 +447,15 @@ public:
 			return pixels;
 			});
 
-		std::shared_ptr<Texture> color_red = std::make_shared<Texture>(28, 28, [Lx, Lz, this](int width, int height, int channels) {
-			float* pixels;
-			pixels = (float*)malloc(width * height * channels * sizeof(float));
-
-			// Generate pixel data with unique colors
-			float avg_x = 0.0f;
-			float avg_y = 0.0f;
-			float delta_k = 2 * M_PI / Lx;
-			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x) {
-					int index = (y * width + x) * channels;
-
-					int n = x - width / 2;
-					int m = y - height / 2;
-
-					float kx = 2 * M_PI * n / Lx;
-					float kz = 2 * M_PI * m / Lz;
-
-					glm::vec2 wavevector = glm::vec2(kx, kz);
-
-					float k_len = glm::length(wavevector);
-
-					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
-
-					k_len = std::clamp(k_len, static_cast<float>(std::sqrt(2) * 2 * M_PI / Lx), static_cast<float>(M_PI));
-					float phi = std::atan(wavevector.y / wavevector.x);
-					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, wavevector);
-
-					pixels[index + 0] = 255.0f;   // Red component
-					pixels[index + 1] = 1.0f;  // Green component
-					pixels[index + 2] =	1.0f;  // Blue component (set to 0 for simplicity)
-					pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
-				}
-			}
-
-			return pixels;
-			});
-
-		fftw_complex* in, * out;
-		fftw_plan p;
-
-		int N = 32;
-
-		in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-		out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-		p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
-
-		fftw_execute(p); /* repeat as needed */
-
-		fftw_destroy_plan(p);
-		fftw_free(in); fftw_free(out);
 
 
-		std::shared_ptr<Texture> hk = std::make_shared<Texture>(512, 512);
-		std::shared_ptr<Texture> hx = std::make_shared<Texture>(512, 512);
-		std::shared_ptr<Texture> dh = std::make_shared<Texture>(512, 512);
+		std::shared_ptr<Texture> hk = std::make_shared<Texture>(tileLength, tileLength);
+		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileLength, tileLength);
+		std::shared_ptr<Texture> dh = std::make_shared<Texture>(tileLength, tileLength);
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
-		create_image_fields({hx, h0,h0_conjugate, hk, dh });
+		create_image_fields({hx, dh, h0,h0_conjugate, hk });
 
 		m_ComputePipeline->ImageFields.push_back(hk);
 		m_ComputePipeline->ImageFields.push_back(hx);
@@ -557,22 +524,6 @@ public:
 	//	meshWrappers.push_back(heightmap);
 
 		create_mesh(meshWrappers);
-
-		m_WaveVectors = ComputeWaveVectors();
-
-		std::vector<Complex> gaussRandomArr = ComputeGaussRandomArray();
-		m_BaseWaveHeights = ComputeBaseWaveHeightField(gaussRandomArr);
-
-		const uint32_t kSize = m_TileSize;
-
-		const Displacement kDefaultDisplacement{ 0.0 };
-		m_Displacements.resize(kSize * kSize, kDefaultDisplacement);
-
-		const Normal kDefaultNormal{ 0.0, 1.0, 0.0, 0.0 };
-		m_Normals.resize(kSize * kSize, kDefaultNormal);
-
-		DestroyFFTW();
-		SetupFFTW();
 	}
 
 	float ComputeWaves(float t)
@@ -958,6 +909,8 @@ public:
 
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
 	{
+		float time = app->get_total_time();
+		ComputeWaves(time);
 
 		auto& hx = get_image_fields()[0];
 		int width = hx->Width;
@@ -968,55 +921,22 @@ public:
 		vkMapMemory(app->get_device(), hx->Memory, 0, imageSize, 0, &data);
 		// Copy newData into data (assuming newData is of size `size`)
 
-		float* pixels;
-		pixels = (float*)malloc(width * height * 4 * sizeof(float));
-
-		float time = app->get_total_time();
-
-		for (int y = 0; y < height; ++y) {
-			for (int x = 0; x < width; ++x) {
-				int index = (y * width + x) * 4;
-
-				// Calculate color components based on time
-				float red = 0.5f + 0.5f * sin(2.0f * 3.14f * time);
-				float green = 0.5f + 0.5f * cos(2.0f * 3.14f * time);
-				float blue = 0.5f + 0.5f * sin(2.0f * 3.14f * time + 2.0f);
-
-				// Set pixel color
-				pixels[index + 0] = red * 255.0f;   // Red component
-				pixels[index + 1] = green * 255.0f; // Green component
-				pixels[index + 2] = blue * 255.0f;  // Blue component
-				pixels[index + 3] = 255.0f;          // Alpha component (set to full alpha)
-			}
-		}
-
-
+		float* pixels = reinterpret_cast<float*>(m_Displacements.data());
 
 		memcpy(data, pixels, imageSize);
 		vkUnmapMemory(app->get_device(), hx->Memory);
-		//imageIndex = imageIndex % app->MAX_FRAMES_IN_FLIGHT;
+		
+		auto& hd = get_image_fields()[1];
 
-		////COMPUTE h(k,t)
-		//m_ComputePipeline2->bind(commandBuffer, imageIndex);
-		//vkCmdDispatch(commandBuffer, 1, 512, 1);
-		//app->pipeline_barrier(commandBuffer, 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+		VkDeviceSize imageSize2 = hd->Width * hd->Height * 4 * sizeof(float);
 
-		////Compute h(X,t) with fft
-		//auto descriptor = get_descriptors()[0];
-		//{
-		//	bool* vertFlag = (bool*)descriptor->bufferWrappers[imageIndex].bufferMapped;
-		//	*vertFlag = false;
+		void* data2;
+		vkMapMemory(app->get_device(), hd->Memory, 0, imageSize2, 0, &data2);
+		float* normals = reinterpret_cast<float*>(m_Normals.data());
 
-		//	m_ComputePipeline->bind(commandBuffer, imageIndex);
-		//	vkCmdDispatch(commandBuffer, 1, 512, 1);
-		//	app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+		memcpy(data, normals, imageSize2);
+		vkUnmapMemory(app->get_device(), hd->Memory);
 
-		//	*vertFlag = true;
-
-		//	m_ComputePipeline->bind(commandBuffer, imageIndex);
-		//	vkCmdDispatch(commandBuffer, 1, 512, 1);
-		//	app->pipeline_barrier(commandBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
-		//}
 	}
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
