@@ -83,7 +83,7 @@ struct Mesh
     bool load_quad(bool illuminated, bool textured);
     bool load_line(bool illuminated, bool textured);
     bool load_terrain(bool illuminated, bool textured);
-    bool load_plain(bool illuminated, bool textured);
+    bool load_plain(bool illuminated, bool textured, uint32_t tileSize, float tileLength);
 
     bool load(bool illuminated, bool textured);
 

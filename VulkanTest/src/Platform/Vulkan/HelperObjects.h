@@ -196,7 +196,7 @@ struct WaveData
 struct WaterSurfaceUBO
 {
     alignas(16) glm::vec3 camPos;
-    float height{ 50.0f };
+    float height{ 20.0f };
     alignas(16) glm::vec3 absorpCoef;
     alignas(16) glm::vec3 scatterCoef;
     alignas(16) glm::vec3 backscatterCoef;

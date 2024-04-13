@@ -362,166 +362,39 @@ public:
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
 
-		std::shared_ptr<Texture> skyboxTex = std::make_shared<Texture>("nightbox/");	
 
-
-		//-------------------------------------- IMAGE FIELDS --------------------------------------------
-
-		int Lx = 512;
-		int Lz = 512;
-
-		std::shared_ptr<Texture> h0 = std::make_shared<Texture>(tileSize, tileSize, [Lx, Lz, this](int width, int height, int channels) {
-			float* pixels;
-			pixels = (float*)malloc(width * height * channels * sizeof(float));
-
-			// Generate pixel data with unique colors
-			float avg_x = 0.0f;
-			float avg_y = 0.0f;
-			float delta_k = 2 * M_PI / Lx;
-			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x <  width; ++x) {
-					int index = (y * width + x) * channels;
-
-					int n = x - width / 2;
-					int m = y - height / 2;
-
-					float kx = 2 * M_PI * n / Lx;
-					float kz = 2 * M_PI * m / Lz;
-					glm::vec2 wavevector = glm::vec2(kx, kz);
-
-					float k_len = glm::length(wavevector);
-
-					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
-				
-					k_len = std::clamp(k_len, static_cast<float>(std::sqrt(2) * 2 * M_PI / Lx), static_cast<float>(M_PI));
-
-					float phi = std::atan(wavevector.y / wavevector.x);
-					
-					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, wavevector);
-					
-					pixels[index + 0] = h_0.x;   // Red component
-					pixels[index + 1] = h_0.y;  // Green component
-					pixels[index + 2] = kx;  // Blue component (set to 0 for simplicity)
-					pixels[index + 3] = kz;  // Alpha component (set to full alpha)
-				}
-			}
-
-			return pixels;
-			});
-
-		std::shared_ptr<Texture> h0_conjugate = std::make_shared<Texture>(tileSize, tileSize, [Lx, Lz, this](int width, int height, int channels) {
-			float* pixels;
-			pixels = (float*)malloc(width * height * channels * sizeof(float));
-
-			// Generate pixel data with unique colors
-			float avg_x = 0.0f;
-			float avg_y = 0.0f;
-			float delta_k = 2 * M_PI / Lx;
-			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x) {
-					int index = (y * width + x) * channels;
-
-					int n = x - width / 2;
-					int m = y - height / 2;
-
-					float kx = 2 * M_PI * n / Lx;
-					float kz = 2 * M_PI * m / Lz;
-
-					glm::vec2 wavevector = glm::vec2(kx, kz);
-
-					float k_len = glm::length(wavevector);
-
-					glm::vec3 h_0({ 0.0f, 0.0f, 0.0f });
-
-					k_len = std::clamp(k_len, static_cast<float>(std::sqrt(2) * 2 * M_PI / Lx), static_cast<float>(M_PI));
-					float phi = std::atan(wavevector.y / wavevector.x);
-					h_0 = this->fourier_amplitude(k_len, this->gen, this->distribution, phi, delta_k, wavevector);
-
-					pixels[index + 0] = h_0.x;   // Red component
-					pixels[index + 1] = h_0.y;  // Green component
-					pixels[index + 2] = kx;  // Blue component (set to 0 for simplicity)
-					pixels[index + 3] = kz;  // Alpha component (set to full alpha)
-				}
-			}
-
-			return pixels;
-			});
-
-
-
-		std::shared_ptr<Texture> hk = std::make_shared<Texture>(tileLength, tileLength);
 		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileLength, tileLength);
 		std::shared_ptr<Texture> dh = std::make_shared<Texture>(tileLength, tileLength);
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
-		create_image_fields({hx, dh, h0,h0_conjugate, hk });
+		create_image_fields({hx, dh});
+		//----------------------- MESH -------------------------------------------------------------------
 
-		m_ComputePipeline->ImageFields.push_back(hk);
-		m_ComputePipeline->ImageFields.push_back(hx);
-		m_ComputePipeline->ImageFields.push_back(dh);
-
-		m_ComputePipeline2->ImageFields.push_back(h0);
-		m_ComputePipeline2->ImageFields.push_back(h0_conjugate);
-		m_ComputePipeline2->ImageFields.push_back(hk);
-
-		//----------------------- MESH --------------------------------------------------------------------
-		Mesh box("skybox.obj");
-		Mesh square("square.obj");
-		Mesh cube(MeshType::Cube);
-		Mesh quad(MeshType::Quad);
-		
 		Mesh plain(MeshType::Plain);
-
-
-		//-------------------- WAVES ------------------------------------------------------------------------
-
-
-		std::random_device rd;
-		std::mt19937 gen(rd());
 
 
 		//-------------------- LIGHTS -----------------------------------------------------------------------
 
 		this->m_Camera = Camera();
-		m_Camera.Position = glm::vec3(0.0f, 0.0f, 50.0f);
+		m_Camera.Position = glm::vec3(0.0f, 50.0f, 50.0f);
 
 		//-------------------- MESH WRAPPERS ----------------------------------------------------------------
 
-		auto skybox = std::make_shared<MeshWrapper>(skyboxPipeline, box);
-		skybox->textures.push_back(skyboxTex);
-		skybox->isSkybox = true;
-
-
+		//auto skybox = std::make_shared<MeshWrapper>(skyboxPipeline, box);
+		//skybox->textures.push_back(skyboxTex);
+		//skybox->isSkybox = true;
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
-		auto globalLighter = std::make_shared<LightProperties>(LightType::GlobalLight, glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-1.0f, -1.0f, -1.0f));
-
-
-		auto ocean = std::make_shared<MeshWrapper>(oceanPipeline, plain);
-		//ocean->textures.push_back(waveHeightField);
-		ocean->color = glm::vec4(0.0f, 0.1569f, 0.3922f, 1.0f);
-		ocean->lightProperties = globalLighter;
-		ocean->lightType = LightType::GlobalLight;
-	//	ocean->Billboard = true;
-		//ocean->scale = glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 1.0f));
-
-
-
 		auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
-	//	woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
 		woodbox->Billboard = false;
 		woodbox->image_fields.push_back(hx);
 		woodbox->image_fields.push_back(dh);
 		woodbox->color = glm::vec4(0.0f, 0.1569f, 0.3922f, 1.0f);
-		//woodbox->lightType = LightType::GlobalLight;
-		//woodbox->lightProperties = globalLighter;
 
 
-		meshWrappers.push_back(ocean);
 		meshWrappers.push_back(woodbox);
-	//	meshWrappers.push_back(heightmap);
 
 		create_mesh(meshWrappers);
 	}
