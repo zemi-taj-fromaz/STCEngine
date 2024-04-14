@@ -451,15 +451,15 @@ bool Mesh::load_terrain(bool illuminated, bool textured)
 bool Mesh::load_plain(bool illuminated, bool textured)
 {
 
-    float kTileSize = 256.0f;
+    static int VERTEX_COUNT{ 256 };
 
     const int32_t kHalfSize = 256.0f / 2.0f;
     float kScale = 1.0f;
 
 
-    for (int32_t y = 0; y < kTileSize; ++y)
+    for (int32_t y = 0; y < 256; ++y)
     {
-        for (int32_t x = 0; x < kTileSize; ++x)
+        for (int32_t x = 0; x < 256; ++x)
         {
             Vertex vertex{};
             vertex.Position = glm::vec3(
@@ -475,10 +475,8 @@ bool Mesh::load_plain(bool illuminated, bool textured)
         }
     }
 
-    float VERTEX_COUNT = kTileSize;
-
-    for (int gz = 0; gz < kTileSize; gz++) {
-        for (int gx = 0; gx < kTileSize; gx++) {
+    for (int gz = 0; gz < VERTEX_COUNT - 1; gz++) {
+        for (int gx = 0; gx < VERTEX_COUNT - 1; gx++) {
             int topLeft = (gz * VERTEX_COUNT) + gx;
             int topRight = topLeft + 1;
             int bottomLeft = ((gz + 1) * VERTEX_COUNT) + gx;
