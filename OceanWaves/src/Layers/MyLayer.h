@@ -238,7 +238,6 @@ public:
 	}
 
 
-
 	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
 	{
 
@@ -788,7 +787,7 @@ public:
 		vkMapMemory(app->get_device(), hd->Memory, 0, imageSize2, 0, &data2);
 		float* normals = reinterpret_cast<float*>(m_Normals.data());
 
-		memcpy(data, normals, imageSize2);
+		memcpy(data2, normals, imageSize2);
 		vkUnmapMemory(app->get_device(), hd->Memory);
 
 	}

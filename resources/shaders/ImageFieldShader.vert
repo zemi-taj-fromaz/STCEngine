@@ -54,8 +54,8 @@ void main() {
     gl_Position =  MVP * vec4(fragPos.xyz, 1.0f);
     texCoord = inTexCoord;
 	
-//	vec4 worldCoord = model * vec4(Position,1.0);
- //   fragPos = Position;
+	vec4 worldCoord = model * vec4(fragPos.xyz,1.0);
+    fragPos.xyz = worldCoord.xyz / worldCoord.w;
 	
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
 	
