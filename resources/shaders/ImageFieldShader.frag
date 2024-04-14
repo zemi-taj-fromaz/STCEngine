@@ -216,7 +216,7 @@ vec3 ComputeWaterSurfaceColor(
     // Fresnel reflectivity to the camera
     float F_r = FresnelFull( dot(kNormal, kViewDir), dot(-kNormal, kRefractDir) );
 
-    return F_r*(L_s + L_a) + (1.0-F_r)*L_u;
+    return F_r*(L_s + L_a);// + (1.0-F_r)*L_u;
 }
 
 

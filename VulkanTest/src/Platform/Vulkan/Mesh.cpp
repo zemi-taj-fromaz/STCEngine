@@ -457,9 +457,9 @@ bool Mesh::load_plain(bool illuminated, bool textured)
     float kScale = 1.0f;
 
 
-    for (int32_t y = -kHalfSize; y <= kHalfSize; ++y)
+    for (int32_t y = 0; y < kTileSize; ++y)
     {
-        for (int32_t x = -kHalfSize; x <= kHalfSize; ++x)
+        for (int32_t x = 0; x < kTileSize; ++x)
         {
             Vertex vertex{};
             vertex.Position = glm::vec3(
@@ -475,7 +475,7 @@ bool Mesh::load_plain(bool illuminated, bool textured)
         }
     }
 
-    float VERTEX_COUNT = kTileSize + 1.0f;
+    float VERTEX_COUNT = kTileSize;
 
     for (int gz = 0; gz < kTileSize; gz++) {
         for (int gx = 0; gx < kTileSize; gx++) {
