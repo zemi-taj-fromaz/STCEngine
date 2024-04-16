@@ -46,8 +46,52 @@ public:
         this->amplitude = amp;
     }
 
+    WaterSurfaceUBO surface;
+    WaterSurfaceUBO& get_surface() { return this->surface; }
+
+    float skyIntensity = 1.0f;
+    float& get_sky_intensity() { return skyIntensity; }
+    float specularIntensity = 1.0f;
+    float& get_specular_intensity() { return specularIntensity; }
+    float specularHighlights = 32.0f;
+    float& get_specular_highlights() { return specularHighlights; }
+
+    
+    glm::vec3 sunColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
+    glm::vec3& get_sun_color() { return sunColor; }
+
+    float sunIntensity = 1.0f;
+    float& get_sun_intensity() { return sunIntensity; }
+
+    glm::vec3 sunDir = glm::vec3{ 0.0f, 0.5f, 0.866f };;
+    glm::vec3& get_sun_direction() { return sunDir; }
+
+    float turbidity = 2.5f;
+    float& get_turbidity() { return turbidity; }
+
     float get_amplitude() { return amplitude; }
+    float get_lambda() { return lambda; }
+    float set_lambda(float l) { lambda = l; }
     float amplitude = 1.0f;
+    float lambda = -1.0f;
+
+    float height_w;
+    float& get_height() { return height_w; }
+
+
+    glm::vec3 absorpCoef;
+    glm::vec3& get_absorpCoef() { return absorpCoef; }
+
+    glm::vec3 scatterCoef;
+    glm::vec3& get_scatterCoef() { return scatterCoef; }
+
+    glm::vec3 backscatterCoef;
+    glm::vec3& get_backscatterCoef() { return backscatterCoef; }
+
+    glm::vec3 terrainColor{ 0.964, 1.0, 0.824 };
+    glm::vec3& get_terrainColor() { return terrainColor; }
+
+
 
     VkDevice& get_device() { return m_Device; }
 

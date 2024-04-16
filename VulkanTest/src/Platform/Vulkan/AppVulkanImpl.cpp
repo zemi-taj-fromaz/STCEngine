@@ -52,13 +52,14 @@ void AppVulkanImpl::initialize_window()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    //// Get the primary monitor (screen)
-    //GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    // Get the primary monitor (screen)
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
 
-    //// Get the mode of the primary monitor
-    //const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+    // Get the mode of the primary monitor
+    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
     m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
+    glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     glfwSetWindowUserPointer(m_Window, this);
 
 }
@@ -151,14 +152,15 @@ void AppVulkanImpl::main_loop()
         {
             break;
         }
-
-        if (s_ImGuiEnabled)
-        {
-            layer->draw_imgui(m_Window);
-        }
+ 
         //imgui new frame
 
         for (auto layer : m_LayerStack) layer->on_update();
+
+        if (s_ImGuiEnabled)
+        {
+            layer->draw_imgui(m_Window, this);
+        }
 
         draw_frame(layer);
     }
@@ -1466,6 +1468,12 @@ void AppVulkanImpl::init_imgui()
 
     //this initializes the core structures of imgui
     ImGui::CreateContext();
+    // Register mouse button callback with GLFW
+    glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods) {
+        ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+    
+    });
+
 
 
 //ImGui_ImplVulkan_Init(m_Window);

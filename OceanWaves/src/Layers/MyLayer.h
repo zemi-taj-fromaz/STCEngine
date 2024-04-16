@@ -8,6 +8,7 @@
 
 #include <fftw3.h>
 #include <complex>
+#include<map>
 
 class MyLayer : public Layer
 {
@@ -170,14 +171,14 @@ public:
 	// ---------------------------------------------------------------------
 // Getters
 
-	auto GetTileSize() const { return m_TileSize; }
-	auto GetTileLength() const { return m_TileLength; }
-	auto GetWindDir() const { return m_WindDir; }
-	auto GetWindSpeed() const { return m_WindSpeed; }
-	auto GetAnimationPeriod() const { return m_AnimationPeriod; }
-	auto GetPhillipsConst() const { return m_A; }
-	auto GetDamping() const { return m_Damping; }
-	auto GetDisplacementLambda() const { return m_Lambda; }
+	auto  GetTileSize()  { return m_TileSize; }
+	auto  GetTileLength()  { return m_TileLength; }
+	auto  GetWindDir()  { return m_WindDir; }
+	auto  GetWindSpeed()  { return m_WindSpeed; }
+	auto  GetAnimationPeriod()  { return m_AnimationPeriod; }
+	auto GetPhillipsConst()  { return m_A; }
+	auto  GetDamping()  { return m_Damping; }
+	auto  GetDisplacementLambda()  { return m_Lambda; }
 	float GetMinHeight() const { return m_MinHeight; }
 	float GetMaxHeight() const { return m_MaxHeight; }
 
@@ -237,12 +238,8 @@ public:
 		m_Damping = damping;
 	}
 
-
-	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
+	void Prepare()
 	{
-
-		SetTileSize(tileSize);
-		SetTileLength(tileLength);
 
 		SetWindDirection(s_kDefaultWindDir);
 		SetWindSpeed(s_kDefaultWindSpeed);
@@ -266,8 +263,17 @@ public:
 
 		DestroyFFTW();
 		SetupFFTW();
+	}
 
-		imguiEnabled = false;
+
+	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
+	{
+		SetTileSize(tileSize);
+		SetTileLength(tileLength);
+
+		Prepare();
+
+		imguiEnabled = true;
 
 		//------------------------------ DESCRIPTORS ---------------------------------------------------
 
@@ -319,7 +325,7 @@ public:
 
 		//------------------------------- PIPELINES ----------------------------------------------------------
 
-		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames);
+		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 
 
 
@@ -792,6 +798,260 @@ public:
 
 	}
 
+	virtual void draw_imgui(GLFWwindow* window, AppVulkanImpl* app) override
+	{
+		//auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+
+		ImGui::NewFrame();
+
+		ImGuiWindowFlags window_flags = 0;
+		window_flags |= ImGuiWindowFlags_NoBackground;
+		window_flags |= ImGuiWindowFlags_NoTitleBar;
+
+		ImVec2 windowSize{ 250, 350 };
+		ImGui::SetNextWindowSize(windowSize);
+		// etc.
+		bool open_ptr = true;
+		ImGui::Begin("I'm a Window!", &open_ptr, window_flags);
+
+		if (ImGui::CollapsingHeader("Water Surface Settings",
+			ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
+
+			ShowWaterSurfaceSettings(app);
+			
+			ImGui::PopItemWidth();
+			ImGui::NewLine();
+		}
+
+		ImGui::End();
+	}
+
+	float m_AnimSpeed{ 3.0 };
+	using WaterTypeMap = std::map<std::string, glm::vec3>;
+
+	WaterTypeMap waterTypeCoeffsMap = {
+	{"I: Clearest open ocean", glm::vec3{0.420, 0.063, 0.019}},
+	{"II: Clear open ocean", glm::vec3{0.465, 0.089, 0.068}},
+	{"III: Turbid open ocean", glm::vec3{0.520, 0.120, 0.135}},
+	{"1: Clearest coastal waters", glm::vec3{0.510, 0.120, 0.250}},
+	{"3: Clear coastal waters", glm::vec3{0.560, 0.190, 0.390}},
+	{"5: Semi-clear coastal waters", glm::vec3{0.650, 0.300, 0.560}},
+	{"7: Turbid coastal waters", glm::vec3{0.780, 0.460, 0.890}},
+	{"9: Most turbid coastal waters", glm::vec3{0.920, 0.630, 1.600}}
+	};
+
+	static void ShowComboBox(const char* name,
+		std::string* items, const uint32_t kItemCount,
+		const char* previewValue, uint32_t* pCurrentIndex)
+	{
+		if (ImGui::BeginCombo(name, previewValue))
+		{
+			for (uint32_t n = 0; n < kItemCount; ++n)
+			{
+				const bool is_selected = (*pCurrentIndex == n);
+				if (ImGui::Selectable(items[n].c_str(), is_selected))
+					*pCurrentIndex = n;
+
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+	}
+
+	std::vector<std::string> getKeys(const WaterTypeMap& map) {
+		std::vector<std::string> keys;
+		keys.reserve(map.size());
+
+		for (const auto& pair : map) {
+			keys.push_back(pair.first);
+		}
+
+		return keys;
+	}
+	std::vector<std::string> keys = getKeys(waterTypeCoeffsMap);
+
+
+	uint32_t m_WaterTypeCoefIndex{ 0 };
+	uint32_t m_BaseScatterCoefIndex{ 0 };
+
+	std::vector<float> scatterCoefs{ 0.037, 0.219, 1.824 };
+	std::vector<std::string> scatterCoefStrings{ "I: Clear ocean", "1: Coastal ocean", "9: Turbid harbor" };
+
+	static const inline glm::vec3 s_kWavelengthsRGB_nm{ 680, 550, 440 };
+
+	static glm::vec3 ComputeScatteringCoefPA01(float b_lambda0)
+	{
+		return b_lambda0 * ((-0.00113 * s_kWavelengthsRGB_nm + 1.62517f)
+			/
+			(-0.00113 * 514.0 + 1.62517));
+	}
+
+	glm::vec3 ComputeBackscatteringCoefPigmentPA01(float C)
+	{
+		// Morel. Optical modeling of the upper ocean in relation to its biogenus
+		//  matter content.
+		const glm::vec3 b_w(0.0007, 0.00173, 0.005);
+
+		// Ratio of backscattering and scattering coeffiecients of the pigments
+		const glm::vec3 B_b = 0.002f + 0.02f * (0.5f - 0.25f *
+			((1.0f / glm::log(10.0f)) * glm::log(C))
+			) * (550.0f / s_kWavelengthsRGB_nm);
+		// Scattering coefficient of the pigment
+		const float b_p = 0.3f * glm::pow(C, 0.62f);
+
+		return 0.5 * b_w + B_b * b_p;
+	}
+
+	glm::vec3 ComputeBackscatteringCoefPA01(const glm::vec3& b)
+	{
+		return 0.01829 * b + 0.00006f;
+	}
+
+
+	void ShowLightingSettings(AppVulkanImpl* app)
+	{
+
+		auto& surface = app->get_surface();
+
+		ImGui::SliderFloat("Sky Intensity",
+			&surface.skyIntensity, 0.f, 10.f);
+		ImGui::SliderFloat("Specular Intensity",
+			&surface.specularIntensity, 0.f, 3.f);
+		ImGui::SliderFloat("Specular Highlights",
+			&surface.specularHighlights, 1.f, 64.f);
+
+		//ShowComboBox("Absorption type",
+		//	keys.data(),
+		//	keys.size(),
+		//	keys[m_WaterTypeCoefIndex].c_str(),
+		//	&m_WaterTypeCoefIndex);
+
+		//	surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
+
+		//ShowComboBox("Scattering type",
+		//	scatterCoefStrings.data(),
+		//	scatterCoefStrings.size(),
+		//	scatterCoefStrings[m_BaseScatterCoefIndex].c_str(),
+		//	&m_BaseScatterCoefIndex);
+
+		//surface.scatterCoef =
+		//	ComputeScatteringCoefPA01(
+		//		scatterCoefs[m_BaseScatterCoefIndex]);
+
+		static bool usePigment = false;
+		ImGui::Checkbox(" Consider pigment concentration", &usePigment);
+		if (usePigment)
+		{
+			static float pigmentC = 1.0;
+			ImGui::SliderFloat("Pigment concentration", &pigmentC, 0.001f, 3.f);
+
+			surface.backscatterCoef =
+				ComputeBackscatteringCoefPigmentPA01(pigmentC);
+		}
+		else
+		{
+			surface.backscatterCoef =
+				ComputeBackscatteringCoefPA01(app->get_scatterCoef());
+		}
+
+		// Terrain
+		ImGui::ColorEdit3("Seabed Base Color",
+			glm::value_ptr(surface.terrainColor));
+		ImGui::DragFloat("Rest Ocean Level", &surface.height,
+			1.0f, 0.0f, 1000.0f);
+	//	ImGui::Checkbox(" Clamp to wave height", &m_ClampHeight);
+	}
+
+
+	void ShowWaterSurfaceSettings(AppVulkanImpl* app)
+	{
+	
+		static glm::vec2 windDir = GetWindDir();
+		static float windSpeed  = GetWindSpeed();
+		static float animPeriod  = GetAnimationPeriod();
+		static float phillipsA = GetPhillipsConst() * 1e7;
+		static float damping  = GetDamping();
+		static float lambda  = GetDisplacementLambda();
+
+		// TODO unit
+		// TODO 2 angles
+		ImGui::DragFloat2("Wind Direction", glm::value_ptr(windDir),
+			0.1f, 0.0f, 0.0f, "%.1f");
+		ImGui::DragFloat("Wind Speed", &windSpeed, 0.1f);
+		ImGui::DragFloat("Choppy correction", &lambda,
+			0.1f, -8.0f, 8.0f, "%.1f");
+		ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
+		ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
+
+		if (ImGui::TreeNodeEx("Water Properties and Lighting"))
+			// ImGuiTreeNodeFlags_DefaultOpen))
+		{
+		//	ShowLightingSettings(app);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("Phillips Spectrum"))
+			//, ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::DragFloat("Amplitude (10^-7)", &phillipsA, 0.1f, 1.0f, 10.0f,
+				"%.2f");
+			std::cout << phillipsA << std::endl;
+			ImGui::DragFloat("Damping factor", &damping, 0.0001f, 0.0f, 1.0f,
+				"%.4f");
+			ImGui::TreePop();
+		}
+
+	
+
+		SetPhillipsConst(phillipsA * 1e-7);
+
+		if (ImGui::Button("Apply"))
+		{
+
+			const bool kWindDirChanged =
+				glm::any(glm::epsilonNotEqual(windDir, GetWindDir(),
+					glm::vec2(0.001f)));
+			const bool kWindSpeedChanged =
+				glm::epsilonNotEqual(windSpeed, GetWindSpeed(),
+					0.001f);
+			const bool kAnimationPeriodChanged =
+				glm::epsilonNotEqual(animPeriod, GetAnimationPeriod(), 0.001f);
+			const bool kPhillipsConstChanged =
+				glm::epsilonNotEqual(phillipsA * 1e-7f, GetPhillipsConst(), 1e-8f);
+			const bool kDampingChanged =
+				glm::epsilonNotEqual(damping, GetDamping(),
+					0.001f);
+
+			const bool kNeedsPrepare =
+				kWindDirChanged ||
+				kWindSpeedChanged ||
+				kAnimationPeriodChanged ||
+				kPhillipsConstChanged ||
+				kDampingChanged;
+
+
+			if (kNeedsPrepare)
+			{
+				SetWindDirection(windDir);
+				SetWindSpeed(windSpeed);
+				SetAnimationPeriod(animPeriod);
+				SetPhillipsConst(phillipsA * 1e-7);
+				SetDamping(damping);
+
+				Prepare();
+			//	m_FrameMapNeedsUpdate = true;
+			}
+
+			SetLambda(lambda);
+		}
+	}
+
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
 
 	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::uniform_real_distribution<float>& distribution, float theta, float delta_k, glm::vec2 k)
@@ -950,7 +1210,6 @@ public:
 
 		return P;
 	}
-
 
 
 	std::random_device rd;

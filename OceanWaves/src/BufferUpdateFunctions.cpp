@@ -129,6 +129,7 @@ namespace Functions
 		{
 			Amplitude ubo{};
 			ubo.amplitude = app->get_amplitude();
+			ubo.lambda = app->get_lambda();
 
 			memcpy(bufferMapped, &ubo, sizeof(Amplitude));
 			return true;
@@ -168,7 +169,7 @@ namespace Functions
 		float time = app->get_delta_time();
 
 		globalLightObj->delta_time = time;
-		globalLightObj->ocean_size = 512.0f;
+		globalLightObj->ocean_size = 256.0f;
 		globalLightObj->resolution = 256.0f;
 
 		return true;
@@ -178,23 +179,25 @@ namespace Functions
 		{
 			WaterSurfaceUBO* wateSurface = (WaterSurfaceUBO*)bufferMapped;
 
+			WaterSurfaceUBO& surface = app->get_surface();
+
 			float time = app->get_delta_time();
 
 			wateSurface->camPos = app->get_camera().Position;
-			wateSurface->absorpCoef = glm::vec3{ 0.420, 0.063, 0.019 };
+			wateSurface->absorpCoef = surface.absorpCoef;
 			glm::vec3 s_kWavelengthsRGB_nm{ 680, 550, 440 };
-			wateSurface->scatterCoef = 0.219f * ((-0.00113f * s_kWavelengthsRGB_nm + 1.62517f) / (-0.00113f * 514.0f + 1.62517f));
-			wateSurface->backscatterCoef = 0.01829f * wateSurface->scatterCoef + 0.00006f;
-			wateSurface->terrainColor = glm::vec3{ 0.964f, 1.0f, 0.824f };
-			wateSurface->skyIntensity =  1.0f;
-			wateSurface->specularIntensity = 1.0f;
-			wateSurface->specularHighlights = 32.0f;
+			wateSurface->scatterCoef = surface.scatterCoef;
+			wateSurface->backscatterCoef = surface.backscatterCoef;
+			wateSurface->terrainColor = surface.terrainColor;
+			wateSurface->skyIntensity =  surface.skyIntensity;
+			wateSurface->specularIntensity = surface.specularIntensity;
+			wateSurface->specularHighlights = surface.specularHighlights;
 
-			wateSurface->sunColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
-			wateSurface->sunIntensity =  1.0f ;
+			wateSurface->sunColor = surface.sunColor;
+			wateSurface->sunIntensity =  surface.sunIntensity ;
 
-			wateSurface->sunDir = glm::vec3{ 0.0f, 0.5f, 0.866f };;
-			wateSurface->turbidity = 2.5f;
+			wateSurface->sunDir = surface.sunDir;
+			wateSurface->turbidity = surface.turbidity;
 
 			const float t = wateSurface->turbidity;
 

@@ -104,6 +104,7 @@ struct Resolution
 struct Amplitude
 {
     float amplitude;
+    float lambda;
 };
 
 struct ParameterUBO{
@@ -201,27 +202,22 @@ struct WaveData
 struct WaterSurfaceUBO
 {
     alignas(16) glm::vec3 camPos;
-    float height{ 0.0f };
+    float height{ 50.0f };
     alignas(16) glm::vec3 absorpCoef;
     alignas(16) glm::vec3 scatterCoef;
     alignas(16) glm::vec3 backscatterCoef;
-    alignas(16) glm::vec3 terrainColor{ 0.964, 1.0, 0.824 };
-    float skyIntensity{ 1.0 };
-    float specularIntensity{ 1.0 };
-    float specularHighlights{ 32.0 };
+    alignas(16) glm::vec3 terrainColor{ 0.964f, 1.0f, 0.824f };
+    float skyIntensity{ 1.0f };
+    float specularIntensity{ 1.0f };
+    float specularHighlights{ 32.0f };
 
     //--------------------------------------
     alignas(16) glm::vec3 sunColor{ 1.0f, 1.0f, 1.0f };
     float sunIntensity{ 1.0f };
     //---------------------------------------
-    alignas(16) glm::vec3 sunDir;           ///< Normalized dir. to sun
-    float     turbidity;
+    alignas(16) glm::vec3 sunDir{ 0.0f, 0.5f, 0.866f };           ///< Normalized dir. to sun
+    float     turbidity{ 2.5f };
     alignas(16) glm::vec3 A, B, C, D, E;
     alignas(16) glm::vec3 ZenithLum;
     alignas(16) glm::vec3 ZeroThetaSun;
 };
-
-
-
-
-
