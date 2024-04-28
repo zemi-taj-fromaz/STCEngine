@@ -192,6 +192,7 @@ namespace Functions
 			wateSurface->skyIntensity =  surface.skyIntensity;
 			wateSurface->specularIntensity = surface.specularIntensity;
 			wateSurface->specularHighlights = surface.specularHighlights;
+			wateSurface->height = surface.height;
 
 			wateSurface->sunColor = surface.sunColor;
 			wateSurface->sunIntensity =  surface.sunIntensity ;

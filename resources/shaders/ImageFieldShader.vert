@@ -33,6 +33,7 @@ layout(std140, set = 1, binding = 0) buffer ObjectBuffer{
 
 layout(set = 4, binding = 0) uniform AmplitudeBufferObj {
 	float amplitude;
+	float choppy;
 } abo;
 
 layout(set = 5, binding = 0, rgba32f) uniform readonly image2D heightmap;
@@ -54,15 +55,15 @@ void main() {
     gl_Position =  MVP * vec4(fragPos.xyz, 1.0f);
     texCoord = inTexCoord;
 	
-	vec4 worldCoord = model * vec4(fragPos.xyz,1.0);
-    fragPos.xyz = worldCoord.xyz / worldCoord.w;
+	//vec4 worldCoord = model * vec4(fragPos.xyz,1.0);
+    //fragPos.xyz = worldCoord.xyz / worldCoord.w;
 	
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
 	
 	normal = normalize(vec3(
-        - ( slope.x / (1.0f - slope.z) ),
+        - ( slope.x / (1.0f + abo.choppy * slope.z) ),
         1.0f,
-        - ( slope.y / (1.0f - slope.w) )
+        - ( slope.y / (1.0f + abo.choppy * slope.w) )
     ));
 	
 	cameraPos = camera.pos.xyz;

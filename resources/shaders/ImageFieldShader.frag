@@ -20,7 +20,6 @@ layout(set = 2, binding = 0) uniform GlobalLightUniform{
 	GlobalLight light;
 } global;
 
-
 layout(set = 3, binding = 0) uniform WaterSurfaceUBO
 {
     vec3  camPos;
@@ -47,21 +46,6 @@ layout(set = 3, binding = 0) uniform WaterSurfaceUBO
     vec3 ZenithLum;
     vec3 ZeroThetaSun;
 } surface;
-
-vec3 CalcDirLight(GlobalLight light, vec3 normal, vec3 viewDir, vec3 fragColor)
-{
-    vec3 lightDir = normalize(-light.direction.xyz);
-    // diffuse shading
-    float diff = max(dot(normal, lightDir), 0.0);
-    // specular shading
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    // combine results
-    vec3 ambient  = light.ambientColor.xyz  * fragColor;
-    vec3 diffuse  = light.diffColor.xyz  * diff * fragColor;
-    vec3 specular = light.specColor.xyz * spec * fragColor;
-    return (ambient + diffuse + specular);
-}  
 
 layout(location = 0) out vec4 outColor;
 
@@ -233,6 +217,7 @@ void main() {
         color = vec3(1.0);
 
     outColor = vec4(color, 1.0);
+    //outColor = vec4(fragColor, 1.0);
 
     // Tone mapping
     outColor = vec4(1.0) - exp(-outColor * 2.0f);
@@ -270,7 +255,8 @@ vec3 TerrainColor(const in vec2 p)
     //const vec3 kMate = vec3(0.964, 1.0, 0.824);
     float n = clamp(Fbm4Noise2D(p.yx * 0.02 * 2.), 0.6, 0.9);
 
-    return n * surface.terrainColor;
+    //return n * surface.terrainColor;
+    return  surface.terrainColor;
 }
 
 float IntersectTerrain(const in Ray ray)

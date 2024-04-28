@@ -14,8 +14,8 @@ class MyLayer : public Layer
 {
 public:
 
-	static constexpr uint32_t     s_kDefaultTileSize{ 256 };
-	static constexpr float        s_kDefaultTileLength{ 256.0f };
+	static constexpr uint32_t     s_kDefaultTileSize{ 512 };
+	static constexpr float        s_kDefaultTileLength{ 1000.0f };
 
 	static inline const glm::vec2 s_kDefaultWindDir{ 1.0f, 1.0f };
 	static constexpr float        s_kDefaultWindSpeed{ 30.0f };
@@ -57,7 +57,7 @@ public:
 	float m_WindSpeed;
 
 	// Phillips spectrum
-	float m_A;
+	float m_A{ 2e-7 };
 	float m_Damping;
 
 	float m_AnimationPeriod;
@@ -240,7 +240,6 @@ public:
 
 	void Prepare()
 	{
-
 		SetWindDirection(s_kDefaultWindDir);
 		SetWindSpeed(s_kDefaultWindSpeed);
 		SetAnimationPeriod(s_kDefaultAnimPeriod);
@@ -310,7 +309,7 @@ public:
 
 		using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
 
-		TopoloG imagefieldTopology({ camera, objects, globalLight, waterSurfaceUBO, amplitude,image2DFragment, image2dOut2 });
+		TopoloG imagefieldTopology({ camera, objects, globalLight, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
 
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
@@ -336,8 +335,8 @@ public:
 
 		//-------------------------------------- IMAGE FIELDS --------------------------------------------
 
-		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileLength, tileLength);
-		std::shared_ptr<Texture> dh = std::make_shared<Texture>(tileLength, tileLength);
+		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileSize, tileSize);
+		std::shared_ptr<Texture> dh = std::make_shared<Texture>(tileSize, tileSize);
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
@@ -355,10 +354,8 @@ public:
 
 		//-------------------- WAVES ------------------------------------------------------------------------
 
-
 		std::random_device rd;
 		std::mt19937 gen(rd());
-
 
 		//-------------------- LIGHTS -----------------------------------------------------------------------
 
@@ -375,7 +372,7 @@ public:
 		woodbox->Billboard = false;
 		woodbox->image_fields.push_back(hx);
 		woodbox->image_fields.push_back(dh);
-		woodbox->color = glm::vec4(0.0f, 0.1569f, 0.3922f, 1.0f);
+		woodbox->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
 		//woodbox->lightType = LightType::GlobalLight;
 		//woodbox->lightProperties = globalLighter
 
@@ -769,7 +766,14 @@ public:
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
 	{
 		float time = app->get_total_time();
-		app->set_amplitude(ComputeWaves(time));
+		
+		float dt = app->get_delta_time();
+
+		static float m_TimeCtr = 0.0f;
+
+		m_TimeCtr += dt * m_AnimSpeed;
+
+		app->set_amplitude(ComputeWaves(m_TimeCtr));
 		
 		auto& hx = get_image_fields()[0];
 		int width = hx->Width;
@@ -798,9 +802,9 @@ public:
 
 	}
 
-	virtual void draw_imgui(GLFWwindow* window, AppVulkanImpl* app) override
+	virtual void draw_imgui(GLFWwindow* window) override
 	{
-		//auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+		auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
 
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -827,6 +831,15 @@ public:
 			ImGui::PopItemWidth();
 			ImGui::NewLine();
 		}
+
+	/*	if (ImGui::CollapsingHeader("Mesh Settings",
+			ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
+			ShowMeshSettings();
+			ImGui::PopItemWidth();
+			ImGui::NewLine();
+		}*/
 
 		ImGui::End();
 	}
@@ -919,12 +932,12 @@ public:
 
 		auto& surface = app->get_surface();
 
-		ImGui::SliderFloat("Sky Intensity",
-			&surface.skyIntensity, 0.f, 10.f);
-		ImGui::SliderFloat("Specular Intensity",
-			&surface.specularIntensity, 0.f, 3.f);
-		ImGui::SliderFloat("Specular Highlights",
-			&surface.specularHighlights, 1.f, 64.f);
+		//ImGui::SliderFloat("Sky Intensity",
+		//	&surface.skyIntensity, 0.f, 10.f);
+		//ImGui::SliderFloat("Specular Intensity",
+		//	&surface.specularIntensity, 0.f, 3.f);
+		//ImGui::SliderFloat("Specular Highlights",
+		//	&surface.specularHighlights, 1.f, 64.f);
 
 		//ShowComboBox("Absorption type",
 		//	keys.data(),
@@ -932,7 +945,7 @@ public:
 		//	keys[m_WaterTypeCoefIndex].c_str(),
 		//	&m_WaterTypeCoefIndex);
 
-		//	surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
+		surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
 
 		//ShowComboBox("Scattering type",
 		//	scatterCoefStrings.data(),
@@ -940,9 +953,9 @@ public:
 		//	scatterCoefStrings[m_BaseScatterCoefIndex].c_str(),
 		//	&m_BaseScatterCoefIndex);
 
-		//surface.scatterCoef =
-		//	ComputeScatteringCoefPA01(
-		//		scatterCoefs[m_BaseScatterCoefIndex]);
+		surface.scatterCoef =
+			ComputeScatteringCoefPA01(
+				scatterCoefs[m_BaseScatterCoefIndex]);
 
 		static bool usePigment = false;
 		ImGui::Checkbox(" Consider pigment concentration", &usePigment);
@@ -957,14 +970,14 @@ public:
 		else
 		{
 			surface.backscatterCoef =
-				ComputeBackscatteringCoefPA01(app->get_scatterCoef());
+				ComputeBackscatteringCoefPA01(surface.scatterCoef);
 		}
 
-		// Terrain
+		//// Terrain
 		ImGui::ColorEdit3("Seabed Base Color",
 			glm::value_ptr(surface.terrainColor));
-		ImGui::DragFloat("Rest Ocean Level", &surface.height,
-			1.0f, 0.0f, 1000.0f);
+		//ImGui::DragFloat("Rest Ocean Level", &surface.height,
+		//	1.0f, 0.0f, 1000.0f);
 	//	ImGui::Checkbox(" Clamp to wave height", &m_ClampHeight);
 	}
 
@@ -992,7 +1005,7 @@ public:
 		if (ImGui::TreeNodeEx("Water Properties and Lighting"))
 			// ImGuiTreeNodeFlags_DefaultOpen))
 		{
-		//	ShowLightingSettings(app);
+			ShowLightingSettings(app);
 			ImGui::TreePop();
 		}
 

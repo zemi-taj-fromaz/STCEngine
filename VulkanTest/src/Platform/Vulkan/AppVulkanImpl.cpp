@@ -1,6 +1,5 @@
 #include "AppVulkanImpl.h"
 
-
 #include <iostream>
 #include <algorithm>
 #include <set>
@@ -33,7 +32,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
     }
 
-
     return VK_FALSE;
 }
 
@@ -52,10 +50,10 @@ void AppVulkanImpl::initialize_window()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    // Get the primary monitor (screen)
+    //// Get the primary monitor (screen)
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
 
-    // Get the mode of the primary monitor
+    //// Get the mode of the primary monitor
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
     m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
@@ -159,7 +157,7 @@ void AppVulkanImpl::main_loop()
 
         if (s_ImGuiEnabled)
         {
-            layer->draw_imgui(m_Window, this);
+            layer->draw_imgui(m_Window);
         }
 
         draw_frame(layer);

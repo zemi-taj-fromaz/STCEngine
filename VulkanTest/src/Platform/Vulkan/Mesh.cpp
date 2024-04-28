@@ -451,15 +451,12 @@ bool Mesh::load_terrain(bool illuminated, bool textured)
 bool Mesh::load_plain(bool illuminated, bool textured)
 {
 
-    static int VERTEX_COUNT{ 256 };
+    static int VERTEX_COUNT{ 512 };
+    float kScale = 1000.0f / 512.0f;
 
-    const int32_t kHalfSize = 256.0f / 2.0f;
-    float kScale = 1.0f;
-
-
-    for (int32_t y = 0; y < 256; ++y)
+    for (int32_t y = 0; y < VERTEX_COUNT; ++y)
     {
-        for (int32_t x = 0; x < 256; ++x)
+        for (int32_t x = 0; x < VERTEX_COUNT; ++x)
         {
             Vertex vertex{};
             vertex.Position = glm::vec3(
