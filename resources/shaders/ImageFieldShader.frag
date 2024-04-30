@@ -6,21 +6,7 @@ layout (location = 2) in vec2 texCoord;
 layout(location = 3) in vec3 cameraPos;
 layout(location = 4) in vec4 fragPos;
 
-struct GlobalLight
-{
-    vec4 ambientColor;
-    vec4 diffColor;
-    vec4 specColor;
-    vec4 direction;
-};
-
-//all object matrices
-layout(set = 2, binding = 0) uniform GlobalLightUniform{
-
-	GlobalLight light;
-} global;
-
-layout(set = 3, binding = 0) uniform WaterSurfaceUBO
+layout(set = 2, binding = 0) uniform WaterSurfaceUBO
 {
     vec3  camPos;
     float height;
@@ -164,13 +150,15 @@ vec3 ComputeWaterSurfaceColor(
     // Amount of light coming directly from the sun reflected to the camera
     vec3 L_s;
     {
-        const vec3 kHalfWayDir = normalize(kLightDir + kViewDir);
-        const float specular = surface.specularIntensity *
-                clamp(
-                    pow(
-                        max( dot(kNormal, kHalfWayDir), 0.0 ),
-                    surface.specularHighlights)
-                , 0.0, 1.0);
+    
+	const vec3 kHalfWayDir = normalize(kLightDir + kViewDir);
+	const float specular = surface.specularIntensity *
+			clamp(
+				pow(
+					max( dot(kNormal, kHalfWayDir), 0.0 ),
+				surface.specularHighlights)
+			, 0.0, 1.0);
+
 
         L_s = surface.sunIntensity * specular * kSkyReflected;
     }
@@ -203,14 +191,14 @@ vec3 ComputeWaterSurfaceColor(
     return F_r*(L_s + L_a) + (1.0-F_r)*L_u;
 }
 
+// =============================================================================
 
 void main() {
 
     const Ray ray = Ray(cameraPos, normalize(fragPos.xyz - cameraPos));
     const vec3 kNormal = normalize( normal );
 	
-    const vec3 p_w = vec3(fragPos.x, fragPos.y + surface.height, fragPos.z);
-    vec3 color = ComputeWaterSurfaceColor(ray, p_w, kNormal);
+    vec3 color = ComputeWaterSurfaceColor(ray, fragPos.xyz, kNormal);
 
     // TODO foam
     if (fragPos.w < 0.0)
@@ -223,7 +211,6 @@ void main() {
     outColor = vec4(1.0) - exp(-outColor * 2.0f);
 	
 }
-
 // =============================================================================
 // Terrain functions
 
@@ -255,8 +242,7 @@ vec3 TerrainColor(const in vec2 p)
     //const vec3 kMate = vec3(0.964, 1.0, 0.824);
     float n = clamp(Fbm4Noise2D(p.yx * 0.02 * 2.), 0.6, 0.9);
 
-    //return n * surface.terrainColor;
-    return  surface.terrainColor;
+    return n * surface.terrainColor;
 }
 
 float IntersectTerrain(const in Ray ray)
@@ -387,5 +373,3 @@ vec3 YxyToRGB( const in vec3 Yxy )
     const vec3 RGB = XYZToRGB( XYZ );
     return RGB;
 }
-
-// =============================================================================

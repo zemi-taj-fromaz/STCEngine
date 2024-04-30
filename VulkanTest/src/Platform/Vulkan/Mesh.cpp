@@ -451,8 +451,9 @@ bool Mesh::load_terrain(bool illuminated, bool textured)
 bool Mesh::load_plain(bool illuminated, bool textured)
 {
 
-    static int VERTEX_COUNT{ 512 };
-    float kScale = 1000.0f / 512.0f;
+    static int VERTEX_COUNT{ 64 };
+    static float length = 100.f;
+    float kScale = length / static_cast<float>(VERTEX_COUNT);
 
     for (int32_t y = 0; y < VERTEX_COUNT; ++y)
     {
@@ -460,13 +461,13 @@ bool Mesh::load_plain(bool illuminated, bool textured)
         {
             Vertex vertex{};
             vertex.Position = glm::vec3(
-                static_cast<float>(x),      // x
+                static_cast<float>(x - VERTEX_COUNT / 2),      // x
                 0.0f,                       // y
-                static_cast<float>(y)       // z
+                static_cast<float>(y - VERTEX_COUNT / 2)       // z
             ) * kScale;
 
             vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            //   vertex.TexCoord = glm::vec2(static_cast<float>(j) / static_cast<float>(VERTEX_COUNT - 1), static_cast<float>(i) / static_cast<float>(VERTEX_COUNT - 1));
+           // vertex.TexCoord = glm::vec2(static_cast<float>(x) / static_cast<float>(VERTEX_COUNT - 1), static_cast<float>(y) / static_cast<float>(VERTEX_COUNT - 1));
             vertex.TexCoord = glm::vec2(x, y);
             Vertices.push_back(vertex);
         }

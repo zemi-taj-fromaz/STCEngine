@@ -51,13 +51,13 @@ void AppVulkanImpl::initialize_window()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     //// Get the primary monitor (screen)
-    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+   // GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
 
     //// Get the mode of the primary monitor
-    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+   // const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
     m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
-    glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+   // glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     glfwSetWindowUserPointer(m_Window, this);
 
 }

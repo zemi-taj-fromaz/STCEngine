@@ -14,8 +14,8 @@ class MyLayer : public Layer
 {
 public:
 
-	static constexpr uint32_t     s_kDefaultTileSize{ 512 };
-	static constexpr float        s_kDefaultTileLength{ 1000.0f };
+	static constexpr uint32_t     s_kDefaultTileSize{ 256 };
+	static constexpr float        s_kDefaultTileLength{ 500.0f };
 
 	static inline const glm::vec2 s_kDefaultWindDir{ 1.0f, 1.0f };
 	static constexpr float        s_kDefaultWindSpeed{ 30.0f };
@@ -57,7 +57,7 @@ public:
 	float m_WindSpeed;
 
 	// Phillips spectrum
-	float m_A{ 2e-7 };
+	float m_A{ 3e-7 };
 	float m_Damping;
 
 	float m_AnimationPeriod;
@@ -112,7 +112,7 @@ public:
 	float m_MaxHeight{ 1.0f };
 
 	static constexpr float s_kG{ 9.81 };   ///< Gravitational constant
-	const float s_kOneOver2sqrt{ std::sqrt(0.5f) }; // 1/sqrt(2)
+	const float s_kOneOver2sqrt{ 1.0f / std::sqrt(2.0f) }; // 1/sqrt(2)
 
 	/**
 	 * @brief Realization of water wave height field in fourier domain
@@ -181,7 +181,6 @@ public:
 	auto  GetDisplacementLambda()  { return m_Lambda; }
 	float GetMinHeight() const { return m_MinHeight; }
 	float GetMaxHeight() const { return m_MaxHeight; }
-
 
 	size_t GetDisplacementCount() const { return m_Displacements.size(); }
 	const std::vector<Displacement>& GetDisplacements() const {
@@ -309,7 +308,7 @@ public:
 
 		using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
 
-		TopoloG imagefieldTopology({ camera, objects, globalLight, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
+		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
 
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
