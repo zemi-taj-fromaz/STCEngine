@@ -18,10 +18,10 @@ public:
 	static constexpr float        s_kDefaultTileLength{ 500.0f };
 
 	static inline const glm::vec2 s_kDefaultWindDir{ 1.0f, 1.0f };
-	static constexpr float        s_kDefaultWindSpeed{ 30.0f };
+	static constexpr float        s_kDefaultWindSpeed{ 50.0f };
 	static constexpr float        s_kDefaultAnimPeriod{ 200.0f };
-	static constexpr float        s_kDefaultPhillipsConst{ 3e-7f };
-	static constexpr float        s_kDefaultPhillipsDamping{ 0.1f };
+	static constexpr float        s_kDefaultPhillipsConst{ 50e-7f };
+	static constexpr float        s_kDefaultPhillipsDamping{ 1.0f };
 
 	// Both vec4 due to GPU memory alignment requirements
 	using Displacement = glm::vec4;
@@ -57,7 +57,7 @@ public:
 	float m_WindSpeed;
 
 	// Phillips spectrum
-	float m_A{ 3e-7 };
+	float m_A{ 3.8e-6 };
 	float m_Damping;
 
 	float m_AnimationPeriod;
@@ -140,6 +140,8 @@ public:
 
 		const float L = m_WindSpeed * m_WindSpeed / s_kG;
 		const float L2 = L * L;
+
+		int wind_alignment = 2;
 
 		return m_A * glm::exp(-1.0f / (k2 * L2)) / k4
 			* cosFact
@@ -271,7 +273,7 @@ public:
 
 		Prepare();
 
-		imguiEnabled = true;
+		imguiEnabled = false;
 
 		//------------------------------ DESCRIPTORS ---------------------------------------------------
 
@@ -348,7 +350,7 @@ public:
 		Mesh cube(MeshType::Cube);
 		Mesh quad(MeshType::Quad);
 		
-		Mesh plain(MeshType::Plain);
+		Mesh plain(MeshType::Plain, tileSize, tileLength);
 
 
 		//-------------------- WAVES ------------------------------------------------------------------------
@@ -801,48 +803,6 @@ public:
 
 	}
 
-	virtual void draw_imgui(GLFWwindow* window) override
-	{
-		auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
-
-		ImGui_ImplVulkan_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-
-		ImGui::NewFrame();
-
-		ImGuiWindowFlags window_flags = 0;
-		window_flags |= ImGuiWindowFlags_NoBackground;
-		window_flags |= ImGuiWindowFlags_NoTitleBar;
-
-		ImVec2 windowSize{ 250, 350 };
-		ImGui::SetNextWindowSize(windowSize);
-		// etc.
-		bool open_ptr = true;
-		ImGui::Begin("I'm a Window!", &open_ptr, window_flags);
-
-		if (ImGui::CollapsingHeader("Water Surface Settings",
-			ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
-
-			ShowWaterSurfaceSettings(app);
-			
-			ImGui::PopItemWidth();
-			ImGui::NewLine();
-		}
-
-	/*	if (ImGui::CollapsingHeader("Mesh Settings",
-			ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
-			ShowMeshSettings();
-			ImGui::PopItemWidth();
-			ImGui::NewLine();
-		}*/
-
-		ImGui::End();
-	}
-
 	float m_AnimSpeed{ 3.0 };
 	using WaterTypeMap = std::map<std::string, glm::vec3>;
 
@@ -857,24 +817,7 @@ public:
 	{"9: Most turbid coastal waters", glm::vec3{0.920, 0.630, 1.600}}
 	};
 
-	static void ShowComboBox(const char* name,
-		std::string* items, const uint32_t kItemCount,
-		const char* previewValue, uint32_t* pCurrentIndex)
-	{
-		if (ImGui::BeginCombo(name, previewValue))
-		{
-			for (uint32_t n = 0; n < kItemCount; ++n)
-			{
-				const bool is_selected = (*pCurrentIndex == n);
-				if (ImGui::Selectable(items[n].c_str(), is_selected))
-					*pCurrentIndex = n;
 
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-	}
 
 	std::vector<std::string> getKeys(const WaterTypeMap& map) {
 		std::vector<std::string> keys;
@@ -926,303 +869,7 @@ public:
 	}
 
 
-	void ShowLightingSettings(AppVulkanImpl* app)
-	{
-
-		auto& surface = app->get_surface();
-
-		//ImGui::SliderFloat("Sky Intensity",
-		//	&surface.skyIntensity, 0.f, 10.f);
-		//ImGui::SliderFloat("Specular Intensity",
-		//	&surface.specularIntensity, 0.f, 3.f);
-		//ImGui::SliderFloat("Specular Highlights",
-		//	&surface.specularHighlights, 1.f, 64.f);
-
-		//ShowComboBox("Absorption type",
-		//	keys.data(),
-		//	keys.size(),
-		//	keys[m_WaterTypeCoefIndex].c_str(),
-		//	&m_WaterTypeCoefIndex);
-
-		surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
-
-		//ShowComboBox("Scattering type",
-		//	scatterCoefStrings.data(),
-		//	scatterCoefStrings.size(),
-		//	scatterCoefStrings[m_BaseScatterCoefIndex].c_str(),
-		//	&m_BaseScatterCoefIndex);
-
-		surface.scatterCoef =
-			ComputeScatteringCoefPA01(
-				scatterCoefs[m_BaseScatterCoefIndex]);
-
-		static bool usePigment = false;
-		ImGui::Checkbox(" Consider pigment concentration", &usePigment);
-		if (usePigment)
-		{
-			static float pigmentC = 1.0;
-			ImGui::SliderFloat("Pigment concentration", &pigmentC, 0.001f, 3.f);
-
-			surface.backscatterCoef =
-				ComputeBackscatteringCoefPigmentPA01(pigmentC);
-		}
-		else
-		{
-			surface.backscatterCoef =
-				ComputeBackscatteringCoefPA01(surface.scatterCoef);
-		}
-
-		//// Terrain
-		ImGui::ColorEdit3("Seabed Base Color",
-			glm::value_ptr(surface.terrainColor));
-		//ImGui::DragFloat("Rest Ocean Level", &surface.height,
-		//	1.0f, 0.0f, 1000.0f);
-	//	ImGui::Checkbox(" Clamp to wave height", &m_ClampHeight);
-	}
-
-
-	void ShowWaterSurfaceSettings(AppVulkanImpl* app)
-	{
-	
-		static glm::vec2 windDir = GetWindDir();
-		static float windSpeed  = GetWindSpeed();
-		static float animPeriod  = GetAnimationPeriod();
-		static float phillipsA = GetPhillipsConst() * 1e7;
-		static float damping  = GetDamping();
-		static float lambda  = GetDisplacementLambda();
-
-		// TODO unit
-		// TODO 2 angles
-		ImGui::DragFloat2("Wind Direction", glm::value_ptr(windDir),
-			0.1f, 0.0f, 0.0f, "%.1f");
-		ImGui::DragFloat("Wind Speed", &windSpeed, 0.1f);
-		ImGui::DragFloat("Choppy correction", &lambda,
-			0.1f, -8.0f, 8.0f, "%.1f");
-		ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
-		ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
-
-		if (ImGui::TreeNodeEx("Water Properties and Lighting"))
-			// ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ShowLightingSettings(app);
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNodeEx("Phillips Spectrum"))
-			//, ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::DragFloat("Amplitude (10^-7)", &phillipsA, 0.1f, 1.0f, 10.0f,
-				"%.2f");
-			std::cout << phillipsA << std::endl;
-			ImGui::DragFloat("Damping factor", &damping, 0.0001f, 0.0f, 1.0f,
-				"%.4f");
-			ImGui::TreePop();
-		}
-
-	
-
-		SetPhillipsConst(phillipsA * 1e-7);
-
-		if (ImGui::Button("Apply"))
-		{
-
-			const bool kWindDirChanged =
-				glm::any(glm::epsilonNotEqual(windDir, GetWindDir(),
-					glm::vec2(0.001f)));
-			const bool kWindSpeedChanged =
-				glm::epsilonNotEqual(windSpeed, GetWindSpeed(),
-					0.001f);
-			const bool kAnimationPeriodChanged =
-				glm::epsilonNotEqual(animPeriod, GetAnimationPeriod(), 0.001f);
-			const bool kPhillipsConstChanged =
-				glm::epsilonNotEqual(phillipsA * 1e-7f, GetPhillipsConst(), 1e-8f);
-			const bool kDampingChanged =
-				glm::epsilonNotEqual(damping, GetDamping(),
-					0.001f);
-
-			const bool kNeedsPrepare =
-				kWindDirChanged ||
-				kWindSpeedChanged ||
-				kAnimationPeriodChanged ||
-				kPhillipsConstChanged ||
-				kDampingChanged;
-
-
-			if (kNeedsPrepare)
-			{
-				SetWindDirection(windDir);
-				SetWindSpeed(windSpeed);
-				SetAnimationPeriod(animPeriod);
-				SetPhillipsConst(phillipsA * 1e-7);
-				SetDamping(damping);
-
-				Prepare();
-			//	m_FrameMapNeedsUpdate = true;
-			}
-
-			SetLambda(lambda);
-		}
-	}
-
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
-
-	glm::vec3 fourier_amplitude(float k_len, std::mt19937& gen, std::uniform_real_distribution<float>& distribution, float theta, float delta_k, glm::vec2 k)
-	{
-		float g = 9.81f;
-		float omega = pow(g * k_len, 0.5f); // dispertion relation
-
-		float fetch = 200000.0f;
-		float u_10 = 30.0f;
-
-		float omega_p = 22 * pow(g * g / (u_10 * fetch), 0.333f); //angular frequency of the spectral peak
-
-		float phi = 2*jonswap(omega, omega_p, fetch, u_10) * oceanography_donelan_banner_directional_spreading(omega, omega_p, glm::radians(45.0f)) * sqrt(g / k_len) / (2 * k_len) * delta_k * delta_k;
-	//	float phi = phillips_spectrum(k.x, k.y);
-
-		float factor = 1 / pow(2, 0.5f) * pow(phi, 0.5f);
-
-		return glm::vec3(factor * distribution(gen), factor * distribution(gen), omega);
-	}
-
-	float __oceanography_hasselmann_s(float omega, float omega_peak, float u, float g)
-	{
-		float s0 = 6.97f * pow(omega / omega_peak, 4.06f);
-		float s1_exp = -2.33f - 1.45f * (((u * omega_peak) / g) - 1.17f);
-		float s1 = 9.77f * pow(omega / omega_peak, s1_exp);
-		return omega > omega_peak
-			? s1
-			: s0;
-	}
-
-	float __oceanography_mitsuyasu_s(float omega, float omega_peak, float u, float g)
-	{
-		float s_p = 11.5f * pow((omega_peak * u) / g, -2.5f);
-		float s0 = pow(s_p, 5.0f);
-		float s1 = pow(s_p, -2.5f);
-		return omega > omega_peak
-			? s1
-			: s0;
-	}
-
-	float math_stirling_approximation(float n)
-	{
-		return sqrt(2.0f * M_PI * n) * pow(n / glm::e<float>(), n);
-	}
-
-	float __oceanography_mitsuyasu_q(float s)
-	{
-		float a = pow(2.0f, 2.0f * s - 1) / M_PI;
-		float b = pow(math_stirling_approximation(s + 1), 2.0f);
-		float c = math_stirling_approximation(2.0f * s + 1);
-		return a * (b / c);
-	}
-
-	float oceanography_mitsuyasu_directional_spreading(float omega, float omega_peak, float theta, float u, float g)
-	{
-		float s = __oceanography_mitsuyasu_s(omega, omega_peak, u, g);
-		float q_s = __oceanography_mitsuyasu_q(s);
-		return q_s * pow(abs(cos(theta / 2.0f)), 2.0f);
-	}
-
-	float oceanography_hasselmann_directional_spreading(float omega, float omega_peak, float theta, float u, float g)
-	{
-		float s = __oceanography_hasselmann_s(omega, omega_peak, u, g);
-		float q_s = __oceanography_mitsuyasu_q(s);
-		return q_s * pow(abs(cos(theta / 2.0f)), 2.0f);
-	}
-
-	float directional_spread(float omega, float omega_p, float theta, float wind_direction)
-	{
-		float sp = (omega >= omega_p ? 9.77f : 6.97f);
-		float s = sp * (omega >= omega_p ? pow(omega / omega_p, -2.5f) : pow(omega / omega_p, 5.0f));
-
-		float factor1 = pow(2, 2 * s - 1) / glm::pi<float>();
-		float factor2 = pow(std::tgamma(s+1), 2.0f) / std::tgamma(2*s + 1);
-		float factor3 = pow( std::abs( cos( (theta-wind_direction) / 2) ), 2*s);
-		return factor1 * factor2 * factor3;
-	}
-
-	float __oceanography_donelan_banner_beta_s(float omega, float omega_peak)
-	{
-		float om_over_omp = omega / omega_peak;
-		float epsilon = -0.4f + 0.8393 * exp(-0.567f * pow(log(om_over_omp), 2.0f));
-		float beta_s_0 = 2.61f * pow(om_over_omp, 1.3f);
-		float beta_s_1 = 2.28f * pow(om_over_omp, -1.3f);
-		float beta_s_2 = pow(10.0f, epsilon);
-		return om_over_omp < 0.95f
-			? beta_s_0
-			: om_over_omp < 1.6f
-			? beta_s_1
-			: beta_s_2;
-	}
-
-	float math_sech(float x)
-	{
-		return 1.0f / cosh(x);
-	}
-
-	float oceanography_donelan_banner_directional_spreading(float omega, float omega_peak, float theta)
-	{
-		float beta_s = __oceanography_donelan_banner_beta_s(omega, omega_peak);
-		return (beta_s / (2.0f * tanh(beta_s * M_PI))) * pow(math_sech(std::clamp(beta_s * theta, -9.0f, 9.0f)), 2.0f);
-	}
-
-	float jonswap(double  omega,float omega_p, float fetch, float U_10)
-	{
-		float g = 9.81f;
-
-		float alpha = 0.076f * pow(pow(U_10, 2) / (fetch * g), 0.22f) * 1.3; // equilibrium range parameter
-
-		float gamma = 3.3f;
-
-		double sigma = omega < omega_p ? 0.07 : 0.09; // Standard deviation for JONSWAP spectrum
-
-
-		float beta = 1.25f;
-		float expr1 = pow(g, 2) / pow(omega, 5);
-		float expr2 = exp(-beta * pow(omega_p / omega, 4));
-		double S = alpha * expr1 * expr2;
-
-		float r = exp(-pow(omega - omega_p, 2) / (2 * pow(sigma * omega_p, 2)));
-
-		float peakEnhancementFactor = pow(gamma, r);
-
-		float energy = S * peakEnhancementFactor;
-
-		return energy;
-	}
-
-	float phillips_spectrum(float kx, float ky) {
-		// Calculate wave vector length
-		float k_squared = kx * kx + ky * ky;
-		float k = sqrt(k_squared);
-
-		glm::vec2 wind_direction = glm::vec2(0.0f, 1.0f);
-
-		// Calculate wind speed magnitude
-
-		// Calculate directional vector
-		float k_dot_w = (kx / k) * (wind_direction.x) + (ky / k) * (wind_direction.y);
-
-		float gravity = 9.81f;
-
-		float wind_speed_mag = 10.0f;
-
-		// Calculate exponent
-		float L = wind_speed_mag * wind_speed_mag / gravity;
-		float L_squared = L * L;
-		float damping = 0.001f * L; // Damping factor to prevent division by zero
-		float damping_squared = damping * damping;
-		float exponent = -1.0f / (k_squared * L_squared) - k_squared * damping_squared;
-
-		float A = 0.81f*0.7f / (512.f*512.f);
-
-		// Calculate Phillips spectrum
-		float P = A * exp(exponent) / (k_squared * k_squared) * k_dot_w * k_dot_w;
-
-		return P;
-	}
-
 
 	std::random_device rd;
 	std::mt19937 gen{ rd() };

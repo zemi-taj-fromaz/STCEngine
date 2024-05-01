@@ -450,20 +450,17 @@ bool Mesh::load_terrain(bool illuminated, bool textured)
 
 bool Mesh::load_plain(bool illuminated, bool textured)
 {
+    float kScale = static_cast<float>(patch_size) / static_cast<float>(vertex_count);
 
-    static int VERTEX_COUNT{ 64 };
-    static float length = 100.f;
-    float kScale = length / static_cast<float>(VERTEX_COUNT);
-
-    for (int32_t y = 0; y < VERTEX_COUNT; ++y)
+    for (int32_t y = 0; y < vertex_count; ++y)
     {
-        for (int32_t x = 0; x < VERTEX_COUNT; ++x)
+        for (int32_t x = 0; x < vertex_count; ++x)
         {
             Vertex vertex{};
             vertex.Position = glm::vec3(
-                static_cast<float>(x - VERTEX_COUNT / 2),      // x
+                static_cast<float>(x - vertex_count/2),      // x
                 0.0f,                       // y
-                static_cast<float>(y - VERTEX_COUNT / 2)       // z
+                static_cast<float>(y - vertex_count/2 + 1)       // z
             ) * kScale;
 
             vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -473,11 +470,11 @@ bool Mesh::load_plain(bool illuminated, bool textured)
         }
     }
 
-    for (int gz = 0; gz < VERTEX_COUNT - 1; gz++) {
-        for (int gx = 0; gx < VERTEX_COUNT - 1; gx++) {
-            int topLeft = (gz * VERTEX_COUNT) + gx;
+    for (int gz = 0; gz < vertex_count - 1; gz++) {
+        for (int gx = 0; gx < vertex_count - 1; gx++) {
+            int topLeft = (gz * vertex_count) + gx;
             int topRight = topLeft + 1;
-            int bottomLeft = ((gz + 1) * VERTEX_COUNT) + gx;
+            int bottomLeft = ((gz + 1) * vertex_count) + gx;
             int bottomRight = bottomLeft + 1;
 
             Indices.push_back(topLeft);

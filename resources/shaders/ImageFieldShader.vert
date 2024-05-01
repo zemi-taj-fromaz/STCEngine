@@ -6,10 +6,13 @@ layout(location = 2) in vec3 inColor;
 layout(location = 3) in vec2 inTexCoord;
 
 layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec3 normal;
+layout(location = 1) out vec4 normal;
 layout(location = 2) out vec2 texCoord;
 layout(location = 3) out vec3 cameraPos;
 layout(location = 4) out vec4 fragPos;
+
+#define BLEND_START		8		// m
+#define BLEND_END		200		// m
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
@@ -46,21 +49,24 @@ void main() {
 	vec4 Displacement = imageLoad(heightmap, ivec2(inTexCoord));
 	Displacement.y *= abo.amplitude;
 	
+	vec4 worldPos = model * vec4(inPosition.xyz, 1.0f);
+	
 	fragPos.xyz = inPosition + Displacement.xyz;
 	fragPos.w = Displacement.w;
 	
-    gl_Position =  MVP * vec4(fragPos.xyz, 1.0f);
+    gl_Position =  MVP * vec4(fragPos);
    // gl_Position =  MVP * vec4(inPosition.xyz, 1.0f);
     texCoord = inTexCoord;
 	
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
 	
 	vec4 slope = imageLoad(normalmap, ivec2(inTexCoord));
-	normal = normalize(vec3(
+	normal.xyz = normalize(vec3(
         - ( slope.x / (1.0f + abo.choppy * slope.z) ),
         1.0f,
         - ( slope.y / (1.0f + abo.choppy * slope.w) )
     ));
+	normal.w = slope.w;
 	
 	cameraPos = camera.pos.xyz;
 }

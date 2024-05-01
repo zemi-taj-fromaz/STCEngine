@@ -25,6 +25,9 @@ struct Mesh
     Mesh(MeshType meshType) : meshType(meshType)
     {}
 
+    Mesh(MeshType meshType, int vertexCount, int patchSize) : meshType(meshType), vertex_count(vertexCount), patch_size(patchSize)
+    {}
+
     Mesh(const Mesh& mesh)
     {
         Vertices = mesh.Vertices;
@@ -38,6 +41,8 @@ struct Mesh
         Animated = mesh.Animated;
         Filename = mesh.Filename;
         meshType = mesh.meshType;
+        patch_size = mesh.patch_size;
+        vertex_count = mesh.vertex_count;
     }
 
     Mesh operator=(const Mesh& mesh)
@@ -54,6 +59,8 @@ struct Mesh
     bool Animated{ false };
     std::string Filename;
     MeshType meshType{ MeshType::None };
+    int patch_size{ 0 };
+    int vertex_count{ 0 };
 
     std::vector<VkDescriptorSet> TextureSets; //texture defaulted to null
 
