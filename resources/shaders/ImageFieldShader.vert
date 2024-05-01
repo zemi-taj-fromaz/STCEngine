@@ -43,6 +43,11 @@ layout(set = 4, binding = 0, rgba32f) uniform readonly image2D heightmap;
 layout(set = 5, binding = 0, rgba32f) uniform readonly image2D normalmap;
 
 void main() {
+
+	// NOTE: also defined in fragment shader
+	const vec3 perlinFrequency	= vec3(1.12, 0.59, 0.23);
+	const vec3 perlinAmplitude	= vec3(0.35, 0.42, 0.57);
+
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     mat4 MVP =  camera.proj * camera.view * model;
 	
@@ -54,8 +59,8 @@ void main() {
 	fragPos.xyz = inPosition + Displacement.xyz;
 	fragPos.w = Displacement.w;
 	
-    gl_Position =  MVP * vec4(fragPos);
-   // gl_Position =  MVP * vec4(inPosition.xyz, 1.0f);
+ //   gl_Position =  MVP * vec4(fragPos.xyz, 1.0);
+    gl_Position =  MVP * vec4(inPosition.xyz, 1.0f);
     texCoord = inTexCoord;
 	
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
@@ -68,5 +73,9 @@ void main() {
     ));
 	normal.w = slope.w;
 	
+	//normal = vec4(1.0, 1.0, 1.0, 1.0);
+	
 	cameraPos = camera.pos.xyz;
+	
+	vec3 viewDir = cameraPos - worldPos.xyz;
 }

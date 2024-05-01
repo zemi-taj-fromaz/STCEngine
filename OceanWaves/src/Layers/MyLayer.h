@@ -19,7 +19,7 @@ public:
 
 	static inline const glm::vec2 s_kDefaultWindDir{ 1.0f, 1.0f };
 	static constexpr float        s_kDefaultWindSpeed{ 50.0f };
-	static constexpr float        s_kDefaultAnimPeriod{ 200.0f };
+	static constexpr float        s_kDefaultAnimPeriod{ 20.0f };
 	static constexpr float        s_kDefaultPhillipsConst{ 50e-7f };
 	static constexpr float        s_kDefaultPhillipsDamping{ 1.0f };
 
@@ -368,16 +368,22 @@ public:
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
-		auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
-	//	woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
-		woodbox->Billboard = false;
-		woodbox->image_fields.push_back(hx);
-		woodbox->image_fields.push_back(dh);
-		woodbox->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
-		//woodbox->lightType = LightType::GlobalLight;
-		//woodbox->lightProperties = globalLighter
+		for (int i = 0; i < 8; i++)
+		{
+			for (int j = 0; j < 8; j++)
+			{
+				auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
+				woodbox->Billboard = false;
+				woodbox->image_fields.push_back(hx);
+				woodbox->image_fields.push_back(dh);
+				woodbox->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
+				woodbox->translation = glm::translate(glm::mat4(1.0f), glm::vec3(i*tileLength,0.0f, j*tileLength));
+				meshWrappers.push_back(woodbox);
 
-		meshWrappers.push_back(woodbox);
+			}
+		}
+
+
 	//	meshWrappers.push_back(heightmap);
 
 		create_mesh(meshWrappers);
@@ -483,7 +489,7 @@ public:
 
 			// Conversion of the grid back to interval
 			//  [-m_TileSize/2, ..., 0, ..., m_TileSize/2]
-			const float kSigns[] = { 1.0f, -1.0f };
+			const float kSigns[] = { 1.0f, 1.0f };
 
 #pragma omp for collapse(2) schedule(static) nowait
 			for (uint32_t m = 0; m < kTileSize; ++m)
@@ -538,7 +544,8 @@ public:
 			}
 		}
 
-		return NormalizeHeights(masterMinHeight, masterMaxHeight);
+	//	return NormalizeHeights(masterMinHeight, masterMaxHeight);
+		return 1.0f;
 	}
 
 	float NormalizeHeights(float minHeight, float maxHeight)
