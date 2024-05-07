@@ -70,7 +70,7 @@ is useless in our application.
 */
 void Ocean::main_computation(float total_time) {
     for (int x = 0; x < nx; x++) {
-        get_sine_amp(x, static_cast<double>(motion_factor * total_time) / 1000, &HR[x], &HI[x]);
+        get_sine_amp(x, static_cast<double>(motion_factor * total_time), &HR[x], &HI[x]);
         ffty[x]->reverse();
     }
     for (int y = 0; y < ny; y++) {

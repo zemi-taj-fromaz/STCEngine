@@ -317,7 +317,6 @@ public:
 	//---------------------------------------------------
 	//---------------------------------------------------
 
-	Ocean* ocean;
 
 	double lx					;//		= p.num_val<double>("lx");
 	double ly					;//		= p.num_val<double>("ly");
@@ -335,6 +334,10 @@ public:
 	std::vector<glm::vec4> vertexOceanX;
 	std::vector<glm::vec4> vertexOceanY;
 
+	Philipps philipps;
+	Ocean* ocean;
+	Height   height;
+
 	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
 	{
 		SetTileSize(tileSize);
@@ -350,8 +353,8 @@ public:
 		motion_factor = 0.6;
 
 
-		Philipps philipps(lx, ly, nx, ny, wind_speed, wind_alignment, min_wave_size, A);
-		Height   height(nx, ny);
+		philipps = Philipps(lx, ly, nx, ny, wind_speed, wind_alignment, min_wave_size, A);
+		height = Height(nx, ny);
 		ocean = new Ocean(lx, ly, nx, ny, motion_factor);
 
 		height.generate_philipps(&philipps); /* Philipps spectrum */
@@ -359,36 +362,28 @@ public:
 
 		nxOcean = ocean->get_nx();
 		nyOcean = ocean->get_ny();
-		vertexOceanX.resize(nyOcean * (nxOcean + 1), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
-		vertexOceanY.resize(nxOcean * (nyOcean + 1), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
+		vertexOceanX.resize(nyOcean * (nxOcean ), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
+		vertexOceanY.resize(nxOcean * (nyOcean ), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
 
 		/* init ocean */
 		for (int x = 0; x < nxOcean; x++)
 		{
 			for (int y = 0; y < nyOcean; y++) {
-				int index = x * (nyOcean + 1) + y;
+				int index = x * (nyOcean ) + y;
 				vertexOceanY[index].x = (lx / nx) * x;
 				vertexOceanY[index].z = (ly / ny) * y;
 				vertexOceanY[index].w = 1.0;
 			}
-			int index = x * (nyOcean + 1) + nyOcean;
-			vertexOceanY[index].x = (lx / nx) * x;
-			vertexOceanY[index].z = ly;
-			vertexOceanY[index].w = 1.0;
 		}
 
 		for (int y = 0; y < nyOcean; y++)   
 		{
 			for (int x = 0; x < nxOcean; x++) {
-				int index = y * (nxOcean + 1) + x;
+				int index = y * (nxOcean ) + x;
 				vertexOceanY[index].x = (lx / nx) * x;
 				vertexOceanY[index].z = (ly / ny) * y;
 				vertexOceanY[index].w = 1.0;
 			}
-			int index = y * (nxOcean + 1) + nyOcean;
-			vertexOceanY[index].x = ly;
-			vertexOceanY[index].z = (ly / ny) * y;
-			vertexOceanY[index].w = 1.0;
 		}
 
 
@@ -900,20 +895,20 @@ public:
 
 		for (int x = 0; x < nxOcean; x++) {
 			for (int y = 0; y < nyOcean; y++) {
-				int index = x * (nyOcean + 1) + y;
+				int index = x * (nyOcean ) + y;
 				vertexOceanY[index].y = pow(-1, x + y) * ocean->hr[y][x];
 			}
-			int index = x * (nyOcean + 1) + nyOcean;
-			vertexOceanY[index].y = pow(-1, x + nyOcean) * ocean->hr[0][x];
+			//int index = x * (nyOcean + 1) + nyOcean;
+			//vertexOceanY[index].y = pow(-1, x + nyOcean) * ocean->hr[0][x];
 		}
 
 		for (int y = 0; y < nyOcean; y++) {
 			for (int x = 0; x < nxOcean; x++) {
-				int index = y * (nxOcean + 1) + x;
+				int index = y * (nxOcean ) + x;
 				vertexOceanX[index].y = pow(-1, x + y) * ocean->hr[y][x];
 			}
-			int index = y * (nxOcean + 1) + nxOcean;
-			vertexOceanX[index].y = pow(-1, nxOcean + y) * ocean->hr[y][0];
+			//int index = y * (nxOcean + 1) + nxOcean;
+			//vertexOceanX[index].y = pow(-1, nxOcean + y) * ocean->hr[y][0];
 		}
 		
 		float dt = app->get_delta_time();
