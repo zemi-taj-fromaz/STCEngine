@@ -77,7 +77,7 @@ void main() {
 
 	float spec = mult * exp(-((hdotx * hdotx) + (hdoty * hdoty)) / (hdotn * hdotn));
 
-	//outColor = vec4(mix(oceanColor, oceanColor * color_mod, F) + sunColor * spec, 1.0);
-	outColor = vec4(fragColor, 1.0);
+	outColor = vec4(mix(oceanColor, oceanColor * color_mod, F) + sunColor * spec, 1.0);
+	//outColor = vec4(fragColor, 1.0);
 	
 }

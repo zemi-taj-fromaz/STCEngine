@@ -465,7 +465,7 @@ bool Mesh::load_plain(bool illuminated, bool textured)
 
             vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
            // vertex.TexCoord = glm::vec2(static_cast<float>(x) / static_cast<float>(VERTEX_COUNT - 1), static_cast<float>(y) / static_cast<float>(VERTEX_COUNT - 1));
-            vertex.TexCoord = glm::vec2(y, x);
+            vertex.TexCoord = glm::vec2(y + 1, x + 1);
             Vertices.push_back(vertex);
         }
     }
