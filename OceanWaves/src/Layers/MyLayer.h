@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LayerInit.h"
+#include "Ocean.h"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
@@ -134,9 +135,13 @@ public:
 	{
 		const float k2 = k * k;
 		const float k4 = k2 * k2;
-
+		//
+		// var *= pow((kx * kx) / k_sq, wind_alignment);
 		float cosFact = glm::dot(unitWaveVec, m_WindDir);
+	//	float cosFact = (unitWaveVec.x * unitWaveVec.x) / k2;
 		cosFact = cosFact * cosFact;
+
+
 
 		const float L = m_WindSpeed * m_WindSpeed / s_kG;
 		const float L2 = L * L;
@@ -265,11 +270,127 @@ public:
 		SetupFFTW();
 	}
 
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+	//---------------------------------------------------
+
+	Ocean* ocean;
+
+	double lx					;//		= p.num_val<double>("lx");
+	double ly					;//		= p.num_val<double>("ly");
+	int    nx					;//		= p.num_val<int>("nx");
+	int    ny					;//		= p.num_val<int>("ny");
+	double wind_speed			;// = p.num_val<double>("wind_speed");
+	int    wind_alignment		;//= p.num_val<int>("wind_alignment");
+	double min_wave_size		;//= p.num_val<double>("min_wave_size");
+	double A					;// = p.num_val<double>("A");
+	double motion_factor		;//= p.num_val<double>("motion_factor");
+
+	/* Ocean vertices and parameters */
+	int                  nxOcean;
+	int                  nyOcean;
+	std::vector<glm::vec4> vertexOceanX;
+	std::vector<glm::vec4> vertexOceanY;
 
 	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
 	{
 		SetTileSize(tileSize);
 		SetTileLength(tileLength);
+
+		lx = tileLength; ly = tileLength;
+		nx = tileSize; ny = tileSize;
+
+		wind_speed = 50.0f;
+		wind_alignment = 2;
+		min_wave_size = 0.1;
+		A = 0.0000038;
+		motion_factor = 0.6;
+
+
+		Philipps philipps(lx, ly, nx, ny, wind_speed, wind_alignment, min_wave_size, A);
+		Height   height(nx, ny);
+		ocean = new Ocean(lx, ly, nx, ny, motion_factor);
+
+		height.generate_philipps(&philipps); /* Philipps spectrum */
+		ocean->generate_height(&height);     /* initial ocean wave height field */
+
+		nxOcean = ocean->get_nx();
+		nyOcean = ocean->get_ny();
+		vertexOceanX.resize(nyOcean * (nxOcean + 1), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
+		vertexOceanY.resize(nxOcean * (nyOcean + 1), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
+
+		/* init ocean */
+		for (int x = 0; x < nxOcean; x++)
+		{
+			for (int y = 0; y < nyOcean; y++) {
+				int index = x * (nyOcean + 1) + y;
+				vertexOceanY[index].x = (lx / nx) * x;
+				vertexOceanY[index].z = (ly / ny) * y;
+				vertexOceanY[index].w = 1.0;
+			}
+			int index = x * (nyOcean + 1) + nyOcean;
+			vertexOceanY[index].x = (lx / nx) * x;
+			vertexOceanY[index].z = ly;
+			vertexOceanY[index].w = 1.0;
+		}
+
+		for (int y = 0; y < nyOcean; y++)   
+		{
+			for (int x = 0; x < nxOcean; x++) {
+				int index = y * (nxOcean + 1) + x;
+				vertexOceanY[index].x = (lx / nx) * x;
+				vertexOceanY[index].z = (ly / ny) * y;
+				vertexOceanY[index].w = 1.0;
+			}
+			int index = y * (nxOcean + 1) + nyOcean;
+			vertexOceanY[index].x = ly;
+			vertexOceanY[index].z = (ly / ny) * y;
+			vertexOceanY[index].w = 1.0;
+		}
+
 
 		Prepare();
 
@@ -368,9 +489,9 @@ public:
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
-		for (int i = 0; i < 8; i++)
+		for (int i = 0; i < 1; i++)
 		{
-			for (int j = 0; j < 8; j++)
+			for (int j = 0; j < 1; j++)
 			{
 				auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
 				woodbox->Billboard = false;
@@ -543,8 +664,8 @@ public:
 				}
 			}
 		}
-
-	//	return NormalizeHeights(masterMinHeight, masterMaxHeight);
+		//return 1.0f;
+		NormalizeHeights(masterMinHeight, masterMaxHeight);
 		return 1.0f;
 	}
 
@@ -557,7 +678,7 @@ public:
 		const float OneOverA = 1.f / A;
 
 		std::for_each(m_Displacements.begin(), m_Displacements.end(),
-			[OneOverA](auto& d) { d.y *= OneOverA; });
+			[A](auto& d) { d.y /= A; });
 
 		return A;
 	}
@@ -774,6 +895,26 @@ public:
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
 	{
 		float time = app->get_total_time();
+
+		ocean->main_computation(time);
+
+		for (int x = 0; x < nxOcean; x++) {
+			for (int y = 0; y < nyOcean; y++) {
+				int index = x * (nyOcean + 1) + y;
+				vertexOceanY[index].y = pow(-1, x + y) * ocean->hr[y][x];
+			}
+			int index = x * (nyOcean + 1) + nyOcean;
+			vertexOceanY[index].y = pow(-1, x + nyOcean) * ocean->hr[0][x];
+		}
+
+		for (int y = 0; y < nyOcean; y++) {
+			for (int x = 0; x < nxOcean; x++) {
+				int index = y * (nxOcean + 1) + x;
+				vertexOceanX[index].y = pow(-1, x + y) * ocean->hr[y][x];
+			}
+			int index = y * (nxOcean + 1) + nxOcean;
+			vertexOceanX[index].y = pow(-1, nxOcean + y) * ocean->hr[y][0];
+		}
 		
 		float dt = app->get_delta_time();
 
@@ -784,8 +925,6 @@ public:
 		app->set_amplitude(ComputeWaves(m_TimeCtr));
 		
 		auto& hx = get_image_fields()[0];
-		int width = hx->Width;
-		int height = hx->Height;
 		VkDeviceSize imageSize = hx->Width * hx->Height * 4 * sizeof(float);
 
 		void* data;

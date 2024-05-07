@@ -7,7 +7,7 @@ class MyApplication : public Application
 public:
 	MyApplication()
 	{
-		std::shared_ptr<Layer> layer = std::shared_ptr<Layer>(new MyLayer(256, 256.0f));
+		std::shared_ptr<Layer> layer = std::shared_ptr<Layer>(new MyLayer(256, 350.0f));
 		push_layer(layer);
 	}
 };
