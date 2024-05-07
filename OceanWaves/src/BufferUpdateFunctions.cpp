@@ -66,6 +66,20 @@ namespace Functions
 
 	};
 
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> dispUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+		{
+			DisplacementData* objectArray = (DisplacementData*)bufferMapped;
+			//	camera.cameraLight->update_light(deltaTime, camera.Position, nullptr);
+			auto& disp = app->get_displacements();
+
+			for (size_t i = 0; i < disp.size(); i++)
+			{
+				objectArray[i].Disp = disp[i];
+			}
+			return true;
+
+		};
+
 	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> wavesUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 		{
 			WaveData* objectArray = (WaveData*)bufferMapped;

@@ -57,14 +57,15 @@ void main() {
 	vec4 worldPos = model * vec4(inPosition.xyz, 1.0f);
 	
 	fragPos.xyz = worldPos.xyz;
-	fragPos.y =+ Displacement.y;
+	//fragPos.y =+ Displacement.y;
 	fragPos.w = 1.0;
 	
-    gl_Position =  MVP * vec4(inPosition.xyz + vec3(0.0,Displacement.y,0.0) , 1.0);
+    gl_Position =  MVP * vec4(inPosition.xyz , 1.0);
    // gl_Position =  MVP * vec4(inPosition.xyz, 1.0f);
     texCoord = inTexCoord;
 	
-    fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
+  //  fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
+    fragColor = vec3(Displacement.xy, 0.0);
 	
 	vec4 slope = imageLoad(normalmap, ivec2(inTexCoord));
 	normal.xyz = normalize(vec3(

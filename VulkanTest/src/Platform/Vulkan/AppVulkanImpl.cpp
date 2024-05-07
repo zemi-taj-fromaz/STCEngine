@@ -594,7 +594,7 @@ void AppVulkanImpl::create_descriptor_set_layout(std::shared_ptr<Layer>& layer)
             },
             "DescriptorSetLayout");
     }
-
+    std::cout << "kaj" << std::endl;
 }
 
 void AppVulkanImpl::create_graphics_pipeline(std::shared_ptr<Layer>& layer)
@@ -1020,14 +1020,14 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
                 continue;
             }
 
-            struct WindowDim {
-                uint32_t width;
-                uint32_t height;
-            };
+            //struct WindowDim {
+            //    uint32_t width;
+            //    uint32_t height;
+            //};
 
-            WindowDim dims{ this->width, this->height };
+            //WindowDim dims{ this->width, this->height };
 
-            particles = descriptor->particlesCreateFunction(&dims);
+            //particles = descriptor->particlesCreateFunction(&dims);
 
 
             for (BufferWrapper& bufferWrapper : descriptor->bufferWrappers)
@@ -1037,7 +1037,7 @@ void AppVulkanImpl::create_buffers(std::shared_ptr<Layer>& layer)
                 create_buffer(bufferSize, descriptor->usageFlags, descriptor->propertyFlags, bufferWrapper.buffer, bufferWrapper.deviceMemory);
                 vkMapMemory(m_Device, bufferWrapper.deviceMemory, 0, bufferSize, 0, &bufferWrapper.bufferMapped);
 
-                memcpy(bufferWrapper.bufferMapped, particles.data(), sizeof(Particle) * particles.size());
+             //   memcpy(bufferWrapper.bufferMapped, particles.data(), sizeof(Particle) * particles.size());
 
                 m_DeletionQueue.push_function(
                     [=]() {

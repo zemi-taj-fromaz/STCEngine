@@ -394,6 +394,9 @@ public:
 		auto totalTime = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
 		auto totalTimeCompute = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::totalTimeUpdateFunc);
 
+		auto dispMap = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(DisplacementData) * 70000, Functions::dispUpdateFunc);
+
+
 		auto verticalFlag = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(bool), Functions::verticalFlagUpdateFunc);
 
 
@@ -402,45 +405,71 @@ public:
 		auto mandelbulbFactor = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::mandelbulbFactorUpdateFunc);
 		auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight), Functions::globalLightUpdateFunc);
 
-		create_descriptors({ verticalFlag, camera, waterSurfaceUBO,amplitude, objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
+		create_descriptors({ dispMap, verticalFlag, camera, waterSurfaceUBO,amplitude, objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
 		using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
 
 		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
+		TopoloG imagestoreTopology({ image2DFragment });
 
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
+		auto imageStorePipelineLayout = std::make_shared<PipelineLayout>(imagestoreTopology);
 		
 
-		create_layouts({  imageFieldPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
+		create_layouts({  imageFieldPipelineLayout , imageStorePipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
 
 		std::vector<std::string> imageFieldShaderNames({ "ImageFieldShader.vert", "ImageFieldShader.frag" });
+		std::vector<std::string> imageStoreShaderNames({ "ImageStore.comp"});
 
 		//------------------------------- PIPELINES ----------------------------------------------------------
 
 		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
+		auto imagestorePipeline = std::make_shared<Pipeline>(imageStorePipelineLayout, imageStoreShaderNames);
 
+		create_pipelines({ imagefieldPipeline, imagestorePipeline });
+		m_ComputePipeline = imagestorePipeline;
 
-
-		create_pipelines({ imagefieldPipeline });
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
 
 
 		//-------------------------------------- IMAGE FIELDS --------------------------------------------
 
-		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileSize, tileSize);
+		auto GenerateTexture = [](int width, int height, int channels)
+			{
+				float* pixels;
+				pixels = (float*)malloc(width * height * channels * sizeof(float));
+
+				// Generate pixel data with unique colors
+				for (int y = 0; y < height; ++y) {
+					for (int x = 0; x < width; ++x) {
+						int index = (y * width + x) * channels;
+
+						pixels[index + 0] = static_cast<float>(y) / static_cast<float>(height);   // Red component
+						pixels[index + 1] = static_cast<float>(x) / static_cast<float>(width);
+						pixels[index + 2] = 0.0f;  // Blue component (set to 0 for simplicity)
+						pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
+					}
+				}
+
+				return pixels;
+			};
+
+		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileSize, tileSize, GenerateTexture);
 		std::shared_ptr<Texture> dh = std::make_shared<Texture>(tileSize, tileSize);
+
 		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 
 		create_image_fields({hx, dh });
 
+		m_ComputePipeline->ImageFields.push_back(hx);
 
 		//----------------------- MESH --------------------------------------------------------------------
 		Mesh box("skybox.obj");
@@ -872,7 +901,6 @@ public:
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
 	{
 		float time = app->get_total_time();
-
 		ocean->main_computation(time);
 
 		for (int x = 0; x < nxOcean; x++) {
@@ -893,32 +921,57 @@ public:
 		auto& hx = get_image_fields()[0];
 		VkDeviceSize imageSize = hx->Width * hx->Height * 4 * sizeof(float);
 
-		void* data;
-		vkMapMemory(app->get_device(), hx->Memory, 0, imageSize, 0, &data);
-		// Copy newData into data (assuming newData is of size `size`)
-		for (int i = 0; i < m_Displacements.size(); i++)
-		{
-			int x = i / m_TileSize;
-			int y = i % m_TileSize;
 
-			m_Displacements[i].y = vertexOceanX[x][3 * y + 1];
-		}
 		float* pixels = reinterpret_cast<float*>(m_Displacements.data());
 
-		memcpy(data, pixels, imageSize);
-		vkUnmapMemory(app->get_device(), hx->Memory);
-		
-		auto& hd = get_image_fields()[1];
+		for (int y = 0; y < m_TileSize; ++y) {
+			for (int x = 0; x < m_TileSize; ++x) {
+				int index = (y * m_TileSize + x) * 4;
 
-		VkDeviceSize imageSize2 = hd->Width * hd->Height * 4 * sizeof(float);
+				pixels[index + 0] = static_cast<float>(y) / static_cast<float>(m_TileSize);   // Red component
+				pixels[index + 1] = static_cast<float>(x) / static_cast<float>(m_TileSize);
+				pixels[index + 2] = 0.0f;  // Blue component (set to 0 for simplicity)
+				pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
+			}
+		}
+	//	app->set_displacements(m_Displacements);
 
-		void* data2;
-		vkMapMemory(app->get_device(), hd->Memory, 0, imageSize2, 0, &data2);
-		float* normals = reinterpret_cast<float*>(m_Normals.data());
+		for (int i = 0; i < m_ComputePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
+        {
+            if (m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                    || m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+                ) continue;
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, i, 1, &m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
+        }
 
-		memcpy(data2, normals, imageSize2);
-		vkUnmapMemory(app->get_device(), hd->Memory);
 
+		for (int i = 0; i < m_ComputePipeline->ImageFields.size(); ++i)
+		{
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, m_ComputePipeline->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline->ImageFields.size() + i, 1, &m_ComputePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
+		}
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipeline);
+
+		vkCmdDispatch(commandBuffer, 1, 256, 1);
+
+		// Barrier to synchronize memory access between dispatches
+		VkMemoryBarrier memoryBarrier2{};
+		memoryBarrier2.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier2.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for writes in previous dispatch
+		memoryBarrier2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;  // Access mask for reads in subsequent dispatch
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source pipeline stage
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Destination pipeline stage
+			0,                                    // Dependency flags
+			1,                                    // Memory barrier count
+			&memoryBarrier2,                       // Pointer to memory barriers
+			0,                                    // Buffer memory barrier count
+			nullptr,                              // Pointer to buffer memory barriers
+			0,                                    // Image memory barrier count
+			nullptr                               // Pointer to image memory barriers
+		);
 	}
 
 	float m_AnimSpeed{ 3.0 };
@@ -997,6 +1050,7 @@ public:
 
 private:
 	int mandelbulb_factor = 8;
-
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
 };
 

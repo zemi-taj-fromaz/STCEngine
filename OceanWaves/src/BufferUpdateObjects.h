@@ -7,6 +7,11 @@ struct ObjectData
     glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
+struct DisplacementData
+{
+    glm::vec4 Disp{ 1.0f, 1.0f, 1.0f, 1.0f };
+};
+
 struct GlobalLight
 {
     glm::vec4 ambientColor;

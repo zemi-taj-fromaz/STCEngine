@@ -45,6 +45,7 @@ public:
     {
         this->amplitude = amp;
     }
+    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, unsigned int layerCount = 1);
 
     WaterSurfaceUBO surface;
     WaterSurfaceUBO& get_surface() { return this->surface; }
@@ -159,6 +160,9 @@ public:
     }
 
     float get_delta_time() { return deltaTime; }
+    std::vector<glm::vec4>& get_displacements() { return displacements; }
+    void set_displacements(std::vector<glm::vec4>& disp) { displacements = disp; }
+    std::vector<glm::vec4> displacements;
     glm::vec2 get_resolution() { return glm::vec2(width,height); }
     size_t get_particles_size() { return particles.size(); }
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }
@@ -256,7 +260,6 @@ private:
     VkCommandBuffer  begin_single_time_commands();
     void  end_single_time_commands(VkCommandBuffer commandBuffer);
 
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, unsigned int layerCount = 1);
     void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, unsigned int layerCount = 1);
     VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, bool cubeMap = false);
 
