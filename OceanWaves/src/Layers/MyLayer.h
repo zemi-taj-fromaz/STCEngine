@@ -642,7 +642,7 @@ public:
 			}
 		}
 		//return 1.0f;
-	//	NormalizeHeights(masterMinHeight, masterMaxHeight);
+		NormalizeHeights(masterMinHeight, masterMaxHeight);
 		return 1.0f;
 	}
 
