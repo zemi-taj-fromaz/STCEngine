@@ -202,7 +202,6 @@ namespace Functions
 
 			const float t = wateSurface->turbidity;
 
-
 			wateSurface->A = glm::vec3(0.1787 * wateSurface->turbidity - 1.4630,
 				-0.0193 * wateSurface->turbidity - 0.2592,
 				-0.0167 * wateSurface->turbidity - 0.2608);

@@ -52,15 +52,16 @@ void main() {
     mat4 MVP =  camera.proj * camera.view * model;
 	
 	vec4 Displacement = imageLoad(heightmap, ivec2(inTexCoord));
-	Displacement.y *= abo.amplitude;
+	//Displacement.y *= abo.amplitude;
 	
 	vec4 worldPos = model * vec4(inPosition.xyz, 1.0f);
 	
-	fragPos.xyz = inPosition + Displacement.xyz;
-	fragPos.w = Displacement.w;
+	fragPos.xyz = worldPos.xyz;
+	fragPos.y =+ Displacement.y;
+	fragPos.w = 1.0;
 	
- //   gl_Position =  MVP * vec4(fragPos.xyz, 1.0);
-    gl_Position =  MVP * vec4(inPosition.xyz, 1.0f);
+    gl_Position =  MVP * vec4(inPosition.xyz + vec3(0.0,Displacement.y,0.0) , 1.0);
+   // gl_Position =  MVP * vec4(inPosition.xyz, 1.0f);
     texCoord = inTexCoord;
 	
     fragColor = objectBuffer.objects[gl_InstanceIndex].color.xyz;
