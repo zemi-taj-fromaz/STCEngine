@@ -331,8 +331,8 @@ public:
 	/* Ocean vertices and parameters */
 	int                  nxOcean;
 	int                  nyOcean;
-	std::vector<glm::vec4> vertexOceanX;
-	std::vector<glm::vec4> vertexOceanY;
+	std::vector<double*> vertexOceanX;
+	std::vector<double*> vertexOceanY;
 
 	Philipps philipps;
 	Ocean* ocean;
@@ -362,29 +362,11 @@ public:
 
 		nxOcean = ocean->get_nx();
 		nyOcean = ocean->get_ny();
-		vertexOceanX.resize(nyOcean * (nxOcean ), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
-		vertexOceanY.resize(nxOcean * (nyOcean ), glm::vec4({ 0.0f, 0.0f, 0.0f, 1.0f }));
-
+		for (int i = 0; i < nyOcean; i++) vertexOceanX.push_back(new double[3 * (nxOcean + 1)]);
+		for (int i = 0; i < nxOcean; i++) vertexOceanY.push_back(new double[3 * (nyOcean + 1)]);
 		/* init ocean */
-		for (int x = 0; x < nxOcean; x++)
-		{
-			for (int y = 0; y < nyOcean; y++) {
-				int index = x * (nyOcean ) + y;
-				vertexOceanY[index].x = (lx / nx) * x;
-				vertexOceanY[index].z = (ly / ny) * y;
-				vertexOceanY[index].w = 1.0;
-			}
-		}
-
-		for (int y = 0; y < nyOcean; y++)   
-		{
-			for (int x = 0; x < nxOcean; x++) {
-				int index = y * (nxOcean ) + x;
-				vertexOceanY[index].x = (lx / nx) * x;
-				vertexOceanY[index].z = (ly / ny) * y;
-				vertexOceanY[index].w = 1.0;
-			}
-		}
+		for (int x = 0; x < nxOcean; x++) ocean->init_gl_vertex_array_y(x, vertexOceanY[x]);
+		for (int y = 0; y < nyOcean; y++) ocean->init_gl_vertex_array_x(y, vertexOceanX[y]);
 
 
 		Prepare();
@@ -660,7 +642,7 @@ public:
 			}
 		}
 		//return 1.0f;
-		NormalizeHeights(masterMinHeight, masterMaxHeight);
+	//	NormalizeHeights(masterMinHeight, masterMaxHeight);
 		return 1.0f;
 	}
 
@@ -894,21 +876,10 @@ public:
 		ocean->main_computation(time);
 
 		for (int x = 0; x < nxOcean; x++) {
-			for (int y = 0; y < nyOcean; y++) {
-				int index = x * (nyOcean ) + y;
-				vertexOceanY[index].y = pow(-1, x + y) * ocean->hr[y][x];
-			}
-			//int index = x * (nyOcean + 1) + nyOcean;
-			//vertexOceanY[index].y = pow(-1, x + nyOcean) * ocean->hr[0][x];
+			ocean->gl_vertex_array_y(x, vertexOceanY[x]);
 		}
-
 		for (int y = 0; y < nyOcean; y++) {
-			for (int x = 0; x < nxOcean; x++) {
-				int index = y * (nxOcean ) + x;
-				vertexOceanX[index].y = pow(-1, x + y) * ocean->hr[y][x];
-			}
-			//int index = y * (nxOcean + 1) + nxOcean;
-			//vertexOceanX[index].y = pow(-1, nxOcean + y) * ocean->hr[y][0];
+			ocean->gl_vertex_array_x(y, vertexOceanX[y]);
 		}
 		
 		float dt = app->get_delta_time();
@@ -925,7 +896,13 @@ public:
 		void* data;
 		vkMapMemory(app->get_device(), hx->Memory, 0, imageSize, 0, &data);
 		// Copy newData into data (assuming newData is of size `size`)
+		for (int i = 0; i < m_Displacements.size(); i++)
+		{
+			int x = i / m_TileSize;
+			int y = i % m_TileSize;
 
+			m_Displacements[i].y = vertexOceanX[x][3 * y + 1];
+		}
 		float* pixels = reinterpret_cast<float*>(m_Displacements.data());
 
 		memcpy(data, pixels, imageSize);
