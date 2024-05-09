@@ -71,10 +71,12 @@ namespace Functions
 			DisplacementData* objectArray = (DisplacementData*)bufferMapped;
 			//	camera.cameraLight->update_light(deltaTime, camera.Position, nullptr);
 			auto& disp = app->get_displacements();
+			auto& norm = app->get_normals();
 
 			for (size_t i = 0; i < disp.size(); i++)
 			{
 				objectArray[i].Disp = disp[i];
+				objectArray[i].Norm = norm[i];
 			}
 			return true;
 

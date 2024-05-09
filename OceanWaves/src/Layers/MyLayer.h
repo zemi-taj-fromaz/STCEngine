@@ -412,7 +412,7 @@ public:
 		using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
 
 		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
-		TopoloG imagestoreTopology({ dispMap, image2DFragment });
+		TopoloG imagestoreTopology({ dispMap, image2DFragment, image2dOut2 });
 
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
@@ -441,35 +441,13 @@ public:
 
 		//-------------------------------------- IMAGE FIELDS --------------------------------------------
 
-		//auto GenerateTexture = [](int width, int height, int channels)
-		//	{
-		//		float* pixels;
-		//		pixels = (float*)malloc(width * height * channels * sizeof(float));
-
-		//		// Generate pixel data with unique colors
-		//		for (int y = 0; y < height; ++y) {
-		//			for (int x = 0; x < width; ++x) {
-		//				int index = (y * width + x) * channels;
-
-		//				pixels[index + 0] = static_cast<float>(y) / static_cast<float>(height);   // Red component
-		//				pixels[index + 1] = static_cast<float>(x) / static_cast<float>(width);
-		//				pixels[index + 2] = 0.0f;  // Blue component (set to 0 for simplicity)
-		//				pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
-		//			}
-		//		}
-
-		//		return pixels;
-		//	};
-
 		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileSize, tileSize);
 		std::shared_ptr<Texture> dh = std::make_shared<Texture>(tileSize, tileSize);
-
-		//waveHeightField->DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-
 
 		create_image_fields({hx, dh });
 
 		m_ComputePipeline->ImageFields.push_back(hx);
+		m_ComputePipeline->ImageFields.push_back(dh);
 
 		//----------------------- MESH --------------------------------------------------------------------
 		Mesh box("skybox.obj");
@@ -495,9 +473,9 @@ public:
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
-		for (int i = 0; i < 1; i++)
+		for (int i = 0; i < 4; i++)
 		{
-			for (int j = 0; j < 1; j++)
+			for (int j = 0; j < 4; j++)
 			{
 				auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
 				woodbox->Billboard = false;
@@ -901,15 +879,7 @@ public:
 	virtual void compute_shaders_dispatch(VkCommandBuffer commandBuffer, uint32_t imageIndex, AppVulkanImpl* app) override 
 	{
 		float time = app->get_total_time();
-		//ocean->main_computation(time);
 
-		//for (int x = 0; x < nxOcean; x++) {
-		//	ocean->gl_vertex_array_y(x, vertexOceanY[x]);
-		//}
-		//for (int y = 0; y < nyOcean; y++) {
-		//	ocean->gl_vertex_array_x(y, vertexOceanX[y]);
-		//}
-		//
 		float dt = app->get_delta_time();
 
 		static float m_TimeCtr = 0.0f;
@@ -935,6 +905,7 @@ public:
 		//	}
 		//}
 		app->set_displacements(m_Displacements);
+		app->set_normals(m_Normals);
 
 		for (int i = 0; i < m_ComputePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
         {

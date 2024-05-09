@@ -3,6 +3,7 @@
 struct ObjectData
 {
     vec4 displacement;
+    vec4 normal;
 };
 
 layout(std140, set = 0, binding = 0) buffer ObjectBuffer{
@@ -11,7 +12,8 @@ layout(std140, set = 0, binding = 0) buffer ObjectBuffer{
 } objectBuffer;
 
 
-layout(rgba32f,set = 1, binding = 0) uniform writeonly image2D imageOut;
+layout(rgba32f,set = 1, binding = 0) uniform writeonly image2D imageOutDisplacements;
+layout(rgba32f,set = 2, binding = 0) uniform writeonly image2D imageOutNormals;
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -22,8 +24,10 @@ void main() {
 	int y = texpos.y - 1;
 	
 	vec4 Displacement = objectBuffer.objects[x * 256 + y].displacement;
+	vec4 Normal = objectBuffer.objects[x * 256 + y].normal;
 
 	vec4 encodedValue = Displacement;
 	//vec4 encodedValue = vec4(texpos.x  /256.0, texpos.y  /256.0 , 0.0, 1.0);
-    imageStore(imageOut, texpos, vec4(encodedValue));
+    imageStore(imageOutDisplacements, texpos, vec4(encodedValue));
+    imageStore(imageOutNormals, texpos, vec4(Normal));
 }

@@ -163,6 +163,9 @@ public:
     std::vector<glm::vec4>& get_displacements() { return displacements; }
     void set_displacements(std::vector<glm::vec4>& disp) { displacements = disp; }
     std::vector<glm::vec4> displacements;
+    std::vector<glm::vec4>& get_normals() { return normals; }
+    void set_normals(std::vector<glm::vec4>& disp) { normals = disp; }
+    std::vector<glm::vec4> normals;
     glm::vec2 get_resolution() { return glm::vec2(width,height); }
     size_t get_particles_size() { return particles.size(); }
     std::vector<std::shared_ptr<Renderable>>& get_renderables() { return m_Renderables; }

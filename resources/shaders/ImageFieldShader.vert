@@ -74,7 +74,7 @@ void main() {
         - ( slope.y / (1.0f + abo.choppy * slope.w) )
     ));
 	normal.w = slope.w;
-	normal = vec4(0.0, 1.0, 0.0, 0.0);
+	//normal = vec4(0.0, 1.0, 0.0, 0.0);
 	
 	//normal = vec4(1.0, 1.0, 1.0, 1.0);
 	
