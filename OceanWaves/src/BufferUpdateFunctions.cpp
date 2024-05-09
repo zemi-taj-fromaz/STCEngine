@@ -3,17 +3,18 @@
 
 #include "BufferUpdateObjects.h"
 
-
+#define CAMERA_VISION 100000.0f
 
 namespace Functions
 {
+
 	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> cameraUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
 		CameraBufferObject cbo{};
 		Camera camera = app->get_camera();
 		auto swapChainExtent = app->get_swapchain_extent();
 		cbo.view = glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
-		cbo.proj = glm::perspective(glm::radians(camera.Fov), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
+		cbo.proj = glm::perspective(glm::radians(camera.Fov), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, CAMERA_VISION);
 		cbo.proj[1][1] *= -1;
 		cbo.pos = glm::vec4(camera.Position, 1.0f);
 		memcpy(bufferMapped, &cbo, sizeof(cbo));
