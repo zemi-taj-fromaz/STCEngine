@@ -396,9 +396,7 @@ public:
 
 		auto dispMap = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(DisplacementData) * 70000, Functions::dispUpdateFunc);
 
-
 		auto verticalFlag = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(bool), Functions::verticalFlagUpdateFunc);
-
 
 		auto waterSurfaceUBO = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(WaterSurfaceUBO), Functions::surfaceUpdateFunc);
 
@@ -413,38 +411,41 @@ public:
 
 		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
 		TopoloG imagestoreTopology({ dispMap, image2DFragment, image2dOut2 });
-
+		TopoloG skyboxTopology({ camera, sampler });
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
-		auto imageStorePipelineLayout = std::make_shared<PipelineLayout>(imagestoreTopology);
-		
+		auto imageStorePipelineLayout = std::make_shared<PipelineLayout>(imagestoreTopology);		
+		auto skyboxPipelineLayout = std::make_shared<PipelineLayout>(skyboxTopology);
 
-		create_layouts({  imageFieldPipelineLayout , imageStorePipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
+		create_layouts({  imageFieldPipelineLayout , imageStorePipelineLayout, skyboxPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
-
 		std::vector<std::string> imageFieldShaderNames({ "ImageFieldShader.vert", "ImageFieldShader.frag" });
 		std::vector<std::string> imageStoreShaderNames({ "ImageStore.comp"});
+		std::vector<std::string> skyboxShaderNames({ "SkyboxShader.vert", "SkyboxShader.frag" });
 
 		//------------------------------- PIPELINES ----------------------------------------------------------
 
 		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 		auto imagestorePipeline = std::make_shared<Pipeline>(imageStorePipelineLayout, imageStoreShaderNames);
+		auto skyboxPipeline = std::make_shared<Pipeline>(skyboxPipelineLayout, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
 
-		create_pipelines({ imagefieldPipeline, imagestorePipeline });
+
+		create_pipelines({ imagefieldPipeline, imagestorePipeline, skyboxPipeline });
 		m_ComputePipeline = imagestorePipeline;
 
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
-
+		std::shared_ptr<Texture> skyboxTex = std::make_shared<Texture>("stormydays/");
+		create_textures({ skyboxTex });
 
 		//-------------------------------------- IMAGE FIELDS --------------------------------------------
 
 		std::shared_ptr<Texture> hx = std::make_shared<Texture>(tileSize, tileSize);
 		std::shared_ptr<Texture> dh = std::make_shared<Texture>(tileSize, tileSize);
 
-		create_image_fields({hx, dh });
+		create_image_fields({hx, dh});
 
 		m_ComputePipeline->ImageFields.push_back(hx);
 		m_ComputePipeline->ImageFields.push_back(dh);
@@ -456,7 +457,6 @@ public:
 		Mesh quad(MeshType::Quad);
 		
 		Mesh plain(MeshType::Plain, tileSize, tileLength);
-
 
 		//-------------------- WAVES ------------------------------------------------------------------------
 
@@ -473,6 +473,10 @@ public:
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
+		auto skybox = std::make_shared<MeshWrapper>(skyboxPipeline, box);
+		skybox->textures.push_back(skyboxTex);
+		skybox->isSkybox = true;
+
 		for (int i = 0; i < 4; i++)
 		{
 			for (int j = 0; j < 4; j++)
@@ -488,7 +492,7 @@ public:
 			}
 		}
 
-
+		meshWrappers.push_back(skybox);
 	//	meshWrappers.push_back(heightmap);
 
 		create_mesh(meshWrappers);
@@ -1009,6 +1013,44 @@ public:
 	{
 		return 0.01829 * b + 0.00006f;
 	}
+
+	void set_callbacks(GLFWwindow* window) override
+	{
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+			app->set_frame_buffer_resized();
+			//TODO
+			//app->set_frame_b
+
+			});
+
+		glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset) {
+			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+			app->set_field_of_view(static_cast<float>(yoffset));
+			//app->setScrollCallback();
+			});
+
+	
+		glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xpos, double ypos) {
+			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+			glm::vec2 mousePosition = app->get_mouse_position();
+
+			app->set_mouse_position({ static_cast<float>(xpos), static_cast<float>(ypos) });
+
+			float xoffset = static_cast<float>(xpos) - mousePosition.x;
+			float yoffset = mousePosition.y - static_cast<float>(ypos); // reversed since y-coordinates range from bottom to top
+			
+
+			const float sensitivity = 0.05f;
+			xoffset *= sensitivity;
+			yoffset *= sensitivity;
+
+			app->process_mouse_movement(xoffset, yoffset);
+			});
+	}
+
 
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
