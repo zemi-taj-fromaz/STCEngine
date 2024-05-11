@@ -16,9 +16,20 @@ bool Layer::poll_inputs(GLFWwindow* window, float deltaTime)
         m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Front);
     }
 
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Right);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
+        imguiEnabled = !imguiEnabled;
     }
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {

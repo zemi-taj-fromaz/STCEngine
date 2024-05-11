@@ -155,7 +155,7 @@ public:
 		}
 	}
 
-	bool imguiEnabled;
+	bool imguiEnabled{ false };
 
 	virtual float get_action_timer() { return 10.0f;  }
 	virtual void timed_action(GLFWwindow* window) {}

@@ -318,60 +318,17 @@ public:
 	//---------------------------------------------------
 
 
-	double lx					;//		= p.num_val<double>("lx");
-	double ly					;//		= p.num_val<double>("ly");
-	int    nx					;//		= p.num_val<int>("nx");
-	int    ny					;//		= p.num_val<int>("ny");
-	double wind_speed			;// = p.num_val<double>("wind_speed");
-	int    wind_alignment		;//= p.num_val<int>("wind_alignment");
-	double min_wave_size		;//= p.num_val<double>("min_wave_size");
-	double A					;// = p.num_val<double>("A");
-	double motion_factor		;//= p.num_val<double>("motion_factor");
-
-	/* Ocean vertices and parameters */
-	int                  nxOcean;
-	int                  nyOcean;
-	std::vector<double*> vertexOceanX;
-	std::vector<double*> vertexOceanY;
-
-	Philipps philipps;
-	Ocean* ocean;
-	Height   height;
 
 	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
 	{
 		SetTileSize(tileSize);
 		SetTileLength(tileLength);
 
-		lx = tileLength; ly = tileLength;
-		nx = tileSize; ny = tileSize;
-
-		wind_speed = 50.0f;
-		wind_alignment = 2;
-		min_wave_size = 0.1;
-		A = 0.0000038;
-		motion_factor = 0.6;
-
-
-		philipps = Philipps(lx, ly, nx, ny, wind_speed, wind_alignment, min_wave_size, A);
-		height = Height(nx, ny);
-		ocean = new Ocean(lx, ly, nx, ny, motion_factor);
-
-		height.generate_philipps(&philipps); /* Philipps spectrum */
-		ocean->generate_height(&height);     /* initial ocean wave height field */
-
-		nxOcean = ocean->get_nx();
-		nyOcean = ocean->get_ny();
-		for (int i = 0; i < nyOcean; i++) vertexOceanX.push_back(new double[3 * (nxOcean + 1)]);
-		for (int i = 0; i < nxOcean; i++) vertexOceanY.push_back(new double[3 * (nyOcean + 1)]);
-		/* init ocean */
-		for (int x = 0; x < nxOcean; x++) ocean->init_gl_vertex_array_y(x, vertexOceanY[x]);
-		for (int y = 0; y < nyOcean; y++) ocean->init_gl_vertex_array_x(y, vertexOceanX[y]);
 
 
 		Prepare();
 
-		imguiEnabled = false;
+		imguiEnabled = true;
 
 		//------------------------------ DESCRIPTORS ---------------------------------------------------
 
@@ -412,27 +369,31 @@ public:
 		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
 		TopoloG imagestoreTopology({ dispMap, image2DFragment, image2dOut2 });
 		TopoloG skyboxTopology({ camera, sampler });
+		TopoloG skyTopology({ objects, resolution, totalTime });
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
 		auto imageStorePipelineLayout = std::make_shared<PipelineLayout>(imagestoreTopology);		
 		auto skyboxPipelineLayout = std::make_shared<PipelineLayout>(skyboxTopology);
+		auto skyPipelineLayout = std::make_shared<PipelineLayout>(skyTopology);
 
-		create_layouts({  imageFieldPipelineLayout , imageStorePipelineLayout, skyboxPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
+		create_layouts({  imageFieldPipelineLayout , imageStorePipelineLayout, skyboxPipelineLayout, skyPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
 		std::vector<std::string> imageFieldShaderNames({ "ImageFieldShader.vert", "ImageFieldShader.frag" });
 		std::vector<std::string> imageStoreShaderNames({ "ImageStore.comp"});
 		std::vector<std::string> skyboxShaderNames({ "SkyboxShader.vert", "SkyboxShader.frag" });
+		std::vector<std::string> skyShaderNames({ "Sky.vert", "Sky.frag" });
 
 		//------------------------------- PIPELINES ----------------------------------------------------------
 
-		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
-		auto imagestorePipeline = std::make_shared<Pipeline>(imageStorePipelineLayout, imageStoreShaderNames);
+		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames, VK_FALSE, false, VK_CULL_MODE_NONE);
+		auto imagestorePipeline = std::make_shared<Pipeline>(imageStorePipelineLayout, imageStoreShaderNames, VK_FALSE,false, VK_CULL_MODE_BACK_BIT);
 		auto skyboxPipeline = std::make_shared<Pipeline>(skyboxPipelineLayout, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
+		auto skyPipeline = std::make_shared<Pipeline>(skyPipelineLayout, skyShaderNames, VK_FALSE, false, VK_CULL_MODE_NONE);
 
 
-		create_pipelines({ imagefieldPipeline, imagestorePipeline, skyboxPipeline });
+		create_pipelines({ imagefieldPipeline, imagestorePipeline, skyboxPipeline , skyPipeline });
 		m_ComputePipeline = imagestorePipeline;
 
 
@@ -470,16 +431,21 @@ public:
 
 		//-------------------- MESH WRAPPERS ----------------------------------------------------------------
 
-
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
+
+		auto reload = std::make_shared<MeshWrapper>(skyPipeline, quad);
+		reload->scale = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 1.0f));
+		//reload->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-1.2f, 0.7f, 0.0f));
 
 		auto skybox = std::make_shared<MeshWrapper>(skyboxPipeline, box);
 		skybox->textures.push_back(skyboxTex);
 		skybox->isSkybox = true;
 
-		for (int i = 0; i < 4; i++)
+		meshWrappers.push_back(reload);
+
+		for (int i = 0; i < 1; i++)
 		{
-			for (int j = 0; j < 4; j++)
+			for (int j = 0; j < 1; j++)
 			{
 				auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
 				woodbox->Billboard = false;
@@ -488,12 +454,9 @@ public:
 				woodbox->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
 				woodbox->translation = glm::translate(glm::mat4(1.0f), glm::vec3(i*tileLength,0.0f, j*tileLength));
 				meshWrappers.push_back(woodbox);
-
 			}
 		}
 
-		meshWrappers.push_back(skybox);
-	//	meshWrappers.push_back(heightmap);
 
 		create_mesh(meshWrappers);
 	}
@@ -652,9 +615,7 @@ public:
 				}
 			}
 		}
-		//return 1.0f;
 		return NormalizeHeights(masterMinHeight, masterMaxHeight);
-		//return 1.0f;
 	}
 
 	float NormalizeHeights(float minHeight, float maxHeight)
@@ -896,18 +857,6 @@ public:
 		VkDeviceSize imageSize = hx->Width * hx->Height * 4 * sizeof(float);
 
 
-		float* pixels = reinterpret_cast<float*>(m_Displacements.data());
-
-		//for (int y = 0; y < m_TileSize; ++y) {
-		//	for (int x = 0; x < m_TileSize; ++x) {
-		//		int index = (y * m_TileSize + x) * 4;
-
-		//		pixels[index + 0] = static_cast<float>(y) / static_cast<float>(m_TileSize);   // Red component
-		//		pixels[index + 1] = static_cast<float>(x) / static_cast<float>(m_TileSize);
-		//		pixels[index + 2] = 0.0f;  // Blue component (set to 0 for simplicity)
-		//		pixels[index + 3] = 1.0f;  // Alpha component (set to full alpha)
-		//	}
-		//}
 		app->set_displacements(m_Displacements);
 		app->set_normals(m_Normals);
 
@@ -927,7 +876,7 @@ public:
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipeline);
 
-		vkCmdDispatch(commandBuffer, 1, 256, 1);
+		vkCmdDispatch(commandBuffer, 1, 512, 1);
 
 		// Barrier to synchronize memory access between dispatches
 		VkMemoryBarrier memoryBarrier2{};
@@ -1016,7 +965,7 @@ public:
 
 	void set_callbacks(GLFWwindow* window) override
 	{
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
 		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
 			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
@@ -1059,6 +1008,204 @@ public:
 	std::mt19937 gen{ rd() };
 	std::uniform_real_distribution<float> distribution{ 0.0f, 1.0f };
 
+	virtual void draw_imgui(GLFWwindow* window) override
+	{
+		auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+
+		ImGui::NewFrame();
+
+		ImGuiWindowFlags window_flags = 0;
+		window_flags |= ImGuiWindowFlags_NoBackground;
+		window_flags |= ImGuiWindowFlags_NoTitleBar;
+
+		ImVec2 windowSize{ 250, 350 };
+		ImGui::SetNextWindowSize(windowSize);
+		// etc.
+		bool open_ptr = true;
+		ImGui::Begin("I'm a Window!", &open_ptr, window_flags);
+
+		if (ImGui::CollapsingHeader("Water Surface Settings",
+			ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
+
+			ShowWaterSurfaceSettings(app);
+
+			ImGui::PopItemWidth();
+			ImGui::NewLine();
+		}
+
+		/*	if (ImGui::CollapsingHeader("Mesh Settings",
+				ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
+				ShowMeshSettings();
+				ImGui::PopItemWidth();
+				ImGui::NewLine();
+			}*/
+
+		ImGui::End();
+	}
+
+	void ShowLightingSettings(AppVulkanImpl* app)
+	{
+
+		auto& surface = app->get_surface();
+
+		ImGui::SliderFloat("Sky Intensity",
+			&surface.skyIntensity, 0.f, 10.f);
+		ImGui::SliderFloat("Specular Intensity",
+			&surface.specularIntensity, 0.f, 3.f);
+		ImGui::SliderFloat("Specular Highlights",
+			&surface.specularHighlights, 1.f, 64.f);
+
+		ShowComboBox("Absorption type",
+			keys.data(),
+			keys.size(),
+			keys[m_WaterTypeCoefIndex].c_str(),
+			&m_WaterTypeCoefIndex);
+
+		surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
+
+		ShowComboBox("Scattering type",
+			scatterCoefStrings.data(),
+			scatterCoefStrings.size(),
+			scatterCoefStrings[m_BaseScatterCoefIndex].c_str(),
+			&m_BaseScatterCoefIndex);
+
+		surface.scatterCoef =
+			ComputeScatteringCoefPA01(
+				scatterCoefs[m_BaseScatterCoefIndex]);
+
+		static bool usePigment = false;
+		ImGui::Checkbox(" Consider pigment concentration", &usePigment);
+		if (usePigment)
+		{
+			static float pigmentC = 1.0;
+			ImGui::SliderFloat("Pigment concentration", &pigmentC, 0.001f, 3.f);
+
+			surface.backscatterCoef =
+				ComputeBackscatteringCoefPigmentPA01(pigmentC);
+		}
+		else
+		{
+			surface.backscatterCoef =
+				ComputeBackscatteringCoefPA01(surface.scatterCoef);
+		}
+
+		//// Terrain
+		ImGui::ColorEdit3("Seabed Base Color",
+			glm::value_ptr(surface.terrainColor));
+		//ImGui::DragFloat("Rest Ocean Level", &surface.height,
+		//	1.0f, 0.0f, 1000.0f);
+	//	ImGui::Checkbox(" Clamp to wave height", &m_ClampHeight);
+	}
+
+
+	void ShowWaterSurfaceSettings(AppVulkanImpl* app)
+	{
+
+		static glm::vec2 windDir = GetWindDir();
+		static float windSpeed = GetWindSpeed();
+		static float animPeriod = GetAnimationPeriod();
+		static float phillipsA = GetPhillipsConst() * 1e7;
+		static float damping = GetDamping();
+		static float lambda = GetDisplacementLambda();
+
+		// TODO unit
+		// TODO 2 angles
+		ImGui::DragFloat2("Wind Direction", glm::value_ptr(windDir),
+			0.1f, 0.0f, 0.0f, "%.1f");
+		ImGui::DragFloat("Wind Speed", &windSpeed, 0.1f);
+		ImGui::DragFloat("Choppy correction", &lambda,
+			0.1f, -8.0f, 8.0f, "%.1f");
+		ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
+		ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
+
+		if (ImGui::TreeNodeEx("Water Properties and Lighting"))
+		//	 ImGuiTreeNodeFlags_DefaultOpen)
+		{
+			ShowLightingSettings(app);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("Phillips Spectrum"))
+			//, ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::DragFloat("Amplitude (10^-7)", &phillipsA, 0.1f, 1.0f, 10.0f,
+				"%.2f");
+			std::cout << phillipsA << std::endl;
+			ImGui::DragFloat("Damping factor", &damping, 0.0001f, 0.0f, 1.0f,
+				"%.4f");
+			ImGui::TreePop();
+		}
+
+
+
+		SetPhillipsConst(phillipsA * 1e-7);
+
+		if (ImGui::Button("Apply"))
+		{
+
+			const bool kWindDirChanged =
+				glm::any(glm::epsilonNotEqual(windDir, GetWindDir(),
+					glm::vec2(0.001f)));
+			const bool kWindSpeedChanged =
+				glm::epsilonNotEqual(windSpeed, GetWindSpeed(),
+					0.001f);
+			const bool kAnimationPeriodChanged =
+				glm::epsilonNotEqual(animPeriod, GetAnimationPeriod(), 0.001f);
+			const bool kPhillipsConstChanged =
+				glm::epsilonNotEqual(phillipsA * 1e-7f, GetPhillipsConst(), 1e-8f);
+			const bool kDampingChanged =
+				glm::epsilonNotEqual(damping, GetDamping(),
+					0.001f);
+
+			const bool kNeedsPrepare =
+				kWindDirChanged ||
+				kWindSpeedChanged ||
+				kAnimationPeriodChanged ||
+				kPhillipsConstChanged ||
+				kDampingChanged;
+
+
+			if (kNeedsPrepare)
+			{
+				SetWindDirection(windDir);
+				SetWindSpeed(windSpeed);
+				SetAnimationPeriod(animPeriod);
+				SetPhillipsConst(phillipsA * 1e-7);
+				SetDamping(damping);
+
+				Prepare();
+				//	m_FrameMapNeedsUpdate = true;
+			}
+
+			SetLambda(lambda);
+		}
+	}
+
+	static void ShowComboBox(const char* name,
+		std::string* items, const uint32_t kItemCount,
+		const char* previewValue, uint32_t* pCurrentIndex)
+	{
+		if (ImGui::BeginCombo(name, previewValue))
+		{
+			for (uint32_t n = 0; n < kItemCount; ++n)
+			{
+				const bool is_selected = (*pCurrentIndex == n);
+				if (ImGui::Selectable(items[n].c_str(), is_selected))
+					*pCurrentIndex = n;
+
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+	}
 
 
 private:

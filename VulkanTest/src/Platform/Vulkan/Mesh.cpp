@@ -483,6 +483,13 @@ bool Mesh::load_plain(bool illuminated, bool textured)
             Indices.push_back(topRight);
             Indices.push_back(bottomLeft);
             Indices.push_back(bottomRight);
+
+            Indices.push_back(topLeft);
+            Indices.push_back(bottomRight);
+            Indices.push_back(topRight);
+            Indices.push_back(topLeft);
+            Indices.push_back(bottomLeft);
+            Indices.push_back(bottomRight);
         }
     }
 

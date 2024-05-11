@@ -39,6 +39,8 @@ public:
     AppVulkanImpl();
     ~AppVulkanImpl();
 
+    const uint32_t width = 1280;
+    const uint32_t height = 720;
     int MAX_FRAMES_IN_FLIGHT = 2;
 
     void set_amplitude(float amp)
@@ -309,8 +311,7 @@ private:
     static bool s_ImGuiEnabled;
 
     GLFWwindow* m_Window;
-    const uint32_t width = 1280;
-    const uint32_t height = 720;
+
     uint32_t m_CurrentFrame{ 0 };
     bool m_FramebufferResized = false;
 

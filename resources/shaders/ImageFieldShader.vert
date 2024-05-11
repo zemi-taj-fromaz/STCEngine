@@ -54,11 +54,11 @@ void main() {
 	vec4 Displacement = imageLoad(heightmap, ivec2(inTexCoord));
 	Displacement.y *= abo.amplitude;
 	
-	vec4 worldPos = model * vec4(inPosition.xyz, 1.0f);
+	vec4 worldPos = model * vec4(inPosition.xyz + Displacement.xyz, 1.0f);
 	
-	fragPos.xyz = worldPos.xyz;
+	fragPos.xyz = inPosition.xyz;
 	fragPos.y =+ Displacement.y;
-	fragPos.w = 1.0;
+	fragPos.w = Displacement.w;
 	
     gl_Position =  MVP * vec4(inPosition.xyz + Displacement.xyz, 1.0);
   //  gl_Position =  MVP * vec4(inPosition.xyz, 1.0f);
@@ -80,5 +80,5 @@ void main() {
 	
 	cameraPos = camera.pos.xyz;
 	
-	vec3 viewDir = cameraPos - worldPos.xyz;
+	vec3 viewDir = cameraPos - fragPos.xyz;
 }

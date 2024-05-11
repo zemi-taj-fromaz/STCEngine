@@ -18,6 +18,7 @@ namespace Functions
 		cbo.proj[1][1] *= -1;
 		cbo.pos = glm::vec4(camera.Position, 1.0f);
 		memcpy(bufferMapped, &cbo, sizeof(cbo));
+
 		return true;
 	};
 

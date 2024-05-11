@@ -51,13 +51,13 @@ void AppVulkanImpl::initialize_window()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     //// Get the primary monitor (screen)
-   // GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
 
     //// Get the mode of the primary monitor
-   // const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
     m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
-   // glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+     glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     glfwSetWindowUserPointer(m_Window, this);
 
 }
@@ -102,7 +102,7 @@ void AppVulkanImpl::initialize_app()
 
     if (!isInitialized) {
         create_sync_objects();
-        if (AppVulkanImpl::s_ImGuiEnabled)
+        if (true || AppVulkanImpl::s_ImGuiEnabled)
         {
             init_imgui();
         }
@@ -118,8 +118,9 @@ void AppVulkanImpl::main_loop()
     time = (float)glfwGetTime();
     initialTime = (float)glfwGetTime();
     float actionTime = 0.0f;
+    auto layer = m_LayerStack[m_ActiveLayer];
 
-    if (s_ImGuiEnabled)
+    if (layer->imguiEnabled)
     {
         ImGuiStyle* style = &ImGui::GetStyle();
         style->Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
@@ -155,7 +156,7 @@ void AppVulkanImpl::main_loop()
 
         for (auto layer : m_LayerStack) layer->on_update();
 
-        if (s_ImGuiEnabled)
+        if (layer->imguiEnabled)
         {
             layer->draw_imgui(m_Window);
         }
@@ -498,7 +499,8 @@ void AppVulkanImpl::create_render_pass()
 
     std::array<VkSubpassDescription, 2> subpasses{ subpass, skyboxSubpass };
 
-    std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+    std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment }; 
+//    std::array<VkAttachmentDescription, 1> attachments = { colorAttachment };
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
@@ -520,7 +522,8 @@ void AppVulkanImpl::create_render_pass()
     dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-    // Dependency from subpass 0 to subpass 1
+    //TODO
+     //Dependency from subpass 0 to subpass 1
     dependencies[1].srcSubpass = 0;
     dependencies[1].dstSubpass = 1;
     dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -639,6 +642,7 @@ void AppVulkanImpl::create_graphics_pipeline(std::shared_ptr<Layer>& layer)
         m_PipelineBuilder.ShaderNames = pipeline->ShaderNames;
         m_PipelineBuilder.Skybox = pipeline->Skybox;
         m_PipelineBuilder.cullMode = pipeline->cullMode;
+        m_PipelineBuilder.DepthTest = pipeline->DepthTest;
 
         pipeline->pipeline = m_PipelineBuilder.build_pipeline(m_DeletionQueue);
         m_DeletionQueue.push_function([=]() { vkDestroyPipeline(m_Device, pipeline->pipeline, nullptr); }, "Pipeline");
@@ -684,7 +688,7 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels;
-    pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb);
     
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
@@ -693,6 +697,7 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
     }
 
     VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;// = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
+   //VkFormat format = texChannels == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -786,14 +791,14 @@ void AppVulkanImpl::create_cubemap(Texture& texture)
     for (int i = 0; i < 6; i++)
     {
         std::string path = std::string(std::filesystem::current_path().parent_path().string() + "/" +Texture::PATH + texture.Filename + texturePrefix[i]);
-        pixels[i] = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb);
+        pixels[i] = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     
         if (!pixels[i]) {
             throw std::runtime_error("failed to load texture image!");
         }
     }
 
-    VkFormat format = texChannels == 4 ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8_UNORM;
+    VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;// texChannels == 4 ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8_UNORM;
 
    // if (texChannels != 4) throw std::runtime_error("unsupported format");
 
