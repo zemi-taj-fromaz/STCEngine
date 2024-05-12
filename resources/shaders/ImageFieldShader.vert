@@ -10,6 +10,8 @@ layout(location = 1) out vec4 normal;
 layout(location = 2) out vec2 texCoord;
 layout(location = 3) out vec3 cameraPos;
 layout(location = 4) out vec4 fragPos;
+layout(location = 5) out float Timex;
+layout(location = 6) out vec3 sunDir;
 
 #define BLEND_START		8		// m
 #define BLEND_END		200		// m
@@ -39,11 +41,20 @@ layout(set = 3, binding = 0) uniform AmplitudeBufferObj {
 	float choppy;
 } abo;
 
-layout(set = 4, binding = 0, rgba32f) uniform readonly image2D heightmap;
-layout(set = 5, binding = 0, rgba32f) uniform readonly image2D normalmap;
+layout(set = 4, binding = 0) uniform BufferObject {
+	float Time;
+} bo;
+
+layout(set = 5, binding = 0) uniform SunData {
+	vec3 Dir;
+} sd;
+
+layout(set = 6, binding = 0, rgba32f) uniform readonly image2D heightmap;
+layout(set = 7, binding = 0, rgba32f) uniform readonly image2D normalmap;
 
 void main() {
-
+sunDir = sd.Dir;
+	Timex = bo.Time;
 	// NOTE: also defined in fragment shader
 	const vec3 perlinFrequency	= vec3(1.12, 0.59, 0.23);
 	const vec3 perlinAmplitude	= vec3(0.35, 0.42, 0.57);

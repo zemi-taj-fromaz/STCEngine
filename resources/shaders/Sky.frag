@@ -2,6 +2,8 @@
 
 layout(location = 0) in vec2 inUV;
 layout(location = 1) in float Time;
+layout(location = 2) in vec3 sunDir;
+
 
 layout(location = 0) out vec4 fragColor;
 
@@ -117,7 +119,6 @@ void main( )
     float turbidity     = 2.0;
     float azimuth       = Time * 0.125;
     float inclination   = Time * 0.25;
-    vec3 sunDir     	= normalize( vec3( sin( inclination ) * cos( azimuth ), cos( inclination ), sin( inclination ) * sin(azimuth) ) );
     vec3 viewDir  		= -computeSphericalCoordinates( uv ).xzy;
     vec3 skyLuminance 	= calculateSkyLuminanceRGB( sunDir, viewDir, turbidity );
     

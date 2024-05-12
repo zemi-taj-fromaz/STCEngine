@@ -13,6 +13,7 @@ struct DisplacementData
     glm::vec4 Norm{ 0.0f, 1.0f, 0.0f, 1.0f };
 };
 
+
 struct GlobalLight
 {
     glm::vec4 ambientColor;

@@ -317,7 +317,8 @@ public:
 	//---------------------------------------------------
 	//---------------------------------------------------
 
-
+	WaterSurfaceUBO m_Surface;
+	SunPositionData m_SunPosition;
 
 	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
 	{
@@ -327,6 +328,11 @@ public:
 
 
 		Prepare();
+
+		m_Surface.absorpCoef = waterTypeCoeffsMap[keys[0]];
+		m_Surface.scatterCoef = ComputeScatteringCoefPA01(scatterCoefs[0]);
+		m_Surface.backscatterCoef = ComputeBackscatteringCoefPA01(m_Surface.scatterCoef);
+
 
 		imguiEnabled = true;
 
@@ -360,16 +366,19 @@ public:
 		auto mandelbulbFactor = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(float), Functions::mandelbulbFactorUpdateFunc);
 		auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight), Functions::globalLightUpdateFunc);
 
-		create_descriptors({ dispMap, verticalFlag, camera, waterSurfaceUBO,amplitude, objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
+		auto sunPosData = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(SunPositionData), Functions::sunPositionUpdateFunc);
+
+		
+		create_descriptors({ sunPosData, dispMap, verticalFlag, camera, waterSurfaceUBO,amplitude, objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
 		using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
 
-		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, image2DFragment, image2dOut2 });
+		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, totalTime, sunPosData, image2DFragment, image2dOut2 });
 		TopoloG imagestoreTopology({ dispMap, image2DFragment, image2dOut2 });
 		TopoloG skyboxTopology({ camera, sampler });
-		TopoloG skyTopology({ objects, resolution, totalTime });
+		TopoloG skyTopology({ objects, resolution, totalTime, sunPosData });
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
 		auto imageStorePipelineLayout = std::make_shared<PipelineLayout>(imagestoreTopology);		
@@ -852,7 +861,9 @@ public:
 		m_TimeCtr += dt * m_AnimSpeed;
 
 		app->set_amplitude(ComputeWaves(m_TimeCtr));
-		
+
+		app->set_surface(m_Surface);
+		app->set_sun_pos_data(m_SunPosition);
 		auto& hx = get_image_fields()[0];
 		VkDeviceSize imageSize = hx->Width * hx->Height * 4 * sizeof(float);
 
@@ -1050,8 +1061,22 @@ public:
 		ImGui::End();
 	}
 
+	static glm::vec3 GetDirFromAngles(float inclination, float azimuth)
+	{
+		//inclination = glm::radians(inclination);
+		//azimuth = glm::radians(azimuth);
+		return glm::normalize(
+			glm::vec3(glm::sin(inclination) * glm::cos(azimuth),
+				glm::cos(inclination),
+				glm::sin(inclination) * glm::sin(azimuth))
+		);
+	}
+
 	void ShowLightingSettings(AppVulkanImpl* app)
 	{
+		static float sunAzimuth = 90.0f;        // [-pi, pi]
+		static float sunInclination = 60.0f;    // [-pi/2, pi/2]
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.29f);
 
 		auto& surface = app->get_surface();
 
@@ -1060,7 +1085,21 @@ public:
 		ImGui::SliderFloat("Specular Intensity",
 			&surface.specularIntensity, 0.f, 3.f);
 		ImGui::SliderFloat("Specular Highlights",
+
 			&surface.specularHighlights, 1.f, 64.f);
+
+		// TODO change to wider range
+		bool paramsChanged = ImGui::SliderAngle("##Sun Inclination",
+			&sunInclination, -90.f, 90.f);
+		ImGui::SameLine();
+		paramsChanged |= ImGui::SliderAngle("Sun angles##Sun Azimuth",
+			&sunAzimuth, -180.f, 180.f);
+
+		if (paramsChanged)
+		{
+			m_SunPosition.Direction = GetDirFromAngles(sunInclination, sunAzimuth);
+		}
+		ImGui::PopItemWidth();
 
 		ShowComboBox("Absorption type",
 			keys.data(),
@@ -1125,14 +1164,14 @@ public:
 		ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
 		ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
 
-		if (ImGui::TreeNodeEx("Water Properties and Lighting"))
+		if (ImGui::TreeNodeEx("Water Properties and Lighting", ImGuiTreeNodeFlags_DefaultOpen))
 		//	 ImGuiTreeNodeFlags_DefaultOpen)
 		{
 			ShowLightingSettings(app);
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNodeEx("Phillips Spectrum"))
+		if (ImGui::TreeNodeEx("Phillips Spectrum", ImGuiTreeNodeFlags_DefaultOpen))
 			//, ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::DragFloat("Amplitude (10^-7)", &phillipsA, 0.1f, 1.0f, 10.0f,

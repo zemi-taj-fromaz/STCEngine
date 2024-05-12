@@ -207,8 +207,8 @@ struct WaterSurfaceUBO
     alignas(16) glm::vec3 scatterCoef;
     alignas(16) glm::vec3 backscatterCoef;
     alignas(16) glm::vec3 terrainColor{ 0.964f, 1.0f, 0.824f };
-    float skyIntensity{ 3.534f };
-    float specularIntensity{ 1.308f };
+    float skyIntensity{ 1.0f };
+    float specularIntensity{ 1.0f };
     float specularHighlights{ 32.0f };
 
     //--------------------------------------
@@ -220,4 +220,9 @@ struct WaterSurfaceUBO
     alignas(16) glm::vec3 A, B, C, D, E;
     alignas(16) glm::vec3 ZenithLum;
     alignas(16) glm::vec3 ZeroThetaSun;
+};
+
+struct SunPositionData
+{
+    glm::vec3 Direction;
 };

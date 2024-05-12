@@ -49,8 +49,13 @@ public:
     }
     void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, unsigned int layerCount = 1);
 
+    SunPositionData spd;
+    SunPositionData& get_sun_pos_data() { return this->spd; }
+    void set_sun_pos_data(SunPositionData spdX) { spd = spdX; }
+
     WaterSurfaceUBO surface;
     WaterSurfaceUBO& get_surface() { return this->surface; }
+    void set_surface(WaterSurfaceUBO surfaceX){  surface = surfaceX; }
 
     float skyIntensity = 1.0f;
     float& get_sky_intensity() { return skyIntensity; }

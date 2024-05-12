@@ -165,21 +165,21 @@ namespace Functions
 	};
 
 	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> globalLightUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
-		{
-			GlobalLight* globalLightObj = (GlobalLight*)bufferMapped;
-			auto& globalLight = app->get_global_light();
+	{
+		GlobalLight* globalLightObj = (GlobalLight*)bufferMapped;
+		auto& globalLight = app->get_global_light();
 
-			if (!globalLight) return true;
+		if (!globalLight) return true;
 
-			auto& lightProperties = globalLight->get_light_properties();
+		auto& lightProperties = globalLight->get_light_properties();
 
-			globalLightObj->ambientColor = glm::vec4(lightProperties->ambientLight, 1.0f);
-			globalLightObj->diffColor = glm::vec4(lightProperties->diffuseLight, 1.0f);
-			globalLightObj->specColor = glm::vec4(lightProperties->specularLight, 1.0f);
-			globalLightObj->direction = glm::vec4(lightProperties->direction, 1.0f);
+		globalLightObj->ambientColor = glm::vec4(lightProperties->ambientLight, 1.0f);
+		globalLightObj->diffColor = glm::vec4(lightProperties->diffuseLight, 1.0f);
+		globalLightObj->specColor = glm::vec4(lightProperties->specularLight, 1.0f);
+		globalLightObj->direction = glm::vec4(lightProperties->direction, 1.0f);
 
-			return true;
-		};
+		return true;
+	};
 
 	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> heightMapDataUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{
@@ -217,55 +217,16 @@ namespace Functions
 
 			wateSurface->sunDir = surface.sunDir;
 			wateSurface->turbidity = surface.turbidity;
-
-			const float t = wateSurface->turbidity;
-
-			wateSurface->A = glm::vec3(0.1787 * wateSurface->turbidity - 1.4630,
-				-0.0193 * wateSurface->turbidity - 0.2592,
-				-0.0167 * wateSurface->turbidity - 0.2608);
-			wateSurface->B = glm::vec3(-0.3554 * wateSurface->turbidity + 0.4275,
-				-0.0665 * wateSurface->turbidity + 0.0008,
-				-0.0950 * wateSurface->turbidity + 0.0092);
-			wateSurface->C = glm::vec3(-0.0227 * wateSurface->turbidity + 5.3251,
-				-0.0004 * wateSurface->turbidity + 0.2125,
-				-0.0079 * wateSurface->turbidity + 0.2102);
-			wateSurface->D = glm::vec3(0.1206 * wateSurface->turbidity - 2.5771,
-				-0.0641 * wateSurface->turbidity - 0.8989,
-				-0.0441 * wateSurface->turbidity - 1.6537);
-			wateSurface->E = glm::vec3(-0.0670 * wateSurface->turbidity + 0.3703,
-				-0.0033 * wateSurface->turbidity + 0.0452,
-				-0.0109 * wateSurface->turbidity + 0.0529);
-
-			float thetaSun = glm::acos( glm::max(glm::dot(wateSurface->sunDir, glm::vec3(0.0f, 1.0f, 0.0f)), 0.0f));
-
-			const float chi = (4.0 / 9.0 - t / 120.0) * (M_PI - 2.0 * thetaSun);
-			const float Yz = (4.0453 * t - 4.9710) * glm::tan(chi) - 0.2155 * t + 2.4192;
-
-			const float theta2 = thetaSun * thetaSun;
-			const float theta3 = theta2 * thetaSun;
-			const float t2 = t * t;
-
-			const float xz =
-				(0.00165 * theta3 - 0.00375 * theta2 + 0.00209 * thetaSun) * t2 +
-				(-0.02903 * theta3 + 0.06377 * theta2 - 0.03202 * thetaSun + 0.00394) * t +
-				(0.11693 * theta3 - 0.21196 * theta2 + 0.06052 * thetaSun + 0.25886);
-
-			const float yz =
-				(0.00275 * theta3 - 0.00610 * theta2 + 0.00317 * thetaSun + 0.0) * t2 +
-				(-0.04214 * theta3 + 0.08970 * theta2 - 0.04153 * thetaSun + 0.00516) * t +
-				(0.15346 * theta3 - 0.26756 * theta2 + 0.06670 * thetaSun + 0.26688);
-
-			float gamma = thetaSun;
-			float cosGamma = glm::cos(gamma);
-
-			wateSurface->ZenithLum = glm::vec3(Yz, xz, yz);
-			wateSurface->ZeroThetaSun = (
-				1.0f + wateSurface->A * glm::exp(wateSurface->B / glm::cos(0.0f))
-				) * (
-					1.0f + wateSurface->C * glm::exp(wateSurface->D* gamma) +
-					wateSurface->E * cosGamma * cosGamma
-					);
-
 			return true;
 		};
+
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> sunPositionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+	{
+		SunPositionData* sunPos = (SunPositionData*)bufferMapped;
+		auto& sun_pos_data = app->get_sun_pos_data();
+
+		sunPos->Direction = sun_pos_data.Direction;
+
+		return true;
+	};
 }

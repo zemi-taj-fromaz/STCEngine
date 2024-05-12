@@ -4,6 +4,7 @@ layout(location = 0) in vec3 inPosition;
 
 layout(location = 0) out vec2 outUV;
 layout(location = 1) out float time;
+layout(location = 2) out vec3 sunDir;
 
 
 struct ObjectData
@@ -26,7 +27,13 @@ layout(set = 2, binding = 0) uniform BufferObject {
 	float Time;
 } bo;
 
+layout(set = 3, binding = 0) uniform SunData {
+	vec3 Dir;
+} sd;
+
+
 void main() {
+	sunDir = sd.Dir;
     mat4 model = objectBuffer.objects[gl_InstanceIndex].model;
     vec4 pos = model * vec4(inPosition.xy,0.0, 1.0);
 	
