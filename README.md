@@ -1,4 +1,4 @@
-# VulkanEngine
+# STCEngine
 
 This is a small rendering engine developed for purposes of solving assignments in university courses "Interactive Computer Graphics" and "Computer Animations"
 I plan to further expand this to something more concise and advanced, to possibly use it in my masther's thesis.
