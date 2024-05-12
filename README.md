@@ -10,7 +10,7 @@ Most of the project was written in c++, using VulkanAPI as a graphics API.
 Currently developed scenes using this engine:
 
 # Ocean waves
-
+Uses FFT implementation on CPU ( instead of the GPU to remain interactive), renders a body of water in real time.
 ![image](https://github.com/zemi-taj-fromaz/VulkanEngine/assets/99961022/fcb958dc-88e8-496a-b5e2-9116cdc1f624)
 
 # Mandelbulb 3D
