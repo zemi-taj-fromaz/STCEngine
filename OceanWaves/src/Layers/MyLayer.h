@@ -1,4 +1,5 @@
 #pragma once
+#define COMPUTE_JACOBIAN
 
 #include "LayerInit.h"
 #include "Ocean.h"
@@ -452,9 +453,9 @@ public:
 
 		meshWrappers.push_back(reload);
 
-		for (int i = 0; i < 1; i++)
+		for (int i = 0; i < 10; i++)
 		{
-			for (int j = 0; j < 1; j++)
+			for (int j = 0; j < 10; j++)
 			{
 				auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
 				woodbox->Billboard = false;
@@ -612,7 +613,7 @@ public:
 						(1.0f + m_Lambda * sign * m_dzDisplacementZ[kIndex].real()) -
 						(m_Lambda * sign * m_dxDisplacementZ[kIndex].real()) *
 						(m_Lambda * sign * m_dzDisplacementX[kIndex].real());
-					displacement.w = jacobian;
+					m_Displacements[kIndex].w = jacobian;
 #endif
 
 					m_Normals[kIndex] = glm::vec4(
@@ -1081,12 +1082,12 @@ public:
 		auto& surface = app->get_surface();
 
 		ImGui::SliderFloat("Sky Intensity",
-			&surface.skyIntensity, 0.f, 10.f);
+			&m_Surface.skyIntensity, 0.f, 10.f);
 		ImGui::SliderFloat("Specular Intensity",
-			&surface.specularIntensity, 0.f, 3.f);
+			&m_Surface.specularIntensity, 0.f, 3.f);
 		ImGui::SliderFloat("Specular Highlights",
 
-			&surface.specularHighlights, 1.f, 64.f);
+			& m_Surface.specularHighlights, 1.f, 64.f);
 
 		// TODO change to wider range
 		bool paramsChanged = ImGui::SliderAngle("##Sun Inclination",
@@ -1107,17 +1108,17 @@ public:
 			keys[m_WaterTypeCoefIndex].c_str(),
 			&m_WaterTypeCoefIndex);
 
-		surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
-
+		m_Surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
 		ShowComboBox("Scattering type",
 			scatterCoefStrings.data(),
 			scatterCoefStrings.size(),
 			scatterCoefStrings[m_BaseScatterCoefIndex].c_str(),
 			&m_BaseScatterCoefIndex);
 
-		surface.scatterCoef =
+		m_Surface.scatterCoef =
 			ComputeScatteringCoefPA01(
 				scatterCoefs[m_BaseScatterCoefIndex]);
+
 
 		static bool usePigment = false;
 		ImGui::Checkbox(" Consider pigment concentration", &usePigment);
@@ -1126,13 +1127,13 @@ public:
 			static float pigmentC = 1.0;
 			ImGui::SliderFloat("Pigment concentration", &pigmentC, 0.001f, 3.f);
 
-			surface.backscatterCoef =
+			m_Surface.backscatterCoef =
 				ComputeBackscatteringCoefPigmentPA01(pigmentC);
 		}
 		else
 		{
-			surface.backscatterCoef =
-				ComputeBackscatteringCoefPA01(surface.scatterCoef);
+			m_Surface.backscatterCoef =
+				ComputeBackscatteringCoefPA01(m_Surface.scatterCoef);
 		}
 
 		//// Terrain
@@ -1156,13 +1157,13 @@ public:
 
 		// TODO unit
 		// TODO 2 angles
-		ImGui::DragFloat2("Wind Direction", glm::value_ptr(windDir),
-			0.1f, 0.0f, 0.0f, "%.1f");
-		ImGui::DragFloat("Wind Speed", &windSpeed, 0.1f);
-		ImGui::DragFloat("Choppy correction", &lambda,
-			0.1f, -8.0f, 8.0f, "%.1f");
-		ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
-		ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
+		//ImGui::DragFloat2("Wind Direction", glm::value_ptr(windDir),
+		//	0.1f, 0.0f, 0.0f, "%.1f");
+		//ImGui::DragFloat("Wind Speed", &windSpeed, 0.1f);
+		//ImGui::DragFloat("Choppy correction", &lambda,
+		//	0.1f, -8.0f, 8.0f, "%.1f");
+		//ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
+		//ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
 
 		if (ImGui::TreeNodeEx("Water Properties and Lighting", ImGuiTreeNodeFlags_DefaultOpen))
 		//	 ImGuiTreeNodeFlags_DefaultOpen)
@@ -1176,19 +1177,14 @@ public:
 		{
 			ImGui::DragFloat("Amplitude (10^-7)", &phillipsA, 0.1f, 1.0f, 10.0f,
 				"%.2f");
-			std::cout << phillipsA << std::endl;
+		//	std::cout << phillipsA << std::endl;
 			ImGui::DragFloat("Damping factor", &damping, 0.0001f, 0.0f, 1.0f,
 				"%.4f");
 			ImGui::TreePop();
 		}
 
-
-
-		SetPhillipsConst(phillipsA * 1e-7);
-
 		if (ImGui::Button("Apply"))
 		{
-
 			const bool kWindDirChanged =
 				glm::any(glm::epsilonNotEqual(windDir, GetWindDir(),
 					glm::vec2(0.001f)));

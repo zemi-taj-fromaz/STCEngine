@@ -57,7 +57,7 @@ void AppVulkanImpl::initialize_window()
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
     m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
-     glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+  //   glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     glfwSetWindowUserPointer(m_Window, this);
 
 }
@@ -172,7 +172,9 @@ void AppVulkanImpl::cleanup()
 
     m_DeletionQueue.flush();
 
-
+    //ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     //---------------------------------------------------------------------
 
     vkDestroyDevice(m_Device, nullptr);
@@ -688,7 +690,7 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels;
-    pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb);
+    pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
@@ -1495,13 +1497,6 @@ void AppVulkanImpl::init_imgui()
 
     ImGui_ImplVulkan_Init(&init_info, m_RenderPass);
 
-    {
-        VkCommandBuffer commandBuffer = begin_single_time_commands();
-        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-        end_single_time_commands(commandBuffer);
-    }
-    //clear font textures from cpu data
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
 
     //add the destroy the imgui created structures
     m_DeletionQueue.push_function([=]() {
@@ -1509,6 +1504,13 @@ void AppVulkanImpl::init_imgui()
         vkDestroyDescriptorPool(m_Device, m_ImguiPool, nullptr);
         ImGui_ImplVulkan_Shutdown();
         }, "ImGui");
+    {
+        VkCommandBuffer commandBuffer = begin_single_time_commands();
+        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+        end_single_time_commands(commandBuffer);
+    }
+    //clear font textures from cpu data
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
 
 }
 

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+	
+	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<ClCompile>
+			<WarningLevel>Level3</WarningLevel>
+			<SDLCheck>true</SDLCheck>
+			<PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<ConformanceMode>true</ConformanceMode>
+			<AdditionalIncludeDirectories>$(SolutionDir)VulkanTest/src;vendor\;...\libs\imgui;..\resources;..\libs;src;..\libs\glm;C:\VulkanSDK\1.3.283.0\Include;C:\Users\hrcol\Downloads\glfw-3.4.bin.WIN64\glfw-3.4.bin.WIN64\include;..\libs\fftw\fftw-3.3.5-dll64;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<BasicRuntimeChecks>Default</BasicRuntimeChecks>
+			<PreprocessorDefinitions>_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+			<LanguageStandard>stdcpp17</LanguageStandard>
+		</ClCompile>
+		<Link>
+			<SubSystem>Console</SubSystem>
+			<GenerateDebugInformation>true</GenerateDebugInformation>
+			<AdditionalOptions />
+			<AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+			<AdditionalDependencies>vulkan-1.lib;glfw3_mt.lib;libfftw3-3.lib;libfftw3l-3.lib;libfftw3f-3.lib;VulkanTest.Lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalLibraryDirectories>..\libs\fftw\fftw-3.3.5-dll64;C:\VulkanSDK\1.3.283.0\Lib;C:\Users\hrcol\Downloads\glfw-3.4.bin.WIN64\glfw-3.4.bin.WIN64\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<IgnoreSpecificDefaultLibraries> libcmt.lib</IgnoreSpecificDefaultLibraries>
+		</Link>
+	</ItemDefinitionGroup>
+	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<ClCompile>
+			<WarningLevel>Level3</WarningLevel>
+			<FunctionLevelLinking>true</FunctionLevelLinking>
+			<IntrinsicFunctions>true</IntrinsicFunctions>
+			<SDLCheck>true</SDLCheck>
+			<AdditionalIncludeDirectories>vendor\;...\libs\imgui;resources;..\libs;src;..\libs\glm;C:\VulkanSDK\1.3.283.0\Include;C:\Users\hrcol\Downloads\glfw-3.4.bin.WIN64\glfw-3.4.bin.WIN64\include;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<ConformanceMode>true</ConformanceMode>
+			<PreprocessorDefinitions>_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+		</ClCompile>
+		<Link>
+			<SubSystem>Console</SubSystem>
+			<EnableCOMDATFolding>true</EnableCOMDATFolding>
+			<OptimizeReferences>true</OptimizeReferences>
+			<GenerateDebugInformation>true</GenerateDebugInformation>
+			<AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+			<AdditionalDependencies>vulkan-1.lib;glfw3_mt.lib;$(CoreLibraryDependencies);VulkanTest.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalLibraryDirectories>..\libs\fftw\fftw-3.3.5-dll64;C:\VulkanSDK\1.3.283.0\Lib;C:\Users\hrcol\Downloads\glfw-3.4.bin.WIN64\glfw-3.4.bin.WIN64\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<IgnoreSpecificDefaultLibraries> libcmt.lib</IgnoreSpecificDefaultLibraries>
+		</Link>
+	</ItemDefinitionGroup>
+	
+  <ItemDefinitionGroup />
+  <ItemGroup />
+</Project>

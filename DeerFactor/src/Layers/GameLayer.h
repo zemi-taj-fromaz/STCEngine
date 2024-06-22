@@ -154,7 +154,7 @@ public:
 		std::shared_ptr<Texture> rustMetallicTex = std::make_shared<Texture>("rustMetallic.png");
 		std::shared_ptr<Texture> rustRoughnessTex = std::make_shared<Texture>("rustRoughness.png");
 
-		create_textures({ gameOverTex, skyboxTex, jetTex, smokeTex, deerTex, woodboxTex, grassTex, retardedTreeTex //}, rustAlbedoTex, rustNormalsTex, rustMetallicTex, rustRoughnessTex
+		create_textures({ deerTex, grassTex, retardedTreeTex //}, rustAlbedoTex, rustNormalsTex, rustMetallicTex, rustRoughnessTex
 			});
 
 		//----------------------- MESH --------------------------------------------------------------------
@@ -239,7 +239,7 @@ public:
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
 
-		meshWrappers.push_back(skybox);
+	//	meshWrappers.push_back(skybox);
 
 		meshWrappers.push_back(aimX);
 		meshWrappers.push_back(aimY);
@@ -288,8 +288,6 @@ public:
 
 			glm::vec3 offset = glm::vec3(xPos, height, zPos);
 
-		//	glm::vec3 offset = m_Camera.Position + glm::vec3(xOffset, height, zOffset);
-
 			auto tree = std::make_shared<MeshWrapper>(texturedPipeline, treeMesh);
 			tree->textures.push_back(retardedTreeTex);
 			tree->translation = glm::translate(glm::mat4(1.0f), offset);
@@ -327,13 +325,8 @@ public:
 			deer->Attacker = true;
 
 			meshWrappers.push_back(deer);
-			//meshWrappers.push_back(smoke);
 		}
 		create_mesh(meshWrappers);
-
-		//m_Camera = Camera();
-		//m_Camera.mesh = jet;
-
 	}
 
 	virtual bool poll_inputs(GLFWwindow* window, float deltaTime) override

@@ -10,7 +10,7 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
 	vec3 color = texture(tex1, texCoord).xyz;
-	if(color == vec3(0.0, 0.0, 0.0)) discard;
+	//if(color == vec3(0.0, 0.0, 0.0)) discard;
 	outColor = vec4(color,1.0f);
     //outColor = vec4(fragColor, 1.0f);
 }

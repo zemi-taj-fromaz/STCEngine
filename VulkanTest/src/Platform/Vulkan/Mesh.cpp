@@ -530,6 +530,11 @@ bool Mesh::load(bool illuminated, bool textured)
             return load_plain(illuminated, textured);
             break;
         }
+        case MeshType::Terrain:
+        {
+            return load_terrain(illuminated, textured);
+            break;
+        }
     }
     return false;
 }

@@ -15,6 +15,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lab1", "Lab1\Lab1.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OceanWaves", "OceanWaves\OceanWaves.vcxproj", "{3E5A5EE1-1464-4D8A-AB48-F825E0AC108C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7B9EA8E5-3F6B-4E92-89BC-C145780B47B4}"
+	ProjectSection(SolutionItems) = preProject
+		resources\shaders\compile.bat = resources\shaders\compile.bat
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

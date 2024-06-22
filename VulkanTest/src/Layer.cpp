@@ -60,7 +60,7 @@ bool Layer::poll_inputs(GLFWwindow* window, float deltaTime)
 
 void Layer::set_callbacks(GLFWwindow* window)
 {
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));

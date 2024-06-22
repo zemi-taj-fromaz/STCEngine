@@ -22,7 +22,7 @@ VkPipeline PipelineBuilder::build_pipeline(DeletionQueue& deletionQ)//(std::stri
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{}; //SEPARATE FUNCTION?
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.pVertexBindingDescriptions = &Vertex::get_binding_description();
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
 	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 

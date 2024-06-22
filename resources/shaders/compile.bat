@@ -2,7 +2,7 @@
 setlocal
 
 rem Relative path to the Vulkan SDK glslc executable
-set "glslcPath=..\..\libs\VulkanSDK\1.3.261.0\Bin\glslc.exe"
+set "glslcPath=C:\VulkanSDK\1.3.283.0\Bin\glslc.exe"
 
 echo "...compiling shaders"
 

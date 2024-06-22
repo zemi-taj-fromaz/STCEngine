@@ -17,8 +17,8 @@ void Renderable::update_billboard(const glm::vec3& CameraPosition)
 
     glm::vec3 rotationAxis = glm::normalize(glm::cross(this->InitialRotation, GoalRotation));
     float rotationAngle = std::acos(glm::dot(glm::normalize(InitialRotation), glm::normalize(GoalRotation))) * 180.0f / static_cast<float>(M_PI);
-
-    setRotation(glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis));
+    auto rot = glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), rotationAxis);
+    setRotation(rot);
     
 }
 
@@ -79,17 +79,17 @@ void Renderable::update_light_source(float deltaTime)
     this->Position = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(Position, 1.0f);
 }
 
-void Renderable::setTranslation(glm::mat4& translation)
+void Renderable::setTranslation(glm::mat4 translation)
 {
     this->Translation = translation;
     compute_model_matrix();
 }
-void Renderable::setRotation(glm::mat4& rotation)
+void Renderable::setRotation(glm::mat4 rotation)
 {
     this->Rotation = rotation;
     compute_model_matrix();
 }
-void Renderable::setScale(glm::mat4& scale)
+void Renderable::setScale(glm::mat4 scale)
 {
     this->Scale = scale;
     compute_model_matrix();

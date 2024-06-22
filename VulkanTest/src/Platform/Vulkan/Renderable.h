@@ -73,9 +73,9 @@ public:
     void update_light_source(float deltaTime);
 
 public:
-    void setTranslation(glm::mat4& translation);
-    void setRotation(glm::mat4& rotation);
-    void setScale(glm::mat4& scale);
+    void setTranslation(glm::mat4 translation);
+    void setRotation(glm::mat4 rotation);
+    void setScale(glm::mat4 scale);
 
     void update_position(glm::vec3 position, glm::vec3 Front);
 
