@@ -11,6 +11,8 @@ VulkanTest/x64/
 .vs/VulkanTest/v17
 **.suo
 **.db
+**.spv
+*.spv
 
 # Hazel files
 *.log
