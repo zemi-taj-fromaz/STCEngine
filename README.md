@@ -24,8 +24,8 @@ Select these components during installation:
 
 
 
-4) Add appropriate paths to Linker->General->Additional Library directories
-        ![image-3](https://github.com/zemi-taj-fromaz/STCEngine/assets/99961022/05ca0033-af7a-466d-a223-904160417efa)
+4) Add appropriate directories to "<AdditionalIncludeDirectories>" under project properties in Visual Studio
+![Snimka zaslona 2024-06-22 175426](https://github.com/zemi-taj-fromaz/STCEngine/assets/99961022/eb75fe87-a005-4e9a-b3fe-a0189d9e1a5e)
 
 
 6) Set proper path
