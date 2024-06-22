@@ -19,6 +19,18 @@ Select these components during installation:
         If you see an image like this it means it went well:
     ![image](https://github.com/zemi-taj-fromaz/DZGEngine/assets/99961022/715b30e3-2b17-41a5-b0b9-a9e68ad9abfb)
 
+3) Add appropriate directories to C++->General->"Additional include directiories" under project properties in Visual Studio
+        ![alt text](image-2.png)
+
+4) Add appropriate paths to Linker->General->Additional Library directories
+        ![alt text](image-3.png)
+
+5) Set proper path
+        
+        In "resources/compile.bat" set a proper to glslc.exe for shader compilation. Run this script initially and after that -  in the case of initial shader adding
+
+        example: set "glslcPath=C:\VulkanSDK\1.3.283.0\Bin\glslc.exe"
+
 If you wish to run any of the code, I advize you to open the project files in Visual Studio and run it from there, or move the executable files (x64 folder) to the project directory and run the executable.
 Most of the project was written in c++, using VulkanAPI as a graphics API.
 
