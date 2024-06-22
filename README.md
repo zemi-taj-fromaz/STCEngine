@@ -1,6 +1,6 @@
 # STCEngine
 
-This is a small rendering engine developed for personal and academic purposes.
+This is a small rendering engine developed for personal and academic purposes (Windows only).
 
 Used libraries:
     GLM (mathematics)
@@ -27,7 +27,7 @@ Select these components during installation:
         ![image-3](https://github.com/zemi-taj-fromaz/STCEngine/assets/99961022/05ca0033-af7a-466d-a223-904160417efa)
 
 
-5) Set proper path
+6) Set proper path
         
         In "resources/compile.bat" set a proper to glslc.exe for shader compilation. Run this script initially and after that -  in the case of initial shader adding
 
