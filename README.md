@@ -9,6 +9,16 @@ Used libraries:
     tiny_obj_loader (for loading objects in .obj format)
     fftw ( Fourirer transform implementation on CPU side)
 
+Setup to run the project:
+
+1) Download VulkanSDK https://vulkan.lunarg.com/sdk/home#windows
+Select these components during installation:
+    ![image](https://github.com/zemi-taj-fromaz/DZGEngine/assets/99961022/433e455f-aa3c-4731-899d-607608e973b4)
+
+        To confirm the installation -> open the Bin folder in the installation directory and run vkcube.exe
+        If you see an image like this it means it went well:
+    ![image](https://github.com/zemi-taj-fromaz/DZGEngine/assets/99961022/715b30e3-2b17-41a5-b0b9-a9e68ad9abfb)
+
 If you wish to run any of the code, I advize you to open the project files in Visual Studio and run it from there, or move the executable files (x64 folder) to the project directory and run the executable.
 Most of the project was written in c++, using VulkanAPI as a graphics API.
 
