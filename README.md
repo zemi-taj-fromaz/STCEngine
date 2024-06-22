@@ -20,10 +20,12 @@ Select these components during installation:
     ![image](https://github.com/zemi-taj-fromaz/DZGEngine/assets/99961022/715b30e3-2b17-41a5-b0b9-a9e68ad9abfb)
 
 3) Add appropriate directories to C++->General->"Additional include directiories" under project properties in Visual Studio
-        ![alt text](image-2.png)
+        ![image-2](https://github.com/zemi-taj-fromaz/STCEngine/assets/99961022/3e3213a1-bd70-48a9-98f0-06dc0b14543c)
+
 
 4) Add appropriate paths to Linker->General->Additional Library directories
-        ![alt text](image-3.png)
+        ![image-3](https://github.com/zemi-taj-fromaz/STCEngine/assets/99961022/05ca0033-af7a-466d-a223-904160417efa)
+
 
 5) Set proper path
         
