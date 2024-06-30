@@ -48,7 +48,7 @@ void AppVulkanImpl::initialize_window()
 
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+   // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     //// Get the primary monitor (screen)
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
@@ -57,7 +57,7 @@ void AppVulkanImpl::initialize_window()
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
     m_Window = glfwCreateWindow(width, height, "Vulkan Fullscreen", nullptr, NULL);
-  //   glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    glfwSetWindowMonitor(m_Window, primaryMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     glfwSetWindowUserPointer(m_Window, this);
 
 }
@@ -136,6 +136,7 @@ void AppVulkanImpl::main_loop()
         
         float currTime = (float)glfwGetTime();
         deltaTime = currTime - time;
+     //   std::cout << deltaTime << std::endl;
         totalTime = currTime - initialTime;
         time = currTime;
 

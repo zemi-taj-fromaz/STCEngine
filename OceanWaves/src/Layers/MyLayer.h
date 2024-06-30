@@ -2,7 +2,6 @@
 #define COMPUTE_JACOBIAN
 
 #include "LayerInit.h"
-#include "Ocean.h"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
@@ -285,38 +284,6 @@ public:
 	//---------------------------------------------------
 	//---------------------------------------------------
 	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
-	//---------------------------------------------------
 
 	WaterSurfaceUBO m_Surface;
 	SunPositionData m_SunPosition;
@@ -325,8 +292,6 @@ public:
 	{
 		SetTileSize(tileSize);
 		SetTileLength(tileLength);
-
-
 
 		Prepare();
 
@@ -370,7 +335,7 @@ public:
 		auto sunPosData = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(SunPositionData), Functions::sunPositionUpdateFunc);
 
 		
-		create_descriptors({ sunPosData, dispMap, verticalFlag, camera, waterSurfaceUBO,amplitude, objects, resolution, totalTime, mandelbulbFactor, globalLight, waves,sampler, image2dIn, image2dIn2, image2dOut, image2dOut2, image2DFragment, totalTimeCompute });
+		create_descriptors({ dispMap,  sunPosData, camera, waterSurfaceUBO,amplitude, objects, resolution, totalTime, image2dOut2, image2DFragment });
 
 		//------------------------------ PIPELINE LAYOUTS ---------------------------------------------------
 
@@ -386,7 +351,7 @@ public:
 		auto skyboxPipelineLayout = std::make_shared<PipelineLayout>(skyboxTopology);
 		auto skyPipelineLayout = std::make_shared<PipelineLayout>(skyTopology);
 
-		create_layouts({  imageFieldPipelineLayout , imageStorePipelineLayout, skyboxPipelineLayout, skyPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
+		create_layouts({ imageStorePipelineLayout,  imageFieldPipelineLayout, skyPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
 
@@ -403,13 +368,13 @@ public:
 		auto skyPipeline = std::make_shared<Pipeline>(skyPipelineLayout, skyShaderNames, VK_FALSE, false, VK_CULL_MODE_NONE);
 
 
-		create_pipelines({ imagefieldPipeline, imagestorePipeline, skyboxPipeline , skyPipeline });
+		create_pipelines({ imagefieldPipeline, skyPipeline, imagestorePipeline });
 		m_ComputePipeline = imagestorePipeline;
 
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
 		std::shared_ptr<Texture> skyboxTex = std::make_shared<Texture>("stormydays/");
-		create_textures({ skyboxTex });
+		//create_textures({ skyboxTex });
 
 		//-------------------------------------- IMAGE FIELDS --------------------------------------------
 
@@ -446,10 +411,6 @@ public:
 		auto reload = std::make_shared<MeshWrapper>(skyPipeline, quad);
 		reload->scale = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 1.0f));
 		//reload->translation = glm::translate(glm::mat4(1.0f), glm::vec3(-1.2f, 0.7f, 0.0f));
-
-		auto skybox = std::make_shared<MeshWrapper>(skyboxPipeline, box);
-		skybox->textures.push_back(skyboxTex);
-		skybox->isSkybox = true;
 
 		meshWrappers.push_back(reload);
 
@@ -1012,8 +973,6 @@ public:
 			});
 	}
 
-
-
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
 
 	std::random_device rd;
@@ -1080,13 +1039,15 @@ public:
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.29f);
 
 		auto& surface = app->get_surface();
+		float fps = 1.0f / app->get_delta_time();
+
+		ImGui::SliderFloat("FPS", &fps, 0.0f, 150.0f);
 
 		ImGui::SliderFloat("Sky Intensity",
 			&m_Surface.skyIntensity, 0.f, 10.f);
 		ImGui::SliderFloat("Specular Intensity",
 			&m_Surface.specularIntensity, 0.f, 3.f);
 		ImGui::SliderFloat("Specular Highlights",
-
 			& m_Surface.specularHighlights, 1.f, 64.f);
 
 		// TODO change to wider range
@@ -1143,7 +1104,6 @@ public:
 		//	1.0f, 0.0f, 1000.0f);
 	//	ImGui::Checkbox(" Clamp to wave height", &m_ClampHeight);
 	}
-
 
 	void ShowWaterSurfaceSettings(AppVulkanImpl* app)
 	{

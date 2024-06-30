@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "../BufferUpdateFunctions.h"
-#include "../ParticlesCreationFunctions.h"
 #include "../BufferUpdateObjects.h"
 
 #include "../../../VulkanTest/vendor/imgui/imgui.h"

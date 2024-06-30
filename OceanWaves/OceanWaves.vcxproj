@@ -74,15 +74,9 @@
     <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
- 
   <ItemGroup>
     <ClCompile Include="src\BufferUpdateFunctions.cpp" />
-    <ClCompile Include="src\FFT.cpp" />
-    <ClCompile Include="src\Height.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Ocean.cpp" />
-    <ClCompile Include="src\ParticlesCreationFunctions.cpp" />
-    <ClCompile Include="src\Phillips.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VulkanTest\VulkanTest.vcxproj">
@@ -92,14 +86,8 @@
   <ItemGroup>
     <ClInclude Include="src\BufferUpdateFunctions.h" />
     <ClInclude Include="src\BufferUpdateObjects.h" />
-    <ClInclude Include="src\FFT.h" />
-    <ClInclude Include="src\Height.h" />
     <ClInclude Include="src\Layers\MyLayer.h" />
     <ClInclude Include="src\Layers\LayerInit.h" />
-    <ClInclude Include="src\Ocean.h" />
-    <ClInclude Include="src\ParticlesCreationFunctions.h" />
-    <ClInclude Include="src\Phillips.h" />
-    <ClInclude Include="src\wavecomp_lib.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
