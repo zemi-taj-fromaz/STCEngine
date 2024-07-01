@@ -693,7 +693,7 @@ void AppVulkanImpl::create_texture_image(Texture& texture)
     stbi_uc* pixels;
     pixels = stbi_load(std::string(std::filesystem::current_path().parent_path().string() + "/" + Texture::PATH + texture.Filename).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
