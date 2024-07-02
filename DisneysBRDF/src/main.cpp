@@ -87,6 +87,7 @@ public:
 			std::vector<std::string> cubemapShaderNames({  "CubemapShader.vert", "CubemapShader.frag"  });
 			std::vector<std::string> computeShaderName({  "ComputeShader.comp"  });
 			std::vector<std::string> computeShaderNames({  "ComputeShader.vert", "ComputeShader.frag"});
+			std::vector<std::string> disneyShaderNames({  "DisneyShader.vert", "DisneyShader.frag"});
 			std::vector<std::string> mandelbulbShaderNames({  "MandelbulbShader.vert", "MandelbulbShader.frag"});
 			std::vector<std::string> PBRShaderNames({  "PBRShader.vert", "PBRShader.frag"});
 
@@ -94,6 +95,7 @@ public:
 
 			auto texturedPipeline = std::make_shared<Pipeline>(pipelineLayout1, textureShaderNames);
 			auto plainPipeline = std::make_shared<Pipeline>(pipelineLayout2, plainShaderNames);
+			auto disneyPipeline = std::make_shared<Pipeline>(pipelineLayout2, disneyShaderNames);
 			auto illuminatePipeline = std::make_shared<Pipeline>(pipelineLayout8, illuminateShaderNames);
 			auto skyboxPipeline = std::make_shared<Pipeline>(pipelineLayout5, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
 			auto particlesPipeline = std::make_shared<Pipeline>(pipelineLayout1, particleShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
@@ -109,7 +111,7 @@ public:
 			this->m_ComputeGraphicsPipeline = std::make_shared<Pipeline>(pipelineLayoutGraphics, computeShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
 			this->m_ComputeGraphicsPipeline->PolygonMode = VK_POLYGON_MODE_POINT;
 			this->m_ComputeGraphicsPipeline->Topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-			create_pipelines({ texturedPipeline, skyboxPipeline, particlesPipeline, plainPipeline // , PBRPipeline
+			create_pipelines({ texturedPipeline, skyboxPipeline, particlesPipeline, plainPipeline, disneyPipeline // , PBRPipeline
 	});//, m_ComputePipeline, m_ComputeGraphicsPipeline});
 
 		//------------------------- TEXTURES ---------------------------------------------------------------
@@ -184,15 +186,17 @@ public:
 	//	smoke->scale = glm::scale(glm::mat4(1.0f), glm::vec3(20.0f, 20.0f, 1.0f));
 		smoke->head = jet;
 
-		auto sphereMesh1 = std::make_shared<MeshWrapper>(plainPipeline, sphere);
+		auto sphereMesh1 = std::make_shared<MeshWrapper>(disneyPipeline, sphere);
 	//	sphereMesh1->textures.push_back(smokeTex);
 		sphereMesh1->scale = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
 		sphereMesh1->color = glm::vec4(1.0f, 0.2f, 0.8f, 1.0f);
+	//	sphereMesh1->illuminated = true;
 
-		auto sphereMesh2 = std::make_shared<MeshWrapper>(texturedPipeline, realSphere);
-		sphereMesh2->textures.push_back(smokeTex);
+		auto sphereMesh2 = std::make_shared<MeshWrapper>(disneyPipeline, realSphere);
+	//	sphereMesh2->textures.push_back(smokeTex);
 		sphereMesh2->scale = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
 		sphereMesh2->translation = glm::translate(glm::mat4(1.0f), glm::vec3(40.0f, 10.0f, 40.0f));
+		sphereMesh2->illuminated = true;
 
 
 

@@ -44,6 +44,8 @@ rem Compile each shader with relative paths
 "%glslcPath%" FFTOceanShader.frag -o FFTOceanShaderfrag.spv
 "%glslcPath%" Sky.vert -o Skyvert.spv
 "%glslcPath%" Sky.frag -o Skyfrag.spv
+"%glslcPath%" DisneyShader.vert -o DisneyShadervert.spv
+"%glslcPath%" DisneyShader.frag -o DisneyShaderfrag.spv
 "%glslcPath%" ImageFieldShader.vert -o ImageFieldShadervert.spv
 "%glslcPath%" ImageFieldShader.frag -o ImageFieldShaderfrag.spv
 "%glslcPath%" FFTShader.comp -o FFTShadercomp.spv

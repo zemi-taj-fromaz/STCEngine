@@ -424,6 +424,7 @@ public:
 				woodbox->image_fields.push_back(dh);
 				woodbox->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
 				woodbox->translation = glm::translate(glm::mat4(1.0f), glm::vec3(i*tileLength,0.0f, j*tileLength));
+				woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0, 1.0f, 3.0f));
 				meshWrappers.push_back(woodbox);
 			}
 		}
