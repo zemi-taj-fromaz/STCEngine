@@ -53,6 +53,9 @@ public:
     SunPositionData& get_sun_pos_data() { return this->spd; }
     void set_sun_pos_data(SunPositionData spdX) { spd = spdX; }
 
+    DisneyShadingParams disneyParams;
+    DisneyShadingParams& get_disney_params() { return this->disneyParams; }
+
     WaterSurfaceUBO surface;
     WaterSurfaceUBO& get_surface() { return this->surface; }
     void set_surface(WaterSurfaceUBO surfaceX){  surface = surfaceX; }
@@ -85,6 +88,8 @@ public:
 
     float height_w;
     float& get_height() { return height_w; }
+
+
 
 
     glm::vec3 absorpCoef;

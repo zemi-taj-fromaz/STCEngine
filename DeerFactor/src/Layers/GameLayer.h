@@ -275,7 +275,9 @@ public:
 			double xOffset = distance * cos(angle);
 			double zOffset = distance * sin(angle);
 
-			float xPos = m_Camera.Position.x + xOffset;
+			float xPos = m_
+				
+				+ xOffset;
 			float zPos = m_Camera.Position.z + zOffset;
 
 			int xArg = static_cast<int>(xPos);// % 800 + 800) % 800;

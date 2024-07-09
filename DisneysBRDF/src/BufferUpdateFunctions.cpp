@@ -9,8 +9,22 @@ namespace Functions
 		CameraBufferObject cbo{};
 		Camera camera = app->get_camera();
 		auto swapChainExtent = app->get_swapchain_extent();
+		
+		camera.Position = glm::vec3(63.0199f, 12.4609f, 62.8054f);
+		//camera.Front = glm::vec3(-0.698872, -0.0636613, -0.712408f);
+		//camera.Up = glm::vec3(0.0445815f, 0.997972f, -0.045445f);
+		camera.Front = glm::vec3(0.0, 0.0, 1.0);
+		camera.Up = glm::vec3(0.0, 1.0, 0.0);
+
+
+
 		cbo.view = glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
 		cbo.proj = glm::perspective(glm::radians(camera.Fov), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 500.0f);
+
+		//std::cout << "Camera Position" << camera.Position.x << " " << camera.Position.y << " " << camera.Position.z << std::endl;
+		//std::cout << "Camera Front" << camera.Front.x << " " << camera.Front.y << " " << camera.Front.z << std::endl;
+		//std::cout << "Camera Up" << camera.Up.x << " " << camera.Up.y << " " << camera.Up.z << std::endl;
+
 		cbo.proj[1][1] *= -1;
 		cbo.pos = glm::vec4(camera.Position, 1.0f);
 		memcpy(bufferMapped, &cbo, sizeof(cbo));
@@ -99,6 +113,25 @@ namespace Functions
 		return true;
 
 	};
+
+
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> mousePositionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+		{
+			MousePosition ubo{};
+			ubo.pos = app->get_mouse_position() - glm::vec2(app->width / 2.0f, app->height / 2.0f);
+			ubo.pos = ubo.pos / glm::vec2(app->width / 2.0f, app->height / 2.0f);
+
+			memcpy(bufferMapped, &ubo, sizeof(MousePosition));
+			return true;
+		};
+
+	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> disneyShadingParamsUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
+		{
+			DisneyShadingParams ubo = app->get_disney_params();
+			
+			memcpy(bufferMapped, &ubo, sizeof(DisneyShadingParams));
+			return true;
+		};
 
 	std::function<bool(AppVulkanImpl* app, void* bufferMapped)> resolutionUpdateFunc = [](AppVulkanImpl* app, void* bufferMapped)
 	{

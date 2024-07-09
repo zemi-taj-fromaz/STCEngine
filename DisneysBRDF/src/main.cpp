@@ -5,11 +5,17 @@
 #include "ParticlesCreationFunctions.h"
 #include "BufferUpdateObjects.h"
 
+#include "../../../VulkanTest/vendor/imgui/imgui.h"
+#include "../../../VulkanTest/vendor/imgui/imgui_impl_vulkan.h"
+#include "../../../VulkanTest/vendor/imgui/imgui_impl_glfw.h"
+
 class ExampleLayer : public Layer
 {
 public:
 	ExampleLayer() : Layer("Example") 
 	{
+		imguiEnabled = true;
+	
 
 		//------------------------------ DESCRIPTORS ---------------------------------------------------
 
@@ -19,6 +25,8 @@ public:
 			auto flashLights = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 3, sizeof(FlashLight) * 20, Functions::flashLightsUpdateFunc);
 			auto globalLight = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(GlobalLight) , Functions::globalLightUpdateFunc);
 			auto resolution = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Resolution), Functions::resolutionUpdateFunc);
+			auto mousePos = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(MousePosition), Functions::mousePositionUpdateFunc);
+			auto disneyShadingParams = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DisneyShadingParams), Functions::disneyShadingParamsUpdateFunc);
 			auto sampler = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 			//auto albedo = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 			//auto normals = std::make_shared<Descriptor>(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -36,7 +44,7 @@ public:
 
 		//	ssboOut->particlesCreateFunction = Functions::mandelbulb;
 
-			create_descriptors({ camera,objects, resolution, sampler, totalTime, pointLights, flashLights, globalLight // , albedo, normals, metallic, roughness
+			create_descriptors({ camera,objects, resolution, disneyShadingParams, mousePos, sampler, totalTime, pointLights, flashLights, globalLight // , albedo, normals, metallic, roughness
 	});// , deltaTime, ssboIn, ssboOut
 
 
@@ -46,6 +54,7 @@ public:
 			using TopoloG = std::vector<std::shared_ptr<Descriptor>>;
 			TopoloG topology1({ camera, objects, sampler });
 			TopoloG topology2({ camera, objects });
+			TopoloG topologyDisney({ camera, objects, mousePos, disneyShadingParams });
 			TopoloG topology5({ camera, sampler });
 			TopoloG topology6({ camera, objects, resolution, totalTime });
 			TopoloG topology7({ camera, objects, pointLights, flashLights, globalLight });
@@ -60,6 +69,7 @@ public:
 
 			auto pipelineLayout1 = std::make_shared<PipelineLayout>(topology1);
 			auto pipelineLayout2 = std::make_shared<PipelineLayout>(topology2);
+			auto pipelineLayoutDisney = std::make_shared<PipelineLayout>(topologyDisney);
 			auto pipelineLayout3 = std::make_shared<PipelineLayout>(topology2);
 			auto pipelineLayout4 = std::make_shared<PipelineLayout>(topology1);
 			auto pipelineLayout5 = std::make_shared<PipelineLayout>(topology5);
@@ -73,7 +83,7 @@ public:
 			//auto pipelineLayoutCompute = std::make_shared<PipelineLayout>(topologyCompute);
 			auto pipelineLayoutGraphics = std::make_shared<PipelineLayout>(topologyComputeGraphics);
 		
-			create_layouts({ pipelineLayout1, pipelineLayout2 , pipelineLayout3 , pipelineLayout4 , pipelineLayout5, pipelineLayout6, pipelineLayout7, pipelineLayout8, pipelineLayoutGraphics //}); , pipelineLayoutPBR
+			create_layouts({ pipelineLayout1, pipelineLayout2 ,pipelineLayoutDisney, pipelineLayout3 , pipelineLayout4 , pipelineLayout5, pipelineLayout6, pipelineLayout7, pipelineLayout8, pipelineLayoutGraphics //}); , pipelineLayoutPBR
 	});// , pipelineLayoutCompute, pipelineLayoutGraphics
 
 		//------------------------------- SHADERS ------------------------------------------------------------------
@@ -95,7 +105,7 @@ public:
 
 			auto texturedPipeline = std::make_shared<Pipeline>(pipelineLayout1, textureShaderNames);
 			auto plainPipeline = std::make_shared<Pipeline>(pipelineLayout2, plainShaderNames);
-			auto disneyPipeline = std::make_shared<Pipeline>(pipelineLayout2, disneyShaderNames);
+			auto disneyPipeline = std::make_shared<Pipeline>(pipelineLayoutDisney, disneyShaderNames);
 			auto illuminatePipeline = std::make_shared<Pipeline>(pipelineLayout8, illuminateShaderNames);
 			auto skyboxPipeline = std::make_shared<Pipeline>(pipelineLayout5, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
 			auto particlesPipeline = std::make_shared<Pipeline>(pipelineLayout1, particleShaderNames, VK_TRUE, false, VK_CULL_MODE_NONE);
@@ -195,8 +205,9 @@ public:
 		auto sphereMesh2 = std::make_shared<MeshWrapper>(disneyPipeline, realSphere);
 	//	sphereMesh2->textures.push_back(smokeTex);
 		sphereMesh2->scale = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
-		sphereMesh2->translation = glm::translate(glm::mat4(1.0f), glm::vec3(40.0f, 10.0f, 40.0f));
+		sphereMesh2->translation = glm::translate(glm::mat4(1.0f), glm::vec3(63.0199f, 12.4609f, 92.8054f));
 		sphereMesh2->illuminated = true;
+		sphereMesh2->color = glm::vec4(1.0f, 1.0f, 0.4f, 1.0f);
 
 
 
@@ -250,6 +261,140 @@ public:
 		//m_Camera = Camera();
 		//m_Camera.mesh = jet;
 
+	}
+
+	bool poll_inputs(GLFWwindow* window, float deltaTime) override
+	{
+
+		//float cameraSpeed = 100.0f;
+
+		//if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		//	m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Front);
+		//}
+
+		//if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+		//	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		//}
+
+		//if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+		//	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		//}
+
+		//if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		//	m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Right);
+		//}
+
+		//if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
+		//	imguiEnabled = !imguiEnabled;
+		//}
+
+		//if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		//	m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Front);
+		//}
+
+		//if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		//	m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Right);
+		//}
+
+		//if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		//{
+		//	m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Up);
+		//}
+
+
+		//if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		//{
+		//	m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Up);
+		//}
+
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+			return false;
+		}
+
+		return true;
+	}
+
+	void set_callbacks(GLFWwindow* window)
+	{
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_CAPTURED);
+
+		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+			app->set_frame_buffer_resized();
+			//TODO
+			//app->set_frame_b
+
+			});
+
+		//glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset) {
+		//	auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+		//	app->set_field_of_view(static_cast<float>(yoffset));
+		//	//app->setScrollCallback();
+		//	});
+
+
+		glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xpos, double ypos) {
+			auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+			glm::vec2 mousePosition = app->get_mouse_position();
+
+			app->set_mouse_position({ static_cast<float>(xpos), static_cast<float>(ypos) });
+			
+			std::cout << xpos << " " << ypos << std::endl;
+			// app->process_mouse_movement(0.0f, 0.0f);
+			});
+	}
+
+	virtual void draw_imgui(GLFWwindow* window) override
+	{
+		auto app = reinterpret_cast<AppVulkanImpl*>(glfwGetWindowUserPointer(window));
+
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+
+		ImGui::NewFrame();
+
+		ImGuiWindowFlags window_flags = 0;
+		window_flags |= ImGuiWindowFlags_NoBackground;
+		window_flags |= ImGuiWindowFlags_NoTitleBar;
+
+		ImVec2 windowSize{ 250, 350 };
+		ImGui::SetNextWindowSize(windowSize);
+		// etc.
+		bool open_ptr = true;
+		ImGui::Begin("I'm a Window!", &open_ptr, window_flags);
+		
+		auto& disneyParams = app->get_disney_params();
+
+		if (ImGui::CollapsingHeader("Water Surface Settings",
+			ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
+
+			ImGui::DragFloat("subsurface", &disneyParams.subsurface, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("metallic", &disneyParams.metallic, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("specular", &disneyParams.specular, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("specularTint", &disneyParams.specularTint, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("roughness", &disneyParams.roughness, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("anisotropic", &disneyParams.anisotropic, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("sheen", &disneyParams.sheen, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("sheenTint", &disneyParams.sheenTint, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("clearcoat", &disneyParams.clearcoat, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::DragFloat("clearcoatGloss", &disneyParams.clearcoatGloss, 0.01f, 0.0f, 1.0f, "%.2f");
+
+			ImGui::PopItemWidth();
+			ImGui::NewLine();
+		}
+
+		/*	if (ImGui::CollapsingHeader("Mesh Settings",
+				ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
+				ShowMeshSettings();
+				ImGui::PopItemWidth();
+				ImGui::NewLine();
+			}*/
+
+		ImGui::End();
 	}
 
 private:

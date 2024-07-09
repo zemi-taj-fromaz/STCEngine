@@ -96,9 +96,28 @@ struct CameraBufferObject {
     glm::vec4 pos;
 };
 
+struct DisneyShadingParams
+{
+    float subsurface{ 0.1f };
+    float metallic{ 0.1f };
+    float specular{ 0.1f };
+    float specularTint{ 0.1f };
+    float roughness{ 0.1f };
+    float anisotropic{ 0.1f };
+    float sheen{ 0.1f };
+    float sheenTint{ 0.1f };
+    float clearcoat{ 0.1f };
+    float clearcoatGloss{ 0.1f };
+};
+
 struct Resolution
 {
     glm::vec2 resolution;
+};
+
+struct MousePosition
+{
+    glm::vec2 pos;
 };
 
 struct Amplitude

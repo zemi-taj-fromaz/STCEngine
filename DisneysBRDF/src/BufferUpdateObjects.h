@@ -34,6 +34,8 @@ struct GlobalLight
     glm::vec4 direction;
 };
 
+
+
 struct FlashLight
 {
     glm::vec4 position;
