@@ -45,7 +45,7 @@ Currently developed scenes using this engine:
 
 Implementation of disney's physically based lighting model, published in the following paper:
     https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf
-By adjusting given parameters allows for rendering broad specter of surfaces.
+By adjusting given parameters allows for rendering broad spectrum of surfaces.
 ![image](https://github.com/zemi-taj-fromaz/STCEngine/assets/99961022/4761f1ad-588a-4206-8704-c6d7a58e7052)
 
 
