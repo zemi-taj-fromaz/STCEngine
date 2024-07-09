@@ -41,7 +41,8 @@ Most of the project was written in c++, using VulkanAPI as a graphics API.
 
 Currently developed scenes using this engine:
 
-#Disney BRDF
+# Disney BRDF
+
 Implementation of disney's physically based lighting model, published in the following paper:
     https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf
 By adjusting given parameters allows for rendering broad specter of surfaces.
