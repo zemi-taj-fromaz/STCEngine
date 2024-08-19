@@ -226,6 +226,8 @@ namespace Functions
 		auto& sun_pos_data = app->get_sun_pos_data();
 
 		sunPos->Direction = sun_pos_data.Direction;
+		std::cout << "Sun Direction To GPU " << sunPos->Direction.x << " " << sunPos->Direction.y << " " << sunPos->Direction.z << std::endl;
+
 
 		return true;
 	};

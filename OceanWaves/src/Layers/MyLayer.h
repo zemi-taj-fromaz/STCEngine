@@ -3,7 +3,16 @@
 
 #include "LayerInit.h"
 #include <algorithm>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 #include <glm/glm.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/ext.hpp>
 
@@ -367,11 +376,9 @@ public:
 		auto skyboxPipeline = std::make_shared<Pipeline>(skyboxPipelineLayout, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
 		auto skyPipeline = std::make_shared<Pipeline>(skyPipelineLayout, skyShaderNames, VK_FALSE, false, VK_CULL_MODE_NONE);
 
-
 		create_pipelines({ imagefieldPipeline, skyPipeline, imagestorePipeline });
 		m_ComputePipeline = imagestorePipeline;
-
-
+		
 		//------------------------- TEXTURES ---------------------------------------------------------------
 		std::shared_ptr<Texture> skyboxTex = std::make_shared<Texture>("stormydays/");
 		//create_textures({ skyboxTex });
@@ -402,8 +409,12 @@ public:
 		//-------------------- LIGHTS -----------------------------------------------------------------------
 
 		this->m_Camera = Camera();
-		m_Camera.Position = glm::vec3(0.0f, 20.0f, 50.0f);
-
+		m_Camera.Position = glm::vec3(533.148f, 510.987f, 463.29f);
+		m_Camera.direction = glm::vec3(0.561019 - 0.585665 - 0.585025);
+		m_Camera.Front = glm::normalize(m_Camera.direction);
+		m_Camera.Right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), m_Camera.Front));
+		m_Camera.Up = glm::cross(m_Camera.Front, m_Camera.Right);
+	//	m_Camera.direction = glm::vec3(-1.0f, -1.0f, -1.0f);
 		//-------------------- MESH WRAPPERS ----------------------------------------------------------------
 
 		std::vector<std::shared_ptr<MeshWrapper>> meshWrappers;
@@ -414,9 +425,10 @@ public:
 
 		meshWrappers.push_back(reload);
 
-		for (int i = 0; i < 1; i++)
+		int fieldCount = 1;
+		for (int i = 0; i < fieldCount; i++)
 		{
-			for (int j = 0; j < 1; j++)
+			for (int j = 0; j < fieldCount; j++)
 			{
 				auto woodbox = std::make_shared<MeshWrapper>(imagefieldPipeline, plain);
 				woodbox->Billboard = false;
@@ -424,7 +436,7 @@ public:
 				woodbox->image_fields.push_back(dh);
 				woodbox->color = glm::vec4(0.2f, 0.2f, 0.8f, 1.0f);
 				woodbox->translation = glm::translate(glm::mat4(1.0f), glm::vec3(i*tileLength,0.0f, j*tileLength));
-				woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0, 1.0f, 3.0f));
+			//	woodbox->scale = glm::scale(glm::mat4(1.0f), glm::vec3(3.0, 1.0f, 3.0f));
 				meshWrappers.push_back(woodbox);
 			}
 		}
@@ -970,7 +982,7 @@ public:
 			xoffset *= sensitivity;
 			yoffset *= sensitivity;
 
-			app->process_mouse_movement(xoffset, yoffset);
+		//	app->process_mouse_movement(xoffset, yoffset);
 			});
 	}
 
@@ -1061,6 +1073,7 @@ public:
 		if (paramsChanged)
 		{
 			m_SunPosition.Direction = GetDirFromAngles(sunInclination, sunAzimuth);
+			std::cout << "Sun Direction Params Changed " << m_SunPosition.Direction.x << " " << m_SunPosition.Direction.y << " " << m_SunPosition.Direction.z << std::endl;
 		}
 		ImGui::PopItemWidth();
 

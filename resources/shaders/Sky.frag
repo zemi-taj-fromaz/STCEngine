@@ -117,8 +117,6 @@ void main( )
     vec2 uv             = inUV;
     
     float turbidity     = 2.0;
-    float azimuth       = Time * 0.125;
-    float inclination   = Time * 0.25;
     vec3 viewDir  		= -computeSphericalCoordinates( uv ).xzy;
     vec3 skyLuminance 	= calculateSkyLuminanceRGB( sunDir, viewDir, turbidity );
     

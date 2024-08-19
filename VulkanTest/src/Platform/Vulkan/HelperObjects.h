@@ -225,7 +225,7 @@ struct WaterSurfaceUBO
     alignas(16) glm::vec3 absorpCoef{ 0.420, 0.063, 0.019 };
     alignas(16) glm::vec3 scatterCoef;
     alignas(16) glm::vec3 backscatterCoef;
-    alignas(16) glm::vec3 terrainColor{ 0.964f, 1.0f, 0.824f };
+    alignas(16) glm::vec3 terrainColor{ 0.164f, 1.0f, 0.824f };
     float skyIntensity{ 1.0f };
     float specularIntensity{ 1.0f };
     float specularHighlights{ 32.0f };
