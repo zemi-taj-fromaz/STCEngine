@@ -982,7 +982,7 @@ public:
 			xoffset *= sensitivity;
 			yoffset *= sensitivity;
 
-		//	app->process_mouse_movement(xoffset, yoffset);
+			app->process_mouse_movement(xoffset, yoffset);
 			});
 	}
 
@@ -1052,16 +1052,7 @@ public:
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.29f);
 
 		auto& surface = app->get_surface();
-		float fps = 1.0f / app->get_delta_time();
 
-		ImGui::SliderFloat("FPS", &fps, 0.0f, 150.0f);
-
-		ImGui::SliderFloat("Sky Intensity",
-			&m_Surface.skyIntensity, 0.f, 10.f);
-		ImGui::SliderFloat("Specular Intensity",
-			&m_Surface.specularIntensity, 0.f, 3.f);
-		ImGui::SliderFloat("Specular Highlights",
-			& m_Surface.specularHighlights, 1.f, 64.f);
 
 		// TODO change to wider range
 		bool paramsChanged = ImGui::SliderAngle("##Sun Inclination",
@@ -1073,47 +1064,46 @@ public:
 		if (paramsChanged)
 		{
 			m_SunPosition.Direction = GetDirFromAngles(sunInclination, sunAzimuth);
-			std::cout << "Sun Direction Params Changed " << m_SunPosition.Direction.x << " " << m_SunPosition.Direction.y << " " << m_SunPosition.Direction.z << std::endl;
 		}
 		ImGui::PopItemWidth();
 
-		ShowComboBox("Absorption type",
-			keys.data(),
-			keys.size(),
-			keys[m_WaterTypeCoefIndex].c_str(),
-			&m_WaterTypeCoefIndex);
+		//ShowComboBox("Absorption type",
+		//	keys.data(),
+		//	keys.size(),
+		//	keys[m_WaterTypeCoefIndex].c_str(),
+		//	&m_WaterTypeCoefIndex);
 
-		m_Surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
-		ShowComboBox("Scattering type",
-			scatterCoefStrings.data(),
-			scatterCoefStrings.size(),
-			scatterCoefStrings[m_BaseScatterCoefIndex].c_str(),
-			&m_BaseScatterCoefIndex);
+		//m_Surface.absorpCoef = waterTypeCoeffsMap[keys[m_WaterTypeCoefIndex]];
+		//ShowComboBox("Scattering type",
+		//	scatterCoefStrings.data(),
+		//	scatterCoefStrings.size(),
+		//	scatterCoefStrings[m_BaseScatterCoefIndex].c_str(),
+		//	&m_BaseScatterCoefIndex);
 
-		m_Surface.scatterCoef =
-			ComputeScatteringCoefPA01(
-				scatterCoefs[m_BaseScatterCoefIndex]);
+		//m_Surface.scatterCoef =
+		//	ComputeScatteringCoefPA01(
+		//		scatterCoefs[m_BaseScatterCoefIndex]);
 
 
-		static bool usePigment = false;
-		ImGui::Checkbox(" Consider pigment concentration", &usePigment);
-		if (usePigment)
-		{
-			static float pigmentC = 1.0;
-			ImGui::SliderFloat("Pigment concentration", &pigmentC, 0.001f, 3.f);
+		//static bool usePigment = false;
+		//ImGui::Checkbox(" Consider pigment concentration", &usePigment);
+		//if (usePigment)
+		//{
+		//	static float pigmentC = 1.0;
+		//	ImGui::SliderFloat("Pigment concentration", &pigmentC, 0.001f, 3.f);
 
-			m_Surface.backscatterCoef =
-				ComputeBackscatteringCoefPigmentPA01(pigmentC);
-		}
-		else
-		{
-			m_Surface.backscatterCoef =
-				ComputeBackscatteringCoefPA01(m_Surface.scatterCoef);
-		}
+		//	m_Surface.backscatterCoef =
+		//		ComputeBackscatteringCoefPigmentPA01(pigmentC);
+		//}
+		//else
+		//{
+		//	m_Surface.backscatterCoef =
+		//		ComputeBackscatteringCoefPA01(m_Surface.scatterCoef);
+		//}
 
 		//// Terrain
-		ImGui::ColorEdit3("Seabed Base Color",
-			glm::value_ptr(surface.terrainColor));
+		//ImGui::ColorEdit3("Seabed Base Color",
+		//	glm::value_ptr(surface.terrainColor));
 		//ImGui::DragFloat("Rest Ocean Level", &surface.height,
 		//	1.0f, 0.0f, 1000.0f);
 	//	ImGui::Checkbox(" Clamp to wave height", &m_ClampHeight);
@@ -1129,15 +1119,18 @@ public:
 		static float damping = GetDamping();
 		static float lambda = GetDisplacementLambda();
 
+		float fps = 1.0f / app->get_delta_time();
+		ImGui::SliderFloat("FPS", &fps, 0.0f, 150.0f);
+
 		// TODO unit
 		// TODO 2 angles
-		//ImGui::DragFloat2("Wind Direction", glm::value_ptr(windDir),
-		//	0.1f, 0.0f, 0.0f, "%.1f");
-		//ImGui::DragFloat("Wind Speed", &windSpeed, 0.1f);
-		//ImGui::DragFloat("Choppy correction", &lambda,
-		//	0.1f, -8.0f, 8.0f, "%.1f");
-		//ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
-		//ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
+		ImGui::DragFloat2("Wind Direction", glm::value_ptr(windDir),
+			0.1f, 0.0f, 0.0f, "%.1f");
+		ImGui::DragFloat("Wind Speed", &windSpeed, 0.1f);
+		ImGui::DragFloat("Choppy correction", &lambda,
+			0.1f, -8.0f, 8.0f, "%.1f");
+		ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
+		ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
 
 		if (ImGui::TreeNodeEx("Water Properties and Lighting", ImGuiTreeNodeFlags_DefaultOpen))
 		//	 ImGuiTreeNodeFlags_DefaultOpen)
