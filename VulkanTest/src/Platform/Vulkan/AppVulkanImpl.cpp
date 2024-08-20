@@ -157,12 +157,16 @@ void AppVulkanImpl::main_loop()
 
         for (auto layer : m_LayerStack) layer->on_update();
 
+        float imguiStartTime = glfwGetTime();
         if (layer->imguiEnabled)
         {
             layer->draw_imgui(m_Window);
         }
 
+        float dwarStartTime = glfwGetTime();
         draw_frame(layer);
+        std::cout << "Draw Frame Call " << glfwGetTime() - dwarStartTime << std::endl;
+
     }
     vkDeviceWaitIdle(m_Device);
 }
@@ -406,7 +410,7 @@ void AppVulkanImpl::create_swapchain()
     VkPresentModeKHR presentMode = choose_swap_present_mode(swapChainSupport.PresentModes);
     VkExtent2D extent = choose_swap_extent(swapChainSupport.Capabilities);
 
-    uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
+    uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 2;
 
     MAX_FRAMES_IN_FLIGHT = imageCount;
 
@@ -1360,18 +1364,21 @@ VkSubmitInfo submit_info(VkCommandBuffer* cmd)
 
 void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
 {
+    float frameStart = glfwGetTime();
+
     if (s_ImGuiEnabled) 
     {
         ImGui::Render();
     }
     static int frameNumber{ 0 };
 
-    vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].ComputeInFlightFence, VK_TRUE, UINT64_MAX);
+     vkWaitForFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].ComputeInFlightFence, VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_SyncObjects[m_CurrentFrame].ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        throw;
         Recreate_swapchain();
         return;
     }
@@ -1379,12 +1386,20 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-
     vkResetFences(m_Device, 1, &m_SyncObjects[m_CurrentFrame].ComputeInFlightFence);
     vkResetCommandBuffer(m_ComputeCommandBuffers[m_CurrentFrame], /*VkCommandBufferResetFlagBits*/ 0);
    
+    std::cout << "Fences are done : " << glfwGetTime() - frameStart << std::endl;
+
     layer->update_compute_buffers(this, imageIndex);
+
+    float currTime = glfwGetTime();
+
     draw_compute(m_ComputeCommandBuffers[m_CurrentFrame], imageIndex);
+
+    std::cout << "Compute Draw: " << glfwGetTime() - currTime << std::endl;
+    
+    currTime = glfwGetTime();
 
     VkSubmitInfo ssubmitInfo{};
     ssubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1403,6 +1418,8 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
     vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
 
     layer->update_buffers(this, imageIndex);
+
+    currTime = glfwGetTime();
     draw_objects(m_CommandBuffers[m_CurrentFrame], m_Renderables, imageIndex);
 
     VkSubmitInfo submitInfo{};
@@ -1423,6 +1440,7 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
+
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -1434,6 +1452,7 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
     presentInfo.pImageIndices = &imageIndex;
 
    result =  vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+
    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized) {
        m_FramebufferResized = false;
        Recreate_swapchain();
@@ -1442,8 +1461,9 @@ void AppVulkanImpl::draw_frame(std::shared_ptr<Layer>& layer)
        throw std::runtime_error("failed to present swap chain image!");
    }
 
+   std::cout << "Regular Draw: " << glfwGetTime() - currTime << std::endl;
 
-    m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+   m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 void AppVulkanImpl::init_imgui()
 {

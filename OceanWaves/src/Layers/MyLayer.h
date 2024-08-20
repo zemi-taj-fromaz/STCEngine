@@ -297,10 +297,13 @@ public:
 	WaterSurfaceUBO m_Surface;
 	SunPositionData m_SunPosition;
 
-	MyLayer(uint32_t tileSize, float tileLength) : Layer("Example")
+	float m_WavenumberFactor;
+
+	MyLayer(uint32_t tileSize, float tileLength, float wavenumberFactor) : Layer("Example")
 	{
 		SetTileSize(tileSize);
 		SetTileLength(tileLength);
+		m_WavenumberFactor = wavenumberFactor;
 
 		Prepare();
 
@@ -352,12 +355,10 @@ public:
 
 		TopoloG imagefieldTopology({ camera, objects, waterSurfaceUBO, amplitude, totalTime, sunPosData, image2DFragment, image2dOut2 });
 		TopoloG imagestoreTopology({ dispMap, image2DFragment, image2dOut2 });
-		TopoloG skyboxTopology({ camera, sampler });
 		TopoloG skyTopology({ objects, resolution, totalTime, sunPosData });
 
 		auto imageFieldPipelineLayout = std::make_shared<PipelineLayout>(imagefieldTopology);
 		auto imageStorePipelineLayout = std::make_shared<PipelineLayout>(imagestoreTopology);		
-		auto skyboxPipelineLayout = std::make_shared<PipelineLayout>(skyboxTopology);
 		auto skyPipelineLayout = std::make_shared<PipelineLayout>(skyTopology);
 
 		create_layouts({ imageStorePipelineLayout,  imageFieldPipelineLayout, skyPipelineLayout });// , pipelineLayoutCompute, pipelineLayoutGraphics
@@ -373,7 +374,6 @@ public:
 
 		auto imagefieldPipeline = std::make_shared<Pipeline>(imageFieldPipelineLayout, imageFieldShaderNames, VK_FALSE, false, VK_CULL_MODE_NONE);
 		auto imagestorePipeline = std::make_shared<Pipeline>(imageStorePipelineLayout, imageStoreShaderNames, VK_FALSE,false, VK_CULL_MODE_BACK_BIT);
-		auto skyboxPipeline = std::make_shared<Pipeline>(skyboxPipelineLayout, skyboxShaderNames, VK_FALSE, true, VK_CULL_MODE_FRONT_BIT);
 		auto skyPipeline = std::make_shared<Pipeline>(skyPipelineLayout, skyShaderNames, VK_FALSE, false, VK_CULL_MODE_NONE);
 
 		create_pipelines({ imagefieldPipeline, skyPipeline, imagestorePipeline });
@@ -447,10 +447,17 @@ public:
 
 	float ComputeWaves(float t)
 	{
+		return 0.0f;
+	}
+
+	float ComputeWavesFourier(float t)
+	{
 		const auto kTileSize = m_TileSize;
 
 		float masterMaxHeight = std::numeric_limits<float>::min();
 		float masterMinHeight = std::numeric_limits<float>::max();
+
+		float currTime = glfwGetTime();
 
 #pragma omp parallel shared(masterMaxHeight, masterMinHeight)
 		{
@@ -458,45 +465,36 @@ public:
 			for (uint32_t m = 0; m < kTileSize; ++m)
 				for (uint32_t n = 0; n < kTileSize; ++n)
 				{
-					m_Height[m * kTileSize + n] =
+					const uint32_t kIndex = m * kTileSize + n;
+
+					m_Height[kIndex] =
 						WaveHeightFT(m_BaseWaveHeights[m * kTileSize + n], t);
-				}
-
-			// Slopes for normals computation
-#pragma omp for collapse(2) schedule(static) nowait
-			for (uint32_t m = 0; m < kTileSize; ++m)
-				for (uint32_t n = 0; n < kTileSize; ++n)
-				{
-					const uint32_t kIndex = m * kTileSize + n;
-
-					const auto& kWaveVec = m_WaveVectors[kIndex].vec;
-					m_SlopeX[kIndex] = Complex(0, kWaveVec.x) * m_Height[kIndex];
-					m_SlopeZ[kIndex] = Complex(0, kWaveVec.y) * m_Height[kIndex];
-				}
-
-			// Displacement vectors
-#pragma omp for collapse(2) schedule(static)
-			for (uint32_t m = 0; m < kTileSize; ++m)
-				for (uint32_t n = 0; n < kTileSize; ++n)
-				{
-					const uint32_t kIndex = m * kTileSize + n;
 
 					const auto& kWaveVec = m_WaveVectors[kIndex];
-					m_DisplacementX[kIndex] = Complex(0, -kWaveVec.unit.x) *
-						m_Height[kIndex];
-					m_DisplacementZ[kIndex] = Complex(0, -kWaveVec.unit.y) *
-						m_Height[kIndex];
-					m_dxDisplacementX[kIndex] = Complex(0, kWaveVec.vec.x) *
-						m_DisplacementX[kIndex];
-					m_dzDisplacementZ[kIndex] = Complex(0, kWaveVec.vec.y) *
-						m_DisplacementZ[kIndex];
+					
+					auto number = m_Height[kIndex];
+
+					auto complexX = Complex(0, kWaveVec.vec.x);
+					auto complexY = Complex(0, kWaveVec.vec.y);
+
+					m_SlopeX[kIndex] = complexX * number;
+					m_SlopeZ[kIndex] = complexY * number;
+
+					m_SlopeX[kIndex] = complexX * number;
+					m_SlopeZ[kIndex] = complexY * number;
+
+					m_DisplacementX[kIndex] = Complex(0, -kWaveVec.unit.x) * number;
+					m_DisplacementZ[kIndex] = Complex(0, -kWaveVec.unit.y) * number;
+					m_dxDisplacementX[kIndex] = complexX * m_DisplacementX[kIndex];
+					m_dzDisplacementZ[kIndex] = complexY * m_DisplacementZ[kIndex];
 #ifdef COMPUTE_JACOBIAN
-					m_dzDisplacementX[kIndex] = Complex(0, kWaveVec.vec.y) *
-						m_DisplacementX[kIndex];
-					m_dxDisplacementZ[kIndex] = Complex(0, kWaveVec.vec.x) *
-						m_DisplacementZ[kIndex];
+					m_dzDisplacementX[kIndex] = complexY * m_DisplacementX[kIndex];
+					m_dxDisplacementZ[kIndex] = complexX * m_DisplacementZ[kIndex];
 #endif
 				}
+
+			float newTime = glfwGetTime();
+			std::cout << "Prepare FFT : " << newTime - currTime << std::endl;
 
 #pragma omp sections
 			{
@@ -540,6 +538,9 @@ public:
 #endif
 			}
 
+			float newestTime = glfwGetTime();
+			std::cout << "Execute FFT : " << newestTime - newTime << std::endl;
+
 			float maxHeight = std::numeric_limits<float>::min();
 			float minHeight = std::numeric_limits<float>::max();
 
@@ -554,6 +555,7 @@ public:
 				{
 					const uint32_t kIndex = m * kTileSize + n;
 					const int sign = kSigns[(n + m) & 1];
+
 					const auto h_FT = m_Height[kIndex].real() * static_cast<float>(sign);
 					maxHeight = glm::max(h_FT, maxHeight);
 					minHeight = glm::min(h_FT, minHeight);
@@ -565,22 +567,7 @@ public:
 					displacement.z =
 						static_cast<float>(sign) * m_Lambda * m_DisplacementZ[kIndex].real();
 					displacement.w = 1.0f;
-				}
-			}
-			// TODO reduction
-#pragma omp critical
-			{
-				masterMaxHeight = glm::max(maxHeight, masterMaxHeight);
-				masterMinHeight = glm::min(minHeight, masterMinHeight);
-			}
 
-#pragma omp for collapse(2) schedule(static) nowait
-			for (uint32_t m = 0; m < kTileSize; ++m)
-			{
-				for (uint32_t n = 0; n < kTileSize; ++n)
-				{
-					const uint32_t kIndex = m * kTileSize + n;
-					const int sign = kSigns[(n + m) & 1];
 #ifdef COMPUTE_JACOBIAN
 					const float jacobian =
 						(1.0f + m_Lambda * sign * m_dxDisplacementX[kIndex].real()) *
@@ -598,7 +585,17 @@ public:
 					);
 				}
 			}
+			// TODO reduction
+#pragma omp critical
+			{
+				masterMaxHeight = glm::max(maxHeight, masterMaxHeight);
+				masterMinHeight = glm::min(minHeight, masterMinHeight);
+			}
+
+			float mostNewestTime = glfwGetTime();
+			std::cout << "Finishh FFT : " << mostNewestTime - newestTime << std::endl;
 		}
+
 		return NormalizeHeights(masterMinHeight, masterMaxHeight);
 	}
 
@@ -815,8 +812,8 @@ public:
 			{
 				waveVecs.emplace_back(
 					glm::vec2(
-						M_PI * (2.0f * n - kSize) / kLength,
-						M_PI * (2.0f * m - kSize) / kLength
+						M_PI * (2.0f * n - kSize) / kLength * m_WavenumberFactor,
+						M_PI * (2.0f * m - kSize) / kLength * m_WavenumberFactor
 					)
 				);
 			}
@@ -835,16 +832,18 @@ public:
 
 		m_TimeCtr += dt * m_AnimSpeed;
 
-		app->set_amplitude(ComputeWaves(m_TimeCtr));
+	//	app->set_amplitude(ComputeWaves(m_TimeCtr));
+		app->set_amplitude(ComputeWavesFourier(m_TimeCtr));
 
 		app->set_surface(m_Surface);
 		app->set_sun_pos_data(m_SunPosition);
 		auto& hx = get_image_fields()[0];
 		VkDeviceSize imageSize = hx->Width * hx->Height * 4 * sizeof(float);
 
-
 		app->set_displacements(m_Displacements);
 		app->set_normals(m_Normals);
+
+		float currTime = glfwGetTime();
 
 		for (int i = 0; i < m_ComputePipeline->pipelineLayout->descriptorSetLayout.size(); ++i)
         {
@@ -854,7 +853,6 @@ public:
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, i, 1, &m_ComputePipeline->pipelineLayout->descriptorSetLayout[i]->descriptorSets[imageIndex], 0, nullptr);
         }
 
-
 		for (int i = 0; i < m_ComputePipeline->ImageFields.size(); ++i)
 		{
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipelineLayout->layout, m_ComputePipeline->pipelineLayout->descriptorSetLayout.size() - m_ComputePipeline->ImageFields.size() + i, 1, &m_ComputePipeline->ImageFields[i]->descriptorSets[imageIndex], 0, nullptr);
@@ -862,7 +860,8 @@ public:
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_ComputePipeline->pipeline);
 
-		vkCmdDispatch(commandBuffer, 1, 512, 1);
+
+		vkCmdDispatch(commandBuffer, 1, 256, 1);
 
 		// Barrier to synchronize memory access between dispatches
 		VkMemoryBarrier memoryBarrier2{};
@@ -882,6 +881,10 @@ public:
 			0,                                    // Image memory barrier count
 			nullptr                               // Pointer to image memory barriers
 		);
+
+		std::cout << "Transport to GPU: " << glfwGetTime() - currTime << std::endl;
+
+
 	}
 
 	float m_AnimSpeed{ 3.0 };
@@ -984,6 +987,96 @@ public:
 
 			app->process_mouse_movement(xoffset, yoffset);
 			});
+	}
+
+	bool poll_inputs(GLFWwindow* window, float deltaTime) override
+	{
+
+		float cameraSpeed = 100.0f;
+		float sunSpeed = 10.0f;
+		static float sunAzimuth = 90.0f;        // [-pi, pi]
+		static float sunInclination = 60.0f;    // [-pi/2, pi/2]
+
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Front);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+			m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Right);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
+			imguiEnabled = !imguiEnabled;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Front);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+			m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Right);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		{
+			m_Camera.update_position(cameraSpeed * deltaTime * m_Camera.Up);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		{
+			m_Camera.update_position(-cameraSpeed * deltaTime * m_Camera.Up);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+			return false;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		{
+			sunInclination += sunSpeed * deltaTime;
+		
+			if (sunInclination > 90.0f) {
+				sunInclination = sunInclination - 180.0f;
+			}
+			m_SunPosition.Direction = GetDirFromAngles(sunInclination, sunAzimuth);
+		}
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			sunInclination -= sunSpeed * deltaTime;
+
+			if (sunInclination < -90.0f) {
+				sunInclination = sunInclination + 180.0f;
+			}
+			m_SunPosition.Direction = GetDirFromAngles(sunInclination, sunAzimuth);
+		}
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		{
+			sunAzimuth -= sunSpeed * deltaTime;
+
+			if (sunAzimuth < -180.0f) {
+				sunAzimuth = sunAzimuth + 360.0f;
+			}
+			m_SunPosition.Direction = GetDirFromAngles(sunInclination, sunAzimuth);
+		}
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		{
+			sunAzimuth += sunSpeed * deltaTime;
+
+			if (sunAzimuth > 180.0f) {
+				sunAzimuth = sunAzimuth - 360.0f;
+			}
+			m_SunPosition.Direction = GetDirFromAngles(sunInclination, sunAzimuth);
+		}
+
+		return true;
 	}
 
 	int get_mandelbulb_factor() override { return this->mandelbulb_factor; }
@@ -1119,7 +1212,9 @@ public:
 		static float damping = GetDamping();
 		static float lambda = GetDisplacementLambda();
 
-		float fps = 1.0f / app->get_delta_time();
+		float applicationDeltaTime = app->get_delta_time();
+		std::cout << "Application ms/frame: " << applicationDeltaTime << std::endl;
+		float fps = 1.0f / applicationDeltaTime;
 		ImGui::SliderFloat("FPS", &fps, 0.0f, 150.0f);
 
 		// TODO unit
@@ -1132,12 +1227,12 @@ public:
 		ImGui::DragFloat("Animation Period", &animPeriod, 1.0f, 1.0f, 0.0f, "%.0f");
 		ImGui::DragFloat("Animation speed", &m_AnimSpeed, 0.1f, 0.1f, 8.0f);
 
-		if (ImGui::TreeNodeEx("Water Properties and Lighting", ImGuiTreeNodeFlags_DefaultOpen))
-		//	 ImGuiTreeNodeFlags_DefaultOpen)
-		{
-			ShowLightingSettings(app);
-			ImGui::TreePop();
-		}
+		//if (ImGui::TreeNodeEx("Water Properties and Lighting", ImGuiTreeNodeFlags_DefaultOpen))
+		////	 ImGuiTreeNodeFlags_DefaultOpen)
+		//{
+		//	ShowLightingSettings(app);
+		//	ImGui::TreePop();
+		//}
 
 		if (ImGui::TreeNodeEx("Phillips Spectrum", ImGuiTreeNodeFlags_DefaultOpen))
 			//, ImGuiTreeNodeFlags_DefaultOpen))

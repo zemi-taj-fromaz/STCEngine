@@ -15,8 +15,6 @@ void Camera::process_mouse_movement(float xoffset, float yoffset)
     direction.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
     direction.y = sin(glm::radians(Pitch));
     direction.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    std::cout << "Direction" << direction.x << " " << direction.y << " " << direction.z << std::endl;
-    std::cout << "Poisition" << this->Position.x << " " << Position.y << " " << Position.z << std::endl;
     Front = glm::normalize(direction);
     Right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), Front));
     Up = glm::cross(Front, Right);

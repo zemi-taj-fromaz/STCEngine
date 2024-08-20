@@ -144,7 +144,7 @@ vec3 ComputeWaterSurfaceColor(
     vec3 L_a;
     {
         const float kNdL = max(dot(kNormal, kLightDir), 0.0);
-       // L_a = surface.skyIntensity * kNdL * kSkyReflected;
+      //  L_a = surface.skyIntensity * kNdL * kSkyReflected;
         L_a =  kNdL * kSkyReflected;
     }
 
@@ -175,8 +175,8 @@ vec3 ComputeWaterSurfaceColor(
     const vec3 kRefractDir = RefractAirIncident(-kLightDir, kNormal);
 
     // Light just below the surface transmitted through into the air
-    {
     vec3 L_u;
+    {
         // Downwelling irradiance just below the water surface
         const vec3 E_d0 = M_PI * L_a;
 

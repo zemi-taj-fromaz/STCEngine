@@ -41,7 +41,7 @@ public:
 
     const uint32_t width = 1280;
     const uint32_t height = 720;
-    int MAX_FRAMES_IN_FLIGHT = 2;
+    int MAX_FRAMES_IN_FLIGHT = 3;
 
     void set_amplitude(float amp)
     {

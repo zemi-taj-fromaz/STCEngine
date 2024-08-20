@@ -202,18 +202,20 @@ namespace Functions
 			float time = app->get_delta_time();
 
 			wateSurface->camPos = app->get_camera().Position;
+			wateSurface->height = surface.height;
 			wateSurface->absorpCoef = surface.absorpCoef;
 			glm::vec3 s_kWavelengthsRGB_nm{ 680, 550, 440 };
 			wateSurface->scatterCoef = surface.scatterCoef;
 			wateSurface->backscatterCoef = surface.backscatterCoef;
+
 			wateSurface->terrainColor = surface.terrainColor;
+
 			wateSurface->skyIntensity =  surface.skyIntensity;
 			wateSurface->specularIntensity = surface.specularIntensity;
 			wateSurface->specularHighlights = surface.specularHighlights;
-			wateSurface->height = surface.height;
 
 			wateSurface->sunColor = surface.sunColor;
-			wateSurface->sunIntensity =  surface.sunIntensity ;
+			wateSurface->sunIntensity =  surface.sunIntensity;
 
 			wateSurface->sunDir = surface.sunDir;
 			wateSurface->turbidity = surface.turbidity;
@@ -226,7 +228,7 @@ namespace Functions
 		auto& sun_pos_data = app->get_sun_pos_data();
 
 		sunPos->Direction = sun_pos_data.Direction;
-		std::cout << "Sun Direction To GPU " << sunPos->Direction.x << " " << sunPos->Direction.y << " " << sunPos->Direction.z << std::endl;
+	//	std::cout << "Sun Direction To GPU " << sunPos->Direction.x << " " << sunPos->Direction.y << " " << sunPos->Direction.z << std::endl;
 
 
 		return true;
