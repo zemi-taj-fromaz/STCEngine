@@ -41,6 +41,14 @@ Most of the project was written in c++, using VulkanAPI as a graphics API.
 
 Currently developed scenes using this engine:
 
+# Disney BRDF
+
+Implementation of disney's physically based lighting model, published in the following paper:
+    https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf
+By adjusting given parameters allows for rendering broad spectrum of surfaces.
+![image](https://github.com/zemi-taj-fromaz/STCEngine/assets/99961022/4761f1ad-588a-4206-8704-c6d7a58e7052)
+
+
 # Ocean waves
 Uses FFT implementation on CPU ( instead of the GPU to remain interactive), renders a body of water in real time.
 ![image](https://github.com/zemi-taj-fromaz/VulkanEngine/assets/99961022/fcb958dc-88e8-496a-b5e2-9116cdc1f624)
