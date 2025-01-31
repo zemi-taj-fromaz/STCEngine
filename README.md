@@ -52,6 +52,8 @@ By adjusting given parameters allows for rendering broad spectrum of surfaces.
 # Ocean waves
 Uses FFT implementation on CPU ( instead of the GPU to remain interactive), renders a body of water in real time.
 ![image](https://github.com/zemi-taj-fromaz/VulkanEngine/assets/99961022/fcb958dc-88e8-496a-b5e2-9116cdc1f624)
+![image](https://github.com/user-attachments/assets/5410c430-9316-4fab-af6b-a9388d84179b)
+
 
 # Mandelbulb 3D
 
